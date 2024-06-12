@@ -1,2 +1,145 @@
-Changes in version 0.9.9 (2020-01-01):
-+ Add features to be used in auto-generated workflow.
+Changes in version 3.0.0 (03-15-2024):
+* Updated dependencies
+* Modularized previous code
+* Added prevalence/logistic models
+* Added data augmentation for logistic models
+* Added iterative renormalization for compositionally
+* Added spike-in references for compositionally
+* Added group, OMP, and GOMP models
+
+Changes in version 1.7.3 (11-02-2021):
+* Update sourcing R scripts 
+* Update reference level handling
+* Update example files
+* Fix saved plots to allow for runs with less then N plots per metadata
+* Convert strings to numeric when needed for metadata
+* Fix actions to build with latest version of dependencies
+
+Changes in version 1.7.1 (07-27-2021):
+* Update tutorial data files
+* Update knitr dependency for bioconductor tests
+
+Changes in version 1.5.1 (12-02-2020):
+* Update log from base 10 to base 2.
+* ZICP is now deprecated (https://cran.r-project.org/web/packages/cplm/NEWS)
+* SLM is removed in favor of a future R2 functionality for all models
+* Fitted values are returned along with residuals
+* Extracted random effects are also returned
+
+Changes in version 1.3.2 (08-12-2020):
+* Resolve issue with x labels missing from boxplots for metadata variables without levels and increase max jpgs written. 
+* Update the check for variables with more than two levels that will require a reference provided by the user for the model and the boxplots to be more strict (ignore UNK in the level count, don't check if it is a factor, and check to see if all of the levels are numeric to ignore continuous variables).
+* Fix ZINB error.
+
+Changes in version 1.3.1 (06-16-2020):
++ Add random effects capability to all the other non-LM models.
++ Add variance filtering option with default set to 0.
++ Normalization is now performed after filtering and N.not.zero is calculated on the untransformed space. Also includes minor edits to synchronize with the manuscript.
++ Add reference option required for fixed effects variables with more than two levels. Reference used in model and for boxplots.
++ Update heatmap to include all categorical levels.
+
+Changes in version 1.1.2 (04-17-2020):
++ Small changes to pass build tests for latest bioconductor release.
+
+Changes in version 1.1.1 (01-20-2020):
++ Updated reference to sync up with manuscript.
+
+Changes in version 0.99.19 (2019-09-27):
++ Add figures folder of jpgs including heatmap and most significant scatter/box plots per metadata to be used in auto-generated workflow reports.
+
+Changes in version 0.99.18 (2019-09-27):
++ For log function if x is zero use half of min value instead of one (merged changed function from Tommi Vatanen's fork).
+
+Changes in version 0.99.17 (2019-08-20):
++ Filtering by min abundance is limited to greater than (prior was greater than and equal to)
+
+Changes in version 0.99.16 (2019-08-05):
++ Add value to categorical plots.
+
+Changes in version 0.99.15 (2019-07-31):
++ Adding another dependency required by bioconductor MacOS automated build/test
+
+Changes in version 0.99.14 (2019-07-31):
++ Adding two more dependencies required by bioconductor MacOS automated build/test
+
+Changes in version 0.99.13 (2019-07-31):
++ Iterations for addition to bioconductor: Add back in license file and small changes to coding sections of vignette.
++ Modifications to man page to include new option.
+
+Changes in version 0.99.12 (2019-07-26):
++ Add new option to set the max number of features shown in heatmap.
++ Fix heatmap to include all rows of significant values for the top N features instead of only including the rows after finding the top N features.
+
+Changes in version 0.99.11 (2019-07-24):
++ Update demo to data from HMP2 (provided by Himel).
+
+Changes in version 0.99.10 (2019-07-19):
++ Small modifications to documentation to update dependency install notes to match bioconductor.
+
+Changes in version 0.99.9 (2019-07-18):
++ Add dependency to namespace for automated tests.
+
+Changes in version 0.99.8 (2019-07-18):
++ Add one more dependency for bioconductor MacOS build tests
+
+Changes in version 0.99.7 (2019-07-17):
++ Change file paths to relative to package for windows tests.
+
+Changes in version 0.99.6 (2019-07-17):
++ Fix format of R sections in vignette to pass tests.
+
+Changes in version 0.99.5 (2019-07-17):
++ Update R sections of vignette format.
++ Change test paths for windows.
+
+Changes in version 0.99.4 (2019-07-17):
++ Update required R version.
++ Modifications in vignette format for bioconductor build.
+
+Changes in version 0.99.3 (2019-07-17):
++ Modifications to package based on feedback from bioconductor review (additions to description, notes on data files, update testing to testthat, condensing vignette sections and updating install to bioconductor method, remove tests for packages, use seq_len and lapply)
+
+Changes in version 0.99.2 (2019-06-27):
++ Show top N features in heatmap instead of top N associations
+
+Changes in version 0.99.1 (2019-06-05):
++ Fix plots to allow for NAs in values
+
+Changes in version 0.99.0 (2019-05-24):
++ Only show the top 50 associations in the heatmaps
++ Use static heatmap plot colors
++ In boxplots, use angle for x axis text for long text strings (if any in set is over 5 chars)
++ For larger y axis labels reduce the font size (if over 15 chars)
++ Add Ns to plots in annotation for continuous and x axis label for categorical
+
+Changes in version 0.3.0 (2019-05-20):
++ Plots now show normalized/filtered/transformed data
++ Package modifications for submission to bioconductor
+
+Changes in version 0.2.3 (2018-12-20):
++ Move filtering to after normalization
++ Updates to barplots
+
+Changes in version 0.2.2 (2018-11-15):
++ Fix issue with single column in visualizations (Thanks, sma!)
++ Add hash to dependencies
++ Change output column names to match data.frame names
++ Add options to bypass plotting
++ Add crossed random effects for LM using lme4 and lmerTest
++ Fix ZICP fitting errors
++ Add stderr to results
++ Rotate heatmap column names by 45 degrees
+
+Changes in version 0.2.1 (2018-10-10):
++ Update read/slicing to support input files with a single feature.
+
+Changes in version 0.2.0 (2018-10-09):
++ Group boxplots/scatter plots by metadata name.
++ Replace ggsave with pdf to print heatmap/plots to resolve ggsave Rplot.pdf issue.
++ Add tryCatch to allow for error in heatmap but still print other plots.
++ Allow data/metadata inputs to be paths to files or data.frame.
++ Return fit data from maaslin2 function.
++ Set na.action default in model fit to na.exclude.
+
+Changes in version 0.1.0 (2018-09-27):
++ Initial tagged release.

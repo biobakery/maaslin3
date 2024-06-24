@@ -6,8 +6,7 @@ If you use the MaAsLin2 software, please cite our manuscript:
 
 William A. Nickols, Jacob T. Nearing, Kelsey N. Thompson, Curtis Huttenhower MaAsLin 3: Refining and extending generalized multivariate linear models for meta-omic association discovery. (In progress)
 
-If you have questions, please direct it to :   
-[MaAsLin3 Forum](https://forum.biobakery.org/c/Downstream-analysis-and-statistics/MaAsLin2)    
+If you have questions, please direct it to:  [MaAsLin3 Forum](https://forum.biobakery.org/c/Downstream-analysis-and-statistics/MaAsLin2)    
 
 --------------------------------------------
 
@@ -17,13 +16,14 @@ If you have questions, please direct it to :
   - [Description](#description)
   - [Requirements](#requirements)
   - [Installation](#installation)
+      - [Install using Github and devtools](#install-using-github-and-devtools)
   - [How to Run](#how-to-run)
       - [Run MaAsLin 3 on HMP2 example data:](#run-maaslin-3-on-hmp2-example-data)
       - [Run MaAsLin 3 with the inferred abundance options:](#run-maaslin-3-with-the-inferred-abundance-options)
         - [Session Info](#session-info)
 
 ## Description ##
-MaAsLin2 finds associations between microbiome multi-omics features and complex metadata in population-scale epidemiological studies. The software includes multiple analysis methods (including support for multiple covariates and repeated measures), filtering, normalization, and transform options to customize analysis for your specific study. 
+MaAsLin3 finds associations between microbiome multi-omics features and complex metadata in population-scale epidemiological studies. The software includes multiple analysis methods (including support for multiple covariates and repeated measures), filtering, normalization, and transform options to customize analysis for your specific study. 
 
 ## Requirements ##
 MaAsLin3 is an R package that can be run on the command line or as an R function.The following packages are required dependencies:
@@ -45,6 +45,8 @@ gridExtra
 ```
 
 ## Installation ##
+
+#### Install using Github and devtools
 ```
 library(devtools)
 install_github("biobakery/MaAsLin3")

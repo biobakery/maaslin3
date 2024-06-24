@@ -12,22 +12,21 @@ If you have questions, please direct it to :
 --------------------------------------------
 
 ## Contents ##
-* [Description](#description)
-* [Requirements](#requirements)
-* [Installation](#installation)
-* [How to Run](#how-to-run)
-    * [Input Files](#input-files)
-    * [Output Files](#output-files)
-    * [Run a Demo](#run-a-demo)
-    * [Options](#options)
-* [Visualization](#visualization)
-* [Troubleshooting](#troubleshooting)
+- [MaAsLin 3](#maaslin-3)
+  - [Contents](#contents)
+  - [Description](#description)
+  - [Requirements](#requirements)
+  - [Installation](#installation)
+  - [How to Run](#how-to-run)
+      - [Run MaAsLin 3 on HMP2 example data:](#run-maaslin-3-on-hmp2-example-data)
+      - [Run MaAsLin 3 with the inferred abundance options:](#run-maaslin-3-with-the-inferred-abundance-options)
+        - [Session Info](#session-info)
 
 ## Description ##
 MaAsLin2 finds associations between microbiome multi-omics features and complex metadata in population-scale epidemiological studies. The software includes multiple analysis methods (including support for multiple covariates and repeated measures), filtering, normalization, and transform options to customize analysis for your specific study. 
 
 ## Requirements ##
-MaAsLin2 is an R package that can be run on the command line or as an R function.The following packages are required dependencies:
+MaAsLin3 is an R package that can be run on the command line or as an R function.The following packages are required dependencies:
 ```
 optparse
 logging
@@ -44,8 +43,15 @@ grid
 pheatmap
 gridExtra
 ```
-## Installation ##
 
+## Installation ##
+```
+library(devtools)
+install_github("biobakery/MaAsLin3")
+```
+
+
+## How to Run ##
 #### Run MaAsLin 3 on HMP2 example data:
 ```
 taxa_table <- read.csv('data/HMP2_taxonomy.tsv', sep = '\t')

@@ -1,3 +1,4 @@
+#!/usr/bin/env Rscript
 # Load Required Packages
 for (lib in c(
   'dplyr',

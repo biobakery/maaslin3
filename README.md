@@ -1,8 +1,33 @@
 # MaAsLin 3 #
 
-MaAsLin 3 is the next generation of MaAsLin (Microbiome Multivariable Association with Linear Models). This repository contains the MaAsLin 3 code as an early shell of a Bioconductor package.
+[MaAsLin3](http://huttenhower.sph.harvard.edu/maaslin3)  is the next generation of MaAsLin (Microbiome Multivariable Association with Linear Models). This repository contains the MaAsLin 3 code as an early shell of a Bioconductor package.
 
-The following packages are required dependencies:
+If you use the MaAsLin2 software, please cite our manuscript: 
+
+William A. Nickols, Jacob T. Nearing, Kelsey N. Thompson, Curtis Huttenhower MaAsLin 3: Refining and extending generalized multivariate linear models for meta-omic association discovery. (In progress)
+
+If you have questions, please direct it to :   
+[MaAsLin3 Forum](https://forum.biobakery.org/c/Downstream-analysis-and-statistics/MaAsLin2)    
+
+--------------------------------------------
+
+## Contents ##
+* [Description](#description)
+* [Requirements](#requirements)
+* [Installation](#installation)
+* [How to Run](#how-to-run)
+    * [Input Files](#input-files)
+    * [Output Files](#output-files)
+    * [Run a Demo](#run-a-demo)
+    * [Options](#options)
+* [Visualization](#visualization)
+* [Troubleshooting](#troubleshooting)
+
+## Description ##
+MaAsLin2 finds associations between microbiome multi-omics features and complex metadata in population-scale epidemiological studies. The software includes multiple analysis methods (including support for multiple covariates and repeated measures), filtering, normalization, and transform options to customize analysis for your specific study. 
+
+## Requirements ##
+MaAsLin2 is an R package that can be run on the command line or as an R function.The following packages are required dependencies:
 ```
 optparse
 logging
@@ -19,15 +44,9 @@ grid
 pheatmap
 gridExtra
 ```
+## Installation ##
 
-To install MaAsLin 3, clone this repository and navigate to the cloned folder. To load the Maaslin3 function, run the following after setting `Maaslin3_path` to be the path to `../Maaslin3/R/`:
-```
-for (R_file in dir(Maaslin3_path, pattern = "*.R$")) {
-  source(file.path(Maaslin3_path, R_file))
-}
-```
-
-To run MaAsLin 3 on example data from HMP2, run the following from the MaAsLin 3 directory:
+#### Run MaAsLin 3 on HMP2 example data:
 ```
 taxa_table <- read.csv('data/HMP2_taxonomy.tsv', sep = '\t')
 rownames(taxa_table) <- taxa_table$ID; taxa_table$ID <- NULL
@@ -46,7 +65,7 @@ write.table(rbind(fit_out$fit_data_non_zero$results,
             'results.tsv', sep = '\t', row.names = F)
 ```
 
-To run MaAsLin 3 with the inferred abundance options, run the following from the MaAsLin 3 directory:
+#### Run MaAsLin 3 with the inferred abundance options:
 ```
 abundance <- read.csv('data/synthetic_abundance.tsv', sep = '\t')
 metadata <- read.csv('data/synthetic_metadata.tsv', sep = '\t')
@@ -64,3 +83,11 @@ write.table(rbind(fit_out$fit_data_non_zero$results,
 ```
 
 The file `scaling_factors.tsv` gives the scaling factors for normalization (how much of the spiked feature there is on the absolute scale).
+
+##### Session Info #####
+
+Session info from running the demo in R can be displayed with the following command.
+
+```{r}
+sessionInfo()
+```

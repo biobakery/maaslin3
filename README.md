@@ -48,7 +48,7 @@ gridExtra
 
 #### Install using Github and devtools
 ```
-library(devtools)
+library("devtools")
 install_github("biobakery/MaAsLin3")
 ```
 
@@ -56,21 +56,41 @@ install_github("biobakery/MaAsLin3")
 ## How to Run ##
 #### Run MaAsLin 3 on HMP2 example data:
 ```
+#Read features table 
 taxa_table <- read.csv('data/HMP2_taxonomy.tsv', sep = '\t')
 rownames(taxa_table) <- taxa_table$ID; taxa_table$ID <- NULL
+
+#Read metadata table
 metadata <- read.csv('data/HMP2_metadata.tsv', sep = '\t')
 rownames(metadata) <- metadata$ID; metadata$ID <- NULL
 
-param_list <- list(input_data = taxa_table, input_metadata = metadata, min_abundance = 0, min_prevalence = 0, output = 'tmp/', 
-                   min_variance = 0, normalization = 'TSS', transform = 'LOG', analysis_method = 'LM', 
+#Prepare parameter lists 
+param_list <- list(input_data = taxa_table, 
+                   input_metadata = metadata, 
+                   min_abundance = 0, 
+                   min_prevalence = 0, 
+                   output = 'tmp/', 
+                   min_variance = 0, 
+                   normalization = 'TSS', 
+                   transform = 'LOG', 
+                   analysis_method = 'LM', 
                    formula = '~ diagnosis + dysbiosisUC + dysbiosisCD + antibiotics + age + (1 | subject)', 
-                   save_scatter = FALSE, save_models = FALSE, plot_heatmap = T, plot_scatter = F, 
-                   max_significance = 0.1, augment = TRUE, iterative_mode = TRUE, cores=1)
+                   save_scatter = FALSE, 
+                   save_models = FALSE, 
+                   plot_heatmap = T, 
+                   plot_scatter = F, 
+                   max_significance = 0.1, 
+                  augment = TRUE, 
+                  iterative_mode = TRUE, 
+                  cores=1)
+
+#Run MaAsLin3
 fit_out <- Maaslin3(param_list)
 
+#Write MaAsLin output to the table 
 write.table(rbind(fit_out$fit_data_non_zero$results, 
                   fit_out$fit_data_binary$results), 
-            'results.tsv', sep = '\t', row.names = F)
+                  'results.tsv', sep = '\t', row.names = F)
 ```
 
 #### Run MaAsLin 3 with the inferred abundance options:
@@ -79,12 +99,30 @@ abundance <- read.csv('data/synthetic_abundance.tsv', sep = '\t')
 metadata <- read.csv('data/synthetic_metadata.tsv', sep = '\t')
 scaling_factors <- read.csv('data/scaling_factors.tsv', sep = '\t')
 
-param_list <- list(input_data = abundance, input_metadata = metadata, min_abundance = 0, min_prevalence = 0.0, output = tmp_fit_out, 
-                    min_variance = 0, normalization = 'TSS', transform = 'LOG', analysis_method = 'LM', 
-                    fixed_effects = colnames(metadata)[colnames(metadata) != "ID"], save_scatter = FALSE, 
-                    save_models = F, plot_heatmap = F, plot_scatter = F, max_significance = 0.1, augment = T, iterative_mode = F,
-                    unscaled_abundance = scaling_factors)
+#Prepare parameter lists 
+param_list <- list(input_data = abundance, 
+                   input_metadata = metadata, 
+                   min_abundance = 0, 
+                   min_prevalence = 0.0, 
+                   output = tmp_fit_out, 
+                   min_variance = 0, 
+                   normalization = 'TSS', 
+                   transform = 'LOG', 
+                   analysis_method = 'LM', 
+                   fixed_effects = colnames(metadata)[colnames(metadata) != "ID"], 
+                   save_scatter = FALSE, 
+                   save_models = F, 
+                   plot_heatmap = F, 
+                   plot_scatter = F, 
+                   max_significance = 0.1, 
+                   augment = T, 
+                   iterative_mode = F,
+                   unscaled_abundance = scaling_factors)
+
+#Run MaAsLin3
 fit_out <- Maaslin3(param_list)
+
+#Write MaAsLin output to the table 
 write.table(rbind(fit_out$fit_data_non_zero$results, 
                   fit_out$fit_data_binary$results), 
             'results_inferred_absolute.tsv', sep = '\t', row.names = F)

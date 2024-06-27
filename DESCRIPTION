@@ -16,7 +16,7 @@ Suggests:
     testthat (>= 2.1.0),
     rmarkdown, 
     markdown
-VignetteBuilder: knitr
+# VignetteBuilder: knitr
 Collate: fit.R utility_scripts.R viz.R  Maaslin3.R
 URL: http://huttenhower.sph.harvard.edu/maaslin3
 biocViews: Metagenomics, Software, Microbiome, Normalization

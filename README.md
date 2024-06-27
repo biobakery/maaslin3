@@ -50,6 +50,7 @@ gridExtra
 ```
 library("devtools")
 install_github("biobakery/MaAsLin3")
+library("Maaslin3")
 ```
 
 

@@ -80,9 +80,9 @@ param_list <- list(input_data = taxa_table,
                    plot_heatmap = T, 
                    plot_scatter = F, 
                    max_significance = 0.1, 
-                  augment = TRUE, 
-                  iterative_mode = TRUE, 
-                  cores=1)
+                   augment = TRUE, 
+                   iterative_mode = TRUE, 
+                   cores=1)
 
 #Run MaAsLin3
 fit_out <- Maaslin3(param_list)

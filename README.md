@@ -57,11 +57,11 @@ install_github("biobakery/MaAsLin3")
 #### Run MaAsLin 3 on HMP2 example data:
 ```
 #Read features table 
-taxa_table <- read.csv('data/HMP2_taxonomy.tsv', sep = '\t')
+taxa_table <- read.csv('inst/extdata/HMP2_taxonomy.tsv', sep = '\t')
 rownames(taxa_table) <- taxa_table$ID; taxa_table$ID <- NULL
 
 #Read metadata table
-metadata <- read.csv('data/HMP2_metadata.tsv', sep = '\t')
+metadata <- read.csv('inst/extdata/HMP2_metadata.tsv', sep = '\t')
 rownames(metadata) <- metadata$ID; metadata$ID <- NULL
 
 #Prepare parameter lists 

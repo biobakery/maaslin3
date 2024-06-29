@@ -1,16 +1,16 @@
-Package: Maaslin3
+Package: maaslin3
 Title: "Refining and extending generalized multivariate linear models for meta-omic association discovery"
 Year: 2024
 Version: 3.0.0
 Authors@R: c(
-  person("William", "Nickols", email = "willnickols@college.harvard.edu", role = c("aut", "cre")), 
+  person("William", "Nickols", email = "willnickols@g.harvard.edu", role = c("aut", "cre")), 
   person("Jacob", "Nearing", email = "nearing@broadinstitute.org", role = "aut")
   )
 Depends: R (>= 4.1)
 Description: MaAsLin 3
 License: MIT + file LICENSE
 LazyData: false
-Imports: robustbase, biglm, pcaPP, edgeR, metagenomeSeq, pbapply, car, dplyr, vegan, chemometrics, ggplot2, pheatmap, logging, data.table, lmerTest, hash, optparse, grDevices, stats, utils, glmmTMB, MASS, cplm, pscl, lme4, tibble
+Imports: dplyr pbapply, lmerTest, parallel, lme4, plyr, TcGSA, optparse, logging, data.table, multcomp, ggplot2, grid, pheatmap, gridExtra
 Suggests: 
     knitr,
     testthat (>= 2.1.0),
@@ -20,4 +20,4 @@ Suggests:
 Collate: fit.R utility_scripts.R viz.R  Maaslin3.R
 URL: http://huttenhower.sph.harvard.edu/maaslin3
 biocViews: Metagenomics, Software, Microbiome, Normalization
-BugReports: https://github.com/biobakery/maaslin2/issues
+BugReports: https://github.com/biobakery/maasline/issues

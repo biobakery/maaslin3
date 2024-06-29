@@ -24,7 +24,6 @@ TSSnorm = function(features) {
   
   tmp <- pmax(k, apply(x, MARGIN, sum, na.rm = TRUE))
   x <- sweep(x, MARGIN, tmp, "/")
-  attr <- list(total = tmp, margin = MARGIN)
   if (any(is.nan(x))) 
     warning("result contains NaN, perhaps due to impossible mathematical\n
             operation\n")
@@ -331,6 +330,12 @@ UNSCALEDnorm = function(features, abs_abundances) {
     features <- features[,colnames(features) != abs_feature]
   }
   
+  if (any(is.na(abs_mult_fact)) | any(is.infinite(abs_mult_fact))) {
+    stop('1+ of the unscaled abundance multipliers are NA or infinite. 
+         Check that the spike-in is present in all samples and the 
+         `unscaled_abundance` table is entirely non-NA.')
+  }
+  
   features_norm = as.matrix(features)
   dd <- colnames(features_norm)
   x <- as.matrix(features_norm)
@@ -338,7 +343,6 @@ UNSCALEDnorm = function(features, abs_abundances) {
   MARGIN <- 1
   
   x <- sweep(x, MARGIN, abs_mult_fact, "*")
-  attr <- list(total = abs_mult_fact, margin = MARGIN)
   if (any(is.nan(x))) 
     warning("result contains NaN, perhaps due to impossible mathematical\n
             operation\n")
@@ -428,7 +432,6 @@ LOG <- function(x) {
 write_fits <- function(params_data_formula_fit) {
   param_list <- maaslin_parse_param_list(params_data_formula_fit[["param_list"]])
   output <- param_list[["output"]]
-  fit_data <- params_data_formula_fit[["fit_data"]]
 
   fits_folder <- file.path(output, "fits")
   if (!file.exists(fits_folder)) {
@@ -436,64 +439,72 @@ write_fits <- function(params_data_formula_fit) {
     dir.create(fits_folder)
   }
   
-  ################################
-  # Write out the raw model fits #
-  ################################
-  
-  if (param_list[["save_models"]]) {
-    model_file = file.path(fits_folder, "models.rds")
-    # remove models file if already exists (since models append)
-    if (file.exists(model_file)) {
-      logging::logwarn(
-        "Deleting existing model objects file: %s", model_file)
-      unlink(model_file)
+  for (model_type in c('LM', 'logistic')) {
+    if (model_type == 'LM') {
+      fit_data <- params_data_formula_fit[["fit_data_non_zero"]]
+    } else {
+      fit_data <- params_data_formula_fit[["fit_data_binary"]]
     }
-    logging::loginfo("Writing model objects to file %s", model_file)
-    saveRDS(fit_data$fits, file = model_file)   
-  }
-  
-  ###########################
-  # Write residuals to file #
-  ###########################
-  
-  residuals_file = file.path(fits_folder, "residuals.rds")
-  # remove residuals file if already exists (since residuals append)
-  if (file.exists(residuals_file)) {
-    logging::logwarn(
-      "Deleting existing residuals file: %s", residuals_file)
-    unlink(residuals_file)
-  }
-  logging::loginfo("Writing residuals to file %s", residuals_file)
-  saveRDS(fit_data$residuals, file = residuals_file)
-  
-  ###############################
-  # Write fitted values to file #
-  ###############################
-  
-  fitted_file = file.path(fits_folder, "fitted.rds")
-  # remove fitted file if already exists (since fitted append)
-  if (file.exists(fitted_file)) {
-    logging::logwarn(
-      "Deleting existing fitted file: %s", fitted_file)
-    unlink(fitted_file)
-  }
-  logging::loginfo("Writing fitted values to file %s", fitted_file)
-  saveRDS(fit_data$fitted, file = fitted_file)
-  
-  #########################################################
-  # Write extracted random effects to file (if specified) #
-  #########################################################
-  
-  if (!is.null(param_list[["random_effects"]])) {
-    ranef_file = file.path(fits_folder, "ranef.rds")
-    # remove ranef file if already exists (since ranef append)
-    if (file.exists(ranef_file)) {
-      logging::logwarn(
-        "Deleting existing ranef file: %s", ranef_file)
-      unlink(ranef_file)
+
+    ################################
+    # Write out the raw model fits #
+    ################################
+    
+    if (param_list[["save_models"]]) {
+      model_file = file.path(fits_folder, paste0("models_", model_type, ".rds"))
+      # remove models file if already exists (since models append)
+      if (file.exists(model_file)) {
+        logging::logwarn(
+          "Deleting existing model objects file: %s", model_file)
+        unlink(model_file)
+      }
+      logging::loginfo("Writing model objects to file %s", model_file)
+      saveRDS(fit_data$fits, file = model_file)   
     }
-    logging::loginfo("Writing extracted random effects to file %s", ranef_file)
-    saveRDS(fit_data$ranef, file = ranef_file)
+    
+    ###########################
+    # Write residuals to file #
+    ###########################
+    
+    residuals_file = file.path(fits_folder, paste0("residuals_", model_type, ".rds"))
+    # remove residuals file if already exists (since residuals append)
+    if (file.exists(residuals_file)) {
+      logging::logwarn(
+        "Deleting existing residuals file: %s", residuals_file)
+      unlink(residuals_file)
+    }
+    logging::loginfo("Writing residuals to file %s", residuals_file)
+    saveRDS(fit_data$residuals, file = residuals_file)
+    
+    ###############################
+    # Write fitted values to file #
+    ###############################
+    
+    fitted_file = file.path(fits_folder, paste0("fitted_", model_type, ".rds"))
+    # remove fitted file if already exists (since fitted append)
+    if (file.exists(fitted_file)) {
+      logging::logwarn(
+        "Deleting existing fitted file: %s", fitted_file)
+      unlink(fitted_file)
+    }
+    logging::loginfo("Writing fitted values to file %s", fitted_file)
+    saveRDS(fit_data$fitted, file = fitted_file)
+    
+    #########################################################
+    # Write extracted random effects to file (if specified) #
+    #########################################################
+    
+    if (!is.null(param_list[["random_effects"]])) {
+      ranef_file = file.path(fits_folder, paste0("ranef_", model_type, ".rds"))
+      # remove ranef file if already exists (since ranef append)
+      if (file.exists(ranef_file)) {
+        logging::logwarn(
+          "Deleting existing ranef file: %s", ranef_file)
+        unlink(ranef_file)
+      }
+      logging::loginfo("Writing extracted random effects to file %s", ranef_file)
+      saveRDS(fit_data$ranef, file = ranef_file)
+    }
   }
 }
 
@@ -503,12 +514,21 @@ write_results <- function(params_data_formula_fit) {
   max_significance <- param_list[["max_significance"]]
   fit_data <- rbind(params_data_formula_fit[["fit_data_non_zero"]]$results,
                     params_data_formula_fit[["fit_data_binary"]]$results)
+  
+  fit_data <- fit_data[order(fit_data$qval_joint),]
+  fit_data <- fit_data[order(!is.na(fit_data$error)),] # Move all that had errors to the end
 
   #############################
   # Write all results to file #
   #############################
   
   results_file <- file.path(output, "all_results.tsv")
+  
+  logging::loginfo(
+    paste("Writing all the results to file (ordered by increasing joint q-values): %s"),
+    results_file
+  )
+  
   write.table(
     fit_data,
     file = results_file,
@@ -521,58 +541,37 @@ write_results <- function(params_data_formula_fit) {
   # Write results passing threshold to file #
   ###########################################
   
-  # significant_results <-
-  #   ordered_results[ordered_results$qval <= max_significance, ]
-  # significant_results_file <-
-  #   file.path(output, "significant_results.tsv")
-  # logging::loginfo(
-  #   paste("Writing the significant results",
-  #         "(those which are less than or equal to the threshold",
-  #         "of %f ) to file (ordered by increasing q-values): %s"),
-  #   max_significance,
-  #   significant_results_file
-  # )
-  # write.table(
-  #   significant_results[c(
-  #     "feature",
-  #     "metadata",
-  #     "value",
-  #     "name",
-  #     "coef",
-  #     "stderr",
-  #     "N",
-  #     "N.not.zero",
-  #     "pval",
-  #     "qval")],
-  #   file = significant_results_file,
-  #   sep = "\t",
-  #   quote = FALSE,
-  #   col.names = c(
-  #     "feature",
-  #     "metadata",
-  #     "value",
-  #     "name",
-  #     "coef",
-  #     "stderr",
-  #     "N",
-  #     "N.not.0",
-  #     "pval",
-  #     "qval"
-  #   ),
-  #   row.names = FALSE
-  # )
+  significant_results <- fit_data[fit_data$qval_joint <= max_significance & is.na(fit_data$error), ]
+  significant_results$error <- NULL
+  significant_results_file <- file.path(output, "significant_results.tsv")
+  
+  logging::loginfo(
+    paste("Writing the significant results without errors",
+          "(those which are less than or equal to the threshold",
+          "of %f ) to file (ordered by increasing joint q-values): %s"),
+    max_significance,
+    significant_results_file
+  )
+  
+  write.table(
+    significant_results,
+    file = significant_results_file,
+    sep = "\t",
+    quote = FALSE,,
+    row.names = FALSE
+  )
 }
 
 write_results_in_lefse_format <- function(results, output_file_name) {
   lines_vec <- vector(length = nrow(results))
   for (i in 1:nrow(results)) {
-    if (is.na(results[i,]$error) & !is.na(results[i,]$qval_single)) {
-      if(results[i,]$qval_single < 0.1) {
+    if (is.na(results[i,]$error) & !is.na(results[i,]$qval_individual)) {
+      if(results[i,]$qval_individual < 0.1) {
         lines_vec[i] <- paste0(c(results[i,]$feature, 
                                  results[i,]$coef, 
                                  paste0(results[i,]$metadata, '_', results[i,]$value), 
                                  results[i,]$coef, 
-                                 results[i,]$pval_single), 
+                                 results[i,]$pval_individual), 
                                collapse = '\t')
       } else {
         lines_vec[i] <- paste0(c(results[i,]$feature, 

@@ -42,6 +42,7 @@ ggplot2
 grid
 pheatmap
 gridExtra
+multcomp
 ```
 
 ## Installation ##

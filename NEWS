@@ -1,3 +1,8 @@
+Changes in version 3.0.1 (06-28-2024):
+* Changed data augmentation for logistic models
+* Replaced iterative renormalization with median comparisons
+* Replaced group, OMP, and GOMP models with contrast tests and ANOVA-style comparisons
+
 Changes in version 3.0.0 (03-15-2024):
 * Updated dependencies
 * Modularized previous code

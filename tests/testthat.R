@@ -1,4 +1,4 @@
 library(testthat)
-library(Maaslin3)
+library(maaslin3)
 
-test_check("Maaslin3")
+test_check("maaslin3")

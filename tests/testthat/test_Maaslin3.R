@@ -1,24 +1,33 @@
 library(testthat)
-library(Maaslin3)
+library(maaslin3)
 
 expected_results_run1 <- read.table("expected_results_run1.tsv", header = TRUE, stringsAsFactors=FALSE, sep="\t")
 
-features <- read.table(system.file(package="Maaslin3","extdata","HMP2_taxonomy.tsv"), header = TRUE, row.names = 1, sep="\t")
-metadata <- read.table(system.file(package="Maaslin3","extdata","HMP2_metadata.tsv"), header = TRUE, row.names = 1, sep="\t")
-rownames(features) <- taxa_table$ID; taxa_table$ID <- NULL
+taxa_table <- read.table(system.file(package="maaslin3","extdata","HMP2_taxonomy.tsv"), header = TRUE, sep="\t")
+metadata <- read.table(system.file(package="maaslin3","extdata","HMP2_metadata.tsv"), header = TRUE, sep="\t")
+rownames(taxa_table) <- taxa_table$ID; taxa_table$ID <- NULL
 rownames(metadata) <- metadata$ID; metadata$ID <- NULL
 
-# run with dysbiosis as a nested categorical variable
-param_list <- list(input_data = taxa_table, input_metadata = metadata, min_abundance = 0, min_prevalence = 0, output = 'tmp/', 
-                   min_variance = 0, normalization = 'TSS', transform = 'LOG', analysis_method = 'LM', 
-                   formula = '~ diagnosis + dysbiosisUC + dysbiosisCD + antibiotics + age + (1 | subject)', 
-                   save_scatter = FALSE, save_models = FALSE, plot_heatmap = T, plot_scatter = F, 
-                   max_significance = 0.1, augment = TRUE, iterative_mode = TRUE, cores=1)
-fit_out <- Maaslin3(param_list)
+#Prepare parameter lists 
+param_list <- list(input_data = taxa_table, 
+                   input_metadata = metadata, 
+                   output = 'output', 
+                   normalization = 'TSS', 
+                   transform = 'LOG', 
+                   formula = '~ diagnosis + dysbiosisUC + dysbiosisCD + antibiotics + age + reads_filtered + (1 | subject)', 
+                   save_scatter = FALSE, 
+                   save_models = FALSE, 
+                   plot_heatmap = FALSE, 
+                   plot_scatter = FALSE, 
+                   max_significance = 0.1, 
+                   augment = TRUE, 
+                   median_comparison_abundance = TRUE, 
+                   median_comparison_prevalence = FALSE, 
+                   cores=1)
 
-write.table(rbind(fit_out$fit_data_non_zero$results, 
-                  fit_out$fit_data_binary$results), 
-            'significant_results.tsv', sep = '\t', row.names = F)
+#Run MaAsLin3
+fit_out <- maaslin3::maaslin3(param_list)
+
 maaslin_results = read.table(file.path("output","significant_results.tsv"), header = TRUE, stringsAsFactors=FALSE)
 
 expect_that(expected_results_run1$metadata[1:50],equals(maaslin_results$metadata[1:50]))

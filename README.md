@@ -57,6 +57,9 @@ library("maaslin3")
 
 ## How to Run ##
 #### Run MaAsLin 3 on HMP2 example data:
+
+Note that we include `reads_filtered` as a fixed effect since variable read depth over the samples is likely to create prevalence effects. Because these data are compositional, setting `median_comparison_abundance = TRUE` is recommended so that the abundance coefficients are tested against the median coefficient. By contrast, we can set `median_comparison_prevalence = FALSE` since we do not the typical bug to have no prevalence association with the included variables.
+
 ```
 #Read features table 
 taxa_table_name <- system.file("extdata", "HMP2_taxonomy.tsv", package = "maaslin3")
@@ -71,7 +74,7 @@ rownames(metadata) <- metadata$ID; metadata$ID <- NULL
 #Prepare parameter lists 
 param_list <- list(input_data = taxa_table, 
                    input_metadata = metadata, 
-                   output = 'output/', 
+                   output = 'output', 
                    normalization = 'TSS', 
                    transform = 'LOG', 
                    formula = '~ diagnosis + dysbiosisUC + dysbiosisCD + antibiotics + age + reads_filtered + (1 | subject)', 
@@ -88,6 +91,8 @@ param_list <- list(input_data = taxa_table,
 #Run MaAsLin3
 fit_out <- maaslin3::maaslin3(param_list)
 ```
+
+The outputs can now be found in the `fit_out` object or in the directory `output`. Particularly for prevalence associations, make sure to check a feature's number of non-zeros since rare microbes can occasionally produce large effect sizes and small p-values in complex models.
 
 #### Run MaAsLin 3 with the inferred abundance options:
 ```

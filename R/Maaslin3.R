@@ -1534,8 +1534,6 @@ maaslin_write_results <- function(params_data_formula_fit) {
   
   write_fits(params_data_formula_fit)
   write_results(params_data_formula_fit)
-  
-  return(params_data_formula_fit)
 }
 
 maaslin_write_results_lefse_format <- function(params_data_formula_fit) {
@@ -1552,8 +1550,6 @@ maaslin_write_results_lefse_format <- function(params_data_formula_fit) {
                                 file.path(output, 'lefse_style_results_abundance.res'))
   write_results_in_lefse_format(params_data_formula_fit$fit_data_binary$results, 
                                 file.path(output, 'lefse_style_results_prevalence.res'))
-  
-  return(params_data_formula_fit)
 }
 
 #######################################################
@@ -1658,8 +1654,10 @@ maaslin3 <- function(param_list = list()) {
 
   maaslin_write_results(params_data_formula_fit)
   
-  # TODO: plot if called, write results if called
-  maaslin_plot_results(params_data_formula_fit)
+  if (params_data_formula_fit[['param_list']][['plot_heatmap']] | 
+      params_data_formula_fit[['param_list']][['plot_scatter']]) {
+    maaslin_plot_results(params_data_formula_fit)
+  }
   
   if ('logging::writeToFile' %in% names(logging::getLogger()[['handlers']])) {
     logging::removeHandler('logging::writeToFile')

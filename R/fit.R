@@ -334,7 +334,6 @@ fit.model <- function(
                     # Still worked
                     invokeRestart("muffleWarning")
                   }
-                  return(fit1)
                 })
               }, warning = function(w) {
                 'warning'
@@ -364,7 +363,6 @@ fit.model <- function(
                   # Still worked
                   invokeRestart("muffleWarning")
                 }
-                return(fit1)
               })
               remove(weight_sch_current, pos = ".GlobalEnv")
               return(fit1)
@@ -554,7 +552,6 @@ fit.model <- function(
               # Still worked
               invokeRestart("muffleWarning")
             }
-            return(fit1)
           })
         }, warning = function(w) {
           message(paste("Feature", colnames(features)[x], ":", w))
@@ -685,7 +682,6 @@ fit.model <- function(
                 # Still worked
                 invokeRestart("muffleWarning")
               }
-              return(tmp_output)
             })
           },
           warning = function(w) {
@@ -791,7 +787,6 @@ fit.model <- function(
                 # Still worked
                 invokeRestart("muffleWarning")
               }
-              return(tmp_output)
             })
           },
           warning = function(w) {

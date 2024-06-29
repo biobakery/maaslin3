@@ -59,58 +59,53 @@ library("Maaslin3")
 #### Run MaAsLin 3 on HMP2 example data:
 ```
 #Read features table 
-taxa_table <- read.csv('inst/extdata/HMP2_taxonomy.tsv', sep = '\t')
+taxa_table_name <- system.file("extdata", "HMP2_taxonomy.tsv", package = "maaslin3")
+taxa_table <- read.csv(taxa_table_name, sep = '\t')
 rownames(taxa_table) <- taxa_table$ID; taxa_table$ID <- NULL
 
 #Read metadata table
-metadata <- read.csv('inst/extdata/HMP2_metadata.tsv', sep = '\t')
+metadata_name <- system.file("extdata", "HMP2_metadata.tsv", package = "maaslin3")
+metadata <- read.csv(metadata_name, sep = '\t')
 rownames(metadata) <- metadata$ID; metadata$ID <- NULL
 
 #Prepare parameter lists 
 param_list <- list(input_data = taxa_table, 
                    input_metadata = metadata, 
-                   min_abundance = 0, 
-                   min_prevalence = 0, 
-                   output = 'tmp/', 
-                   min_variance = 0, 
+                   output = 'output/', 
                    normalization = 'TSS', 
                    transform = 'LOG', 
-                   analysis_method = 'LM', 
-                   formula = '~ diagnosis + dysbiosisUC + dysbiosisCD + antibiotics + age + (1 | subject)', 
+                   formula = '~ diagnosis + dysbiosisUC + dysbiosisCD + antibiotics + age + reads_filtered + (1 | subject)', 
                    save_scatter = FALSE, 
                    save_models = FALSE, 
-                   plot_heatmap = T, 
-                   plot_scatter = F, 
+                   plot_heatmap = FALSE, 
+                   plot_scatter = FALSE, 
                    max_significance = 0.1, 
                    augment = TRUE, 
-                   iterative_mode = TRUE, 
+                   median_comparison_abundance = TRUE, 
+                   median_comparison_prevalence = FALSE, 
                    cores=1)
 
 #Run MaAsLin3
-fit_out <- Maaslin3(param_list)
-
-#Write MaAsLin output to the table 
-write.table(rbind(fit_out$fit_data_non_zero$results, 
-                  fit_out$fit_data_binary$results), 
-                  'results.tsv', sep = '\t', row.names = F)
+fit_out <- maaslin3::Maaslin3(param_list)
 ```
 
 #### Run MaAsLin 3 with the inferred abundance options:
 ```
-abundance <- read.csv('data/synthetic_abundance.tsv', sep = '\t')
-metadata <- read.csv('data/synthetic_metadata.tsv', sep = '\t')
-scaling_factors <- read.csv('data/scaling_factors.tsv', sep = '\t')
+abundance_file <- system.file("extdata", "synthetic_abundance.tsv", package = "maaslin3")
+abundance <- read.csv(abundance_file, sep = '\t')
+
+metadata_file <- system.file("extdata", "synthetic_metadata.tsv", package = "maaslin3")
+metadata <- read.csv(metadata_file, sep = '\t')
+
+scaling_factors_file <- system.file("extdata", "scaling_factors.tsv", package = "maaslin3")
+scaling_factors <- read.csv(scaling_factors_file, sep = '\t')
 
 #Prepare parameter lists 
 param_list <- list(input_data = abundance, 
                    input_metadata = metadata, 
-                   min_abundance = 0, 
-                   min_prevalence = 0.0, 
-                   output = tmp_fit_out, 
-                   min_variance = 0, 
+                   output = 'output_absolute/', 
                    normalization = 'TSS', 
                    transform = 'LOG', 
-                   analysis_method = 'LM', 
                    fixed_effects = colnames(metadata)[colnames(metadata) != "ID"], 
                    save_scatter = FALSE, 
                    save_models = F, 
@@ -118,16 +113,12 @@ param_list <- list(input_data = abundance,
                    plot_scatter = F, 
                    max_significance = 0.1, 
                    augment = T, 
-                   iterative_mode = F,
+                   median_comparison_abundance = TRUE, 
+                   median_comparison_prevalence = FALSE, 
                    unscaled_abundance = scaling_factors)
 
 #Run MaAsLin3
 fit_out <- Maaslin3(param_list)
-
-#Write MaAsLin output to the table 
-write.table(rbind(fit_out$fit_data_non_zero$results, 
-                  fit_out$fit_data_binary$results), 
-            'results_inferred_absolute.tsv', sep = '\t', row.names = F)
 ```
 
 The file `scaling_factors.tsv` gives the scaling factors for normalization (how much of the spiked feature there is on the absolute scale).

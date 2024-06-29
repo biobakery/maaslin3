@@ -1,4 +1,4 @@
-export(Maaslin3)
+export(maaslin3)
 
 import("optparse")
 importFrom("grDevices", "colorRampPalette", "dev.off", "pdf", "jpeg","png")

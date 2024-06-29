@@ -10,7 +10,7 @@ Depends: R (>= 4.1)
 Description: MaAsLin 3
 License: MIT + file LICENSE
 LazyData: false
-Imports: dplyr pbapply, lmerTest, parallel, lme4, plyr, TcGSA, optparse, logging, data.table, multcomp, ggplot2, grid, pheatmap, gridExtra
+Imports: dplyr, pbapply, lmerTest, parallel, lme4, plyr, TcGSA, optparse, logging, data.table, multcomp, ggplot2, grid, pheatmap, gridExtra
 Suggests: 
     knitr,
     testthat (>= 2.1.0),

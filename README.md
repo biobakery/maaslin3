@@ -51,7 +51,7 @@ multcomp
 ```
 library("devtools")
 install_github("biobakery/MaAsLin3")
-library("Maaslin3")
+library("maaslin3")
 ```
 
 

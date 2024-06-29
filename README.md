@@ -86,7 +86,7 @@ param_list <- list(input_data = taxa_table,
                    cores=1)
 
 #Run MaAsLin3
-fit_out <- maaslin3::Maaslin3(param_list)
+fit_out <- maaslin3::maaslin3(param_list)
 ```
 
 #### Run MaAsLin 3 with the inferred abundance options:
@@ -118,7 +118,7 @@ param_list <- list(input_data = abundance,
                    unscaled_abundance = scaling_factors)
 
 #Run MaAsLin3
-fit_out <- Maaslin3(param_list)
+fit_out <- maaslin3::maaslin3(param_list)
 ```
 
 The file `scaling_factors.tsv` gives the scaling factors for normalization (how much of the spiked feature there is on the absolute scale).

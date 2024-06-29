@@ -1634,7 +1634,7 @@ maaslin_plot_results <- function(params_data_formula_fit) {
 # Main maaslin3 function (defaults same command line) #
 #######################################################
 
-Maaslin3 <- function(param_list = list()) {
+maaslin3 <- function(param_list = list()) {
   # Create log file, log arguments, and check arguments
   params_tmp <- maaslin_log_arguments(param_list) %>%
     maaslin_read_data() %>%

@@ -94,7 +94,7 @@ args$plot_heatmap <- TRUE
 args$heatmap_first_n <- 25
 args$pointplot_vars <- NULL
 args$heatmap_vars <- NULL
-args$plot_scatter <- TRUE
+args$plot_associations <- TRUE
 args$max_pngs <- 30
 args$cores <- 1
 args$save_models <- FALSE
@@ -382,11 +382,11 @@ options <-
 options <-
     optparse::add_option(
         options,
-        c("-o", "--plot_scatter"),
+        c("-o", "--plot_associations"),
         type = "logical",
-        dest = "plot_scatter",
-        default = args$plot_scatter,
-        help = paste("Generate scatter plots for the significant",
+        dest = "plot_associations",
+        default = args$plot_associations,
+        help = paste("Generate associations plots for the significant",
             "associations [ Default: %default ]"
         )
     )
@@ -397,7 +397,7 @@ options <-
         type = "double",
         dest = "max_pngs",
         default = args$max_pngs,
-        help = paste("The maximum number of scatterplots for signficant",
+        help = paste("The maximum number of association plots for signficant",
                      "associations to save as png files [ Default: %default ]"
         )
     )
@@ -489,7 +489,7 @@ maaslin_parse_param_list <- function(param_list) {
                         heatmap_first_n = args$heatmap_first_n,
                         heatmap_vars = args$heatmap_vars,
                         pointplot_vars = args$pointplot_vars,
-                        plot_scatter = args$plot_scatter,
+                        plot_associations = args$plot_associations,
                         max_pngs = args$max_pngs,
                         save_models = args$save_models,
                         unscaled_abundance = args$unscaled_abundance,
@@ -1580,7 +1580,7 @@ maaslin_plot_results <- function(params_data_formula_fit) {
     print("Creating output folder")
     dir.create(output)
   }
-  if (param_list[["plot_heatmap"]] || param_list[["plot_scatter"]]) {
+  if (param_list[["plot_heatmap"]] || param_list[["plot_associations"]]) {
     figures_folder <- file.path(output, "figures")
     if (!file.exists(figures_folder)) {
       logging::loginfo("Creating output figures folder")
@@ -1614,10 +1614,12 @@ maaslin_plot_results <- function(params_data_formula_fit) {
                  first_n = param_list[["heatmap_first_n"]],
                  max_significance = param_list[["max_significance"]],
                  pointplot_vars = pointplot_vars,
-                 heatmap_vars = heatmap_vars)
+                 heatmap_vars = heatmap_vars,
+                 median_comparison_abundance = param_list[["median_comparison_abundance"]],
+                 median_comparison_prevalence = param_list[["median_comparison_prevalence"]])
   }
   
-  if (param_list[["plot_scatter"]]) {
+  if (param_list[["plot_associations"]]) {
     logging::loginfo(
       paste("Writing association plots",
             "(one for each significant association)",
@@ -1664,7 +1666,7 @@ maaslin3 <- function(param_list = list()) {
   maaslin_write_results(params_data_formula_fit)
   
   if (params_data_formula_fit[['param_list']][['plot_heatmap']] | 
-      params_data_formula_fit[['param_list']][['plot_scatter']]) {
+      params_data_formula_fit[['param_list']][['plot_associations']]) {
     maaslin_plot_results(params_data_formula_fit)
   }
   
@@ -1726,7 +1728,7 @@ if (identical(environment(), globalenv()) &&
       heatmap_first_n = current_args$heatmap_first_n,
       pointplot_vars = current_args$pointplot_vars,
       heatmap_vars = current_args$heatmap_vars,
-      plot_scatter = current_args$plot_scatter,
+      plot_associations = current_args$plot_associations,
       max_pngs = current_args$max_pngs,
       save_models = current_args$save_models,
       augment = current_args$augment,

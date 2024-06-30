@@ -487,6 +487,8 @@ maaslin_parse_param_list <- function(param_list) {
                         cores = args$cores,
                         plot_heatmap = args$plot_heatmap,
                         heatmap_first_n = args$heatmap_first_n,
+                        heatmap_vars = args$heatmap_vars,
+                        pointplot_vars = args$pointplot_vars,
                         plot_scatter = args$plot_scatter,
                         max_pngs = args$max_pngs,
                         save_models = args$save_models,

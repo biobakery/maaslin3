@@ -296,7 +296,7 @@ save_heatmap <-
 
 maaslin3_association_plots <-
     function(
-      merged_results
+      merged_results,
       metadata,
       features,
       max_significance = 0.1,

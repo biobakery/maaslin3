@@ -107,6 +107,12 @@ maaslin3_heatmap <-
     merged_results_sig <- merged_results %>%
       filter(feature %in% signif_taxa)
     
+    # order feature
+    ord_feature <- with(merged_results_sig, reorder(feature, coef))
+    ord_feature <- levels(ord_feature)
+    
+    merged_results_sig$feature <- factor(merged_results_sig$feature, levels = ord_feature)
+    
     if(is.null(pointplot_vars)) {
       mean_log_qval <- merged_results_sig %>%
         dplyr::group_by(full_metadata_name) %>%
@@ -131,7 +137,7 @@ maaslin3_heatmap <-
     if (length(pointplot_vars) > 0 & 
         sum(merged_results_sig$full_metadata_name %in% pointplot_vars) >= 1) {
       pointplot_data <- merged_results_sig[merged_results_sig$full_metadata_name %in% pointplot_vars,]
-      p1 <- ggplot(pointplot_data, aes(x=coef, y=reorder(feature, coef))) +
+      p1 <- ggplot(pointplot_data, aes(x=coef, y=feature)) +
         geom_pointrange(aes(xmin=coef - stderr, xmax=coef + stderr)) + 
         geom_point(aes(shape = model, fill = qval_individual), size = 4.5, color = "black")+
         geom_vline(xintercept = 0, linetype="dashed") + 
@@ -187,12 +193,6 @@ maaslin3_heatmap <-
     merged_results_sig <- merged_results_sig %>%
       mutate(coef_cat = threshold_set[threshold_indices])
     merged_results_sig$coef_cat <- factor(merged_results_sig$coef_cat, levels = threshold_set)
-    
-    # order feature
-    ord_feature <- with(merged_results_sig, reorder(feature, coef))
-    ord_feature <- levels(ord_feature)
-    
-    merged_results_sig$feature <- factor(merged_results_sig$feature, levels = ord_feature)
     
     scale_fill_values <- rev((brewer.pal(n = 6, name = "RdBu")))
     names(scale_fill_values) <- threshold_set

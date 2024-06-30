@@ -23,13 +23,8 @@
 # THE SOFTWARE.
 ###############################################################################
 
-# Author: Gholamali (Ali) rahnavard
-# Email: gholamali.rahnavard@gmail.com
-# This script includes functions for visualizing overall output of MaAsLin2 and
-# individual associations as scatterplot and boxplot
-
 # Load libararies
-for (lib in c('ggplot2', "grid", 'pheatmap', 'gridExtra')) {
+for (lib in c('dplyr', 'ggplot2', 'viridis', "grid", 'RColorBrewer', 'patchwork')) {
     suppressPackageStartupMessages(require(lib, character.only = TRUE))
 }
 
@@ -58,490 +53,595 @@ nature_theme <- function(x_axis_labels, y_label) {
         plot.title = ggplot2::element_text(size = 7, face = 'bold'),
         legend.title = ggplot2::element_text(size = 6, face = 'bold'),
         legend.text = ggplot2::element_text(size = 6),
-        axis.line = ggplot2::element_line(colour = 'black', size = .25),
-        axis.line.x = ggplot2::element_line(colour = 'black', size = .25),
-        axis.line.y = ggplot2::element_line(colour = 'black', size = .25),
+        axis.line = ggplot2::element_line(colour = 'black', linewidth = .25),
+        axis.line.x = ggplot2::element_line(colour = 'black', linewidth = .25),
+        axis.line.y = ggplot2::element_line(colour = 'black', linewidth = .25),
         panel.border = ggplot2::element_blank(),
         panel.grid.major = ggplot2::element_blank(),
         panel.grid.minor = ggplot2::element_blank())
    )
 }
 
-
 # MaAsLin2 heatmap function for overall view of associations
 maaslin3_heatmap <-
   function(
-    df_in,
-    border_color = 'grey93',
-    color = colorRampPalette(c("darkblue", "grey90", "darkred")),
-    first_n = 50,
-    max_significance = 0.1) {
+    merged_results,
+    heatmap_file,
+    figures_folder,
+    first_n = 25,
+    max_significance = 0.1,
+    pointplot_vars = NULL,
+    heatmap_vars = NULL) {
     
-    df_in <- df_in[is.na(df_in$error),]
-    df_in <- df_in[!is.na(df_in[['qval_single']]),]
-    
-    plot_list <- list()
-    
-    for (association_type in c("abundance", "prevalence")) {
-      df <- df_in[df_in$association == association_type,]
-      
-      # Subset to just the top features if necessary
-      title_additional <- ""
-      if (!is.na(first_n) & first_n > 0 & first_n < dim(df)[1]) {
-        df <- df[order(df[['qval_single']]), ]
-        # get the top n features with significant associations
-        df_sub <- df[1:first_n,]
-        for (first_n_index in seq(first_n, dim(df)[1]))
-        {
-          if (length(unique(df_sub$feature)) == first_n)
-          {
-            break
-          }
-          df_sub <- df[1:first_n_index,]
-        }
-        # get all rows that have the top N features
-        df <- df[which(df$feature %in% df_sub$feature),]
-        title_additional <- paste("Top", first_n, sep=" ")
-      }
-      
-      if (dim(df)[1] < 2) {
-        print('There are no associations to plot!')
-        return(NULL)
-      }
-      
-      metadata <- df$metadata
-      data <- df$feature
-      dfvalue <- df$value
-
-      # values to use for coloring the heatmap
-      # and set the colorbar boundaries
-      value <- df$coef
-      qvalue <- df$qval_single
-      min_val <- ifelse(sum(qvalue < max_significance) > 0,
-                        min(value[qvalue < max_significance]), 
-                        min(value))
-      max_val <- ifelse(sum(qvalue < max_significance) > 0,
-                        max(value[qvalue < max_significance]), 
-                        max(value))
-      value <- pmax(min_val, pmin(max_val, value))
-      
-      if (title_additional!="") {
-        title <- paste(title_additional, "features with significant\n", association_type, "associations (coefficient)", sep=" ")
-      } else {
-        title <- paste("Significant associations", sep=" ")
-      }
-      
-      # identify variables with more than one level present
-      verbose_metadata <- c()
-      metadata_multi_level <- c()
-      for (i in unique(metadata)) {
-        levels <- unique(df$value[df$metadata == i])
-        if (length(levels) > 1) {
-          metadata_multi_level <- c(metadata_multi_level, i)
-          for (j in levels) {
-            verbose_metadata <- c(verbose_metadata, paste(i, j))
-          }
-        } else {
-          verbose_metadata <- c(verbose_metadata, i)
-        }
-      }
-      
-      n <- length(unique(data))
-      m <- length(unique(verbose_metadata))
-      
-      if (n < 2) {
-        print(
-          paste(
-            "There is not enough features in the associations",
-            "to create a heatmap plot.",
-            "Please review the associations in text output file.")
-        )
-        return(NULL)
-      }
-      
-      if (m < 2) {
-        print(
-          paste(
-            "There is not enough metadata in the associations",
-            "to create a heatmap plot.",
-            "Please review the associations in text output file.")
-        )
-        return(NULL)
-      }
-      
-      # a for coef, b for qval
-      a = matrix(0, nrow = n, ncol = m)
-      a <- as.data.frame(a)
-      b = matrix(0, nrow = n, ncol = m)
-      b <- as.data.frame(b)
-      
-      rownames(a) <- rownames(b) <- unique(data)
-      colnames(a) <- colnames(b) <- unique(verbose_metadata)
-      
-      for (i in seq_len(dim(df)[1])) {
-        current_metadata <- metadata[i]
-        if (current_metadata %in% metadata_multi_level) {
-          current_metadata <- paste(metadata[i], dfvalue[i])
-        }
-        if (abs(a[as.character(data[i]), 
-                  as.character(current_metadata)]) > abs(value[i]))
-          next
-        a[as.character(data[i]), as.character(current_metadata)] <- value[i]
-        b[as.character(data[i]), as.character(current_metadata)] <- qvalue[i]
-      }
-      
-      # get the range for the colorbar
-      max_value <- ceiling(max(a))
-      min_value <- ceiling(min(a))
-      range_value <- max(c(abs(max_value),abs(min_value)))
-      breaks <- seq(-1*range_value, range_value, by = 0.1)
-      
-      p <- NULL
-      tryCatch({
-        plot_list[[association_type]] <-
-          pheatmap::pheatmap(
-            a,
-            cellwidth = 5,
-            cellheight = 5,
-            # changed to 3
-            main = title,
-            fontsize = 6,
-            kmeans_k = NA,
-            border = TRUE,
-            show_rownames = TRUE,
-            show_colnames = TRUE,
-            scale = "none",
-            cluster_rows = FALSE,
-            cluster_cols = TRUE,
-            clustering_distance_rows = "euclidean",
-            clustering_distance_cols = "euclidean",
-            legend = TRUE,
-            border_color = border_color,
-            color = color(length(breaks)),
-            breaks = breaks,
-            legend_labels = 'Coefficient',
-            treeheight_row = 0,
-            treeheight_col = 0,
-            display_numbers = matrix(ifelse(
-              b < max_significance, "+", ""), nrow(b)),
-            number_color = "white",
-            silent = TRUE
-          )[[4]]
-      }, error = function(err) {
-        logging::logerror("Unable to plot heatmap")
-        logging::logerror(err)
-      })
+    # Preprocessing
+    merged_results <- merged_results[is.na(merged_results$error),]
+    if (nrow(merged_results) == 0) {
+      logging::loginfo(
+        paste("No associtions were without errors. No heatmap generated."))
+      return(NULL)
     }
-
-    p <- arrangeGrob(grobs=plot_list,ncol=2)
+    merged_results$model <- ifelse(merged_results$model == 'LM', 'Abundance', 'Prevalence')
+    merged_results$full_metadata_name <- 
+      ifelse(merged_results$metadata == merged_results$value,
+             merged_results$metadata,
+             paste0(merged_results$metadata, ' ', merged_results$value))
     
-    return(p)
+    if (!is.null(pointplot_vars) | !is.null(heatmap_vars)) {
+      if (any(!c(pointplot_vars, heatmap_vars) %in% unique(merged_results$full_metadata_name))) {
+        logging::loginfo(
+          paste0("The following specified variables were not found in the associations: ", 
+                paste0(setdiff(c(pointplot_vars, heatmap_vars), unique(merged_results$full_metadata_name)), collapse = ', '), collapse = ''))
+        return(NULL)
+      }
+      merged_results <- merged_results[merged_results$full_metadata_name %in% 
+                                         c(pointplot_vars, heatmap_vars),]
+    }
+    
+    merged_results_joint_only <- unique(merged_results[,c('feature', 'qval_joint')])
+    merged_results_joint_only <- merged_results_joint_only[order(merged_results_joint_only$qval_joint),]
+    if (length(unique(merged_results_joint_only$feature)) < first_n) {
+      first_n <- length(unique(merged_results_joint_only$feature))
+    }
+    signif_taxa <- unique(merged_results_joint_only$feature)[1:first_n]
+
+    merged_results_sig <- merged_results %>%
+      filter(feature %in% signif_taxa)
+    
+    if(is.null(pointplot_vars)) {
+      mean_log_qval <- merged_results_sig %>%
+        dplyr::group_by(full_metadata_name) %>%
+        dplyr::summarise(mean_value = mean(log(qval_joint), na.rm = TRUE))
+      
+      pointplot_vars <- mean_log_qval$full_metadata_name[order(mean_log_qval$mean_value)]
+      pointplot_vars <- setdiff(pointplot_vars, heatmap_vars)
+      if (length(pointplot_vars) > 0) {
+        pointplot_vars <- pointplot_vars[1:min(2, length(pointplot_vars))]
+      }
+    }
+    
+    if(is.null(heatmap_vars)) {
+      mean_log_qval <- merged_results_sig %>%
+        dplyr::group_by(full_metadata_name) %>%
+        dplyr::summarise(mean_value = mean(log(qval_joint), na.rm = TRUE))
+      
+      heatmap_vars <- mean_log_qval$full_metadata_name[order(mean_log_qval$mean_value)]
+      heatmap_vars <- setdiff(heatmap_vars, pointplot_vars)
+    }
+    
+    if (length(pointplot_vars) > 0 & 
+        sum(merged_results_sig$full_metadata_name %in% pointplot_vars) >= 1) {
+      pointplot_data <- merged_results_sig[merged_results_sig$full_metadata_name %in% pointplot_vars,]
+      p1 <- ggplot(pointplot_data, aes(x=coef, y=reorder(feature, coef))) +
+        geom_pointrange(aes(xmin=coef - stderr, xmax=coef + stderr)) + 
+        geom_point(aes(shape = model, fill = qval_individual), size = 4.5, color = "black")+
+        geom_vline(xintercept = 0, linetype="dashed") + 
+        scale_x_continuous(breaks = scales::breaks_extended(n = 5)) +  # 12 for 2.5 interval
+        scale_shape_manual(name = "Association", values=c(21, 24))+
+        scale_fill_viridis(option = "viridis", 
+                           limits=c(10^floor(log10(min(pointplot_data$qval_individual))), 1), 
+                           breaks=c(10^floor(log10(min(pointplot_data$qval_individual))), max_significance, 1), 
+                           labels = c(paste0("1e", floor(log10(min(pointplot_data$qval_individual)))), 
+                                      paste0("1e", floor(log10(max_significance))),
+                                      "1"),
+                           trans = scales::pseudo_log_trans(sigma = 0.001),
+                           name = expression(P["FDR"]), direction = -1) +
+        labs(x =expression(paste(beta, " coefficient")),  y = "Feature") +
+        guides(
+          shape = guide_legend(override.aes = list(color = "black")), # Black fill for shape legend
+        ) +
+        theme_bw() + 
+        theme(axis.title = element_text(size = 16),
+              axis.text.y = element_text(size = 14),
+              axis.text.x =element_text(size = 14),
+              legend.title = element_text(size = 16),
+              legend.text = element_text(size = 14, face = "plain"),
+              legend.position = "right",
+              legend.background = element_rect(fill = "transparent"),
+              panel.spacing=unit(0, "lines"),
+              panel.grid.minor = element_blank(),
+              strip.text = element_text(size=14),
+              strip.background = element_rect(fill = "transparent")) + 
+        facet_wrap(~ full_metadata_name, scales = 'free_x', ncol = length(pointplot_vars))
+      
+    } else {
+      p1 <- NULL
+    }
+    
+    # Create column for significance star annotation
+    merged_results_sig$sig_star <- cut(merged_results_sig$qval_individual, breaks=c(-Inf, max_significance / 10, max_significance, Inf), label=c("**", "*", ""))  
+
+    # Bin coefficients into categories
+    coefficient_thresh <- round(max(abs(quantile(merged_results_sig$coef, c(0.1, 0.9)))) / 10, 1) * 5
+    coef_breaks <- c(-Inf, -coefficient_thresh, -coefficient_thresh / 2, coefficient_thresh / 2, coefficient_thresh, Inf)
+    threshold_set <- c(paste0("(-Inf,", -1 * coefficient_thresh, "]"),
+                       paste0("(", -1 * coefficient_thresh, ",", -1/2 * coefficient_thresh,"]"),
+                       paste0("(", -1/2 * coefficient_thresh, ",0]"),
+                       paste0("(0,", 1/2 * coefficient_thresh,"]"),
+                       paste0("(", 1/2 * coefficient_thresh, ",", 1 * coefficient_thresh,"]"),
+                       paste0("(", 1 * coefficient_thresh, ",Inf)"))
+    
+    threshold_indices <- sapply(merged_results_sig$coef, function(value) {
+      which(value < coef_breaks)[1]
+    })
+    
+    merged_results_sig <- merged_results_sig %>%
+      mutate(coef_cat = threshold_set[threshold_indices])
+    merged_results_sig$coef_cat <- factor(merged_results_sig$coef_cat, levels = threshold_set)
+    
+    # order feature
+    ord_feature <- with(merged_results_sig, reorder(feature, coef))
+    ord_feature <- levels(ord_feature)
+    
+    merged_results_sig$feature <- factor(merged_results_sig$feature, levels = ord_feature)
+    
+    scale_fill_values <- rev((brewer.pal(n = 6, name = "RdBu")))
+    names(scale_fill_values) <- threshold_set
+    
+    if (length(heatmap_vars) > 0 & 
+      sum(merged_results_sig$full_metadata_name %in% heatmap_vars) >= 1) {
+      heatmap_data <- merged_results_sig[merged_results_sig$full_metadata_name %in% heatmap_vars,]
+      
+      grid <- expand.grid(
+        feature = unique(heatmap_data$feature),
+        full_metadata_name = unique(heatmap_data$full_metadata_name),
+        model = unique(heatmap_data$model)
+      )
+      heatmap_data <- merge(grid, heatmap_data, by = c("feature", "full_metadata_name", "model"), all.x = TRUE)
+      heatmap_data$coef[is.na(heatmap_data$coef)] <- NA
+
+      p2 <- ggplot(heatmap_data, aes(x = full_metadata_name, y = feature)) +
+        geom_tile(data = heatmap_data, aes(fill = coef_cat), colour="white", linewidth=0.2) +
+        scale_fill_manual(name = "Beta coefficient", na.value="#EEEEEE",
+                          values = scale_fill_values) + 
+        geom_text(label = heatmap_data$sig_star, color = "black", size=6, vjust = 0.75, hjust = 0.5) + 
+        labs(x ='',  y = "Feature", caption = "") +
+        theme_bw() + 
+        theme(axis.title = element_text(size = 16),
+              axis.text.x =element_text(size = 14, angle = 90, vjust = 0.5, hjust = 1),
+              legend.title = element_text(size = 16),
+              legend.text = element_text(size = 14, face = "plain"),
+              legend.position = "right",
+              legend.background = element_rect(fill = "transparent"),
+              panel.spacing=unit(0, "lines"),
+              panel.grid.minor = element_blank(),
+              strip.text = element_text(size=14),
+              strip.background = element_rect(fill = "transparent")) + 
+        facet_grid(~ model, labeller = labeller(model = c("abundance" = "Abundance", "prevalence" = "Prevalence")))
+      
+      if (!is.null(p1)) {
+        p2 <- p2 + theme(
+          axis.text.y = element_blank(),
+          axis.title.y = element_blank(),
+          axis.ticks.y = element_blank(),
+        )             
+      }
+      
+    } else {
+      p2 <- NULL
+    }
+    
+    if (!is.null(p1) & !is.null(p2)) {
+      final_plot <- p1 + 
+        p2 + 
+        plot_layout(ncol = 3, widths = c(max(0, length(pointplot_vars) - 2) + 2, 
+                                         max(0, length(heatmap_vars) / 4 - 2) + 2, 0.5), guides = 'collect')
+    } else if (is.null(p1) & !is.null(p2)) {
+      final_plot <- p2
+    } else if (!is.null(p1) & is.null(p2)) {
+      final_plot <- p1
+    } else {
+      final_plot <- NULL
+    }
+    
+    return(final_plot)
 }
 
 save_heatmap <-
     function(
-        df_in,
+        merged_results,
         heatmap_file,
         figures_folder,
-        border_color = "grey93",
-        color = colorRampPalette(c("darkblue", "grey90", "darkred")),
-        first_n = 50,
-        max_significance = 0.1) {
+        first_n = 30,
+        max_significance = 0.1,
+        pointplot_vars = NULL,
+        heatmap_vars = NULL) {
+      
+      if (first_n > 200) {
+        logging::logerror(
+          paste("At most 200 features can be plotted in the heatmap. Please choose a smaller first_n."))
+        return()
+      }
 
-        # generate a heatmap and save it to a pdf and as a png
-        heatmap <-
-            maaslin3_heatmap(
-              df_in,
-              border_color,
-              color,
-              first_n,
-              max_significance)
-        
-        if (!is.null(heatmap)) {
-            pdf(heatmap_file, height = 11, width = 8.5)
-            grid.arrange(heatmap)
-            dev.off()
+      # generate a heatmap and save it to a pdf and as a png
+      heatmap <-
+          maaslin3_heatmap(
+            merged_results,
+            heatmap_file,
+            figures_folder,
+            first_n,
+            max_significance,
+            pointplot_vars,
+            heatmap_vars)
+      
+      height_out <- 7 + max(first_n / 5 - 4, 0)
+      width_out <- 7.5 + ifelse(is.null(pointplot_vars), 3, length(pointplot_vars) * 2.5) + 
+        ifelse(is.null(heatmap_vars), 1.5, length(heatmap_vars) * 0.2)
+      
+      if (!is.null(heatmap)) {
+        ggsave(heatmap_file, plot = heatmap, height = height_out, width = width_out)
+        png_file <- file.path(figures_folder, "heatmap.png")
+        ggsave(png_file, plot = heatmap, height = height_out, width = width_out)
+      }
+}
 
-            png_file <- file.path(figures_folder,"heatmap.png")
-            png(png_file, res = 150, height = 800, width = 1200)
-            grid.arrange(heatmap)
-            dev.off()
-        }
-
-    }
-
-maaslin2_association_plots <-
+maaslin3_association_plots <-
     function(
-        metadata,
-        features,
-        output_results,
-        write_to = './',
-        figures_folder = './figures/',
-        max_pngs = 10,
-        save_scatter = FALSE)
-    {
-        #MaAslin2 scatter plot function and theme
-        
-        # combine the data and metadata to one datframe using common rows
-        # read MaAsLin output
-        if (is.character(metadata)) {
-            metadata <- read.table(
-                metadata,
-                header = TRUE,
-                row.names = 1,
-                sep = "\t",
-                fill = FALSE,
-                comment.char = "" ,
-                check.names = FALSE
-            )
-        }
-        if (is.character(features)) {
-            features <- read.table(
-                features,
-                header = TRUE,
-                row.names = 1,
-                sep = "\t",
-                fill = FALSE,
-                comment.char = "" ,
-                check.names = FALSE
-            )
-        }
-        
-        common_rows <- intersect(rownames(features), rownames(metadata))
-        input_df_all <-
-            cbind(features[common_rows, , drop = FALSE], 
-                metadata[common_rows, , drop = FALSE])
-        
-        # read MaAsLin output
-        if (is.character(output_results)) {
-            output_df_all <- read.table(
-                output_results,
-                header = TRUE,
-                row.names = NULL,
-                sep = "\t",
-                fill = FALSE,
-                comment.char = "" ,
-                check.names = FALSE
-            )
-        } else {
-            output_df_all <- output_results
-        }
-        
-        if (dim(output_df_all)[1] < 1) {
-            print('There are no associations to plot!')
-            return(NULL)
-        }
-        
+      merged_results
+      metadata,
+      features,
+      max_significance = 0.1,
+      figures_folder,
+      max_pngs = 10) {
+      
+      merged_results <- merged_results[is.na(merged_results$error) & 
+                                         !is.na(merged_results$qval_individual) & 
+                                         merged_results$qval_individual < max_significance,]
+      if (nrow(merged_results) == 0) {
         logging::loginfo(
-            paste("Plotting associations from most",
-                "to least significant,",
-                "grouped by metadata"))
-        metadata_types <- unlist(output_df_all[, 'metadata'])
-        metadata_labels <-
-            unlist(metadata_types[!duplicated(metadata_types)])
-        metadata_number <- 1
-        saved_plots <- list()
+          paste("All associations had errors or were insignificant."))
+        return(NULL)
+      }
+      
+      merged_results <- merged_results[order(merged_results$qval_individual),]
+      
+      logging::loginfo(
+          paste("Plotting associations from most",
+              "to least significant,",
+              "grouped by metadata"))
+      
+      saved_plots <- list()
+      
+      features_by_metadata <- unique(merged_results[,c('feature', 'metadata')])
+      
+      for (row_num in 1:min(nrow(features_by_metadata), max_pngs)) {
+        feature_name <- features_by_metadata[row_num, 'feature']
+        feature_abun <- data.frame(sample = rownames(features),
+                                   feature_abun = features[,feature_name])
         
-        for (label in metadata_labels) {
-            saved_plots[[label]] <- list()
-            # for file name replace any non alphanumeric with underscore
-            plot_file <-
-                paste(
-                    write_to,
-                    "/",
-                    gsub("[^[:alnum:]_]", "_", label),
-                    ".pdf",
-                    sep = "")
-            data_index <- which(label == metadata_types)
-            logging::loginfo("Plotting data for metadata number %s, %s",
-                metadata_number,
-                label)
-            pdf(
-                plot_file,
-                width = 2.65,
-                height = 2.5,
-                onefile = TRUE)
-
-            x <- NULL
-            y <- NULL 
-            count <- 1
-            for (i in data_index) {
-                x_label <- as.character(output_df_all[i, 'metadata'])
-                y_label <- as.character(output_df_all[i, 'feature'])
-                results_value <- as.character(output_df_all[i, 'value'])
-                qval <- as.numeric(output_df_all[i, 'qval'])
-                coef_val <- as.numeric(output_df_all[i, 'coef'])
-                input_df <- input_df_all[c(x_label, y_label)]
-                colnames(input_df) <- c("x", "y")
-                
-                # if Metadata is continuous generate a scatter plot
-                # Continuous is defined as numerical with more than 
-                # 2 values (to exclude binary data)
-                temp_plot <- NULL
-                if (is.numeric(input_df[1, 'x']) &
-                        length(unique(input_df[['x']])) > 2) {
-                    logging::loginfo(
-                        "Creating scatter plot for continuous data, %s vs %s",
-                        x_label,
-                        y_label)
-                    temp_plot <- ggplot2::ggplot(
-                        data = input_df,
-                            ggplot2::aes(
-                                as.numeric(as.character(x)),
-                                as.numeric(as.character(y))
-                                )) +
-                            ggplot2::geom_point(
-                                fill = 'darkolivegreen4',
-                                color = 'black',
-                                alpha = .5,
-                                shape = 21,
-                                size = 1,
-                                stroke = 0.15
-                            ) +
-                            ggplot2::scale_x_continuous(
-                                limits = c(min(
-                                    input_df['x']), max(input_df['x']))) +
-                            ggplot2::scale_y_continuous(
-                                limits = c(min(
-                                    input_df['y']), max(input_df['y']))) +
-                            ggplot2::stat_smooth(
-                                method = "glm",
-                                formula = 'y ~ x',
-                                size = 0.5,
-                                color = 'blue',
-                                na.rm = TRUE
-                            ) +
-                            ggplot2::guides(alpha = 'none') + 
-                            ggplot2::labs("") +
-                            ggplot2::xlab(x_label) + 
-                            ggplot2::ylab(y_label) + 
-                            nature_theme(input_df[, 'x'], y_label) +
-                            ggplot2::annotate(
-                                geom = "text",
-                                x = Inf,
-                                y = Inf,
-                                hjust = 1,
-                                vjust = 1,
-                                label = sprintf(
-                                    "FDR: %s\nCoefficient: %s\nN: %s",
-                                    formatC(qval, format = "e", digits = 3),
-                                    formatC(coef_val, format = "e", digits = 2),
-                                    formatC(length(input_df[, 'x']))
-                                ) ,
-                                color = "black",
-                                size = 2,
-                                fontface = "italic"
-                            )
-                } else {
-                    # if Metadata is categorical generate a boxplot
-                    ### check if the variable is categorical
-                    
-                    logging::loginfo(
-                        "Creating boxplot for categorical data, %s vs %s",
-                        x_label,
-                        y_label)
-                    input_df['x'] <- lapply(input_df['x'], as.character)
-
-                    # count the Ns for each group
-                    x_axis_label_names <- unique(input_df[['x']])
-                    renamed_levels <- as.character(levels(metadata[,x_label]))
-                    if (length(renamed_levels) == 0) {
-                        renamed_levels <- x_axis_label_names
-                    }
-                    for (name in x_axis_label_names) {
-                        total <- length(which(input_df[['x']] == name))
-                        new_n <- paste(name, " (n=", total, ")", sep="")
-                        input_df[which(input_df[['x']] == name),'x'] <- new_n
-                        renamed_levels <- replace(renamed_levels, renamed_levels == name, new_n)
-                    }
-                    input_df$xnames <- factor(input_df[['x']], levels=renamed_levels)
-
-                    temp_plot <-
-                        ggplot2::ggplot(
-                            data = input_df, ggplot2::aes(xnames, y)) +
-                        ggplot2::geom_boxplot(
-                            ggplot2::aes(fill = x),
-                            outlier.alpha = 0.0,
-                            na.rm = TRUE,
-                            alpha = .5,
-                            show.legend = FALSE
-                        ) +
-                        ggplot2::geom_point(
-                            ggplot2::aes(fill = x),
-                            alpha = 0.75 ,
-                            size = 1,
-                            shape = 21,
-                            stroke = 0.15,
-                            color = 'black',
-                            position = ggplot2::position_jitterdodge()
-                        ) +
-                        ggplot2::scale_fill_brewer(palette = "Spectral")
-                    
-                    # format the figure to default nature format
-                    # remove legend, add x/y labels
-                    temp_plot <- temp_plot + 
-                        nature_theme(input_df[, 'x'], y_label) +
-                        ggplot2::theme(
-                            panel.grid.major = ggplot2::element_blank(),
-                            panel.grid.minor = ggplot2::element_blank(),
-                            panel.background = ggplot2::element_blank(),
-                            axis.line = ggplot2::element_line(colour = "black")
-                        ) +
-                        ggplot2::xlab(x_label) +
-                        ggplot2::ylab(y_label) +
-                        ggplot2::theme(legend.position = "none") +
-                        ggplot2::annotate(
-                            geom = "text",
-                            x = Inf,
-                            y = Inf,
-                            hjust = 1,
-                            vjust = 1,
-                            label = sprintf(
-                                "FDR: %s\nCoefficient: %s\nValue: %s",
-                                formatC(qval, format = "e", digits = 3),
-                                formatC(coef_val, format = "e", digits = 2),
-                                results_value
-                            ) ,
-                            color = "black",
-                            size = 2,
-                            fontface = "italic"
-                        )
-                }
-                stdout <- capture.output(print(temp_plot), type = "message")
-                if (length(stdout) > 0)
-                    logging::logdebug(stdout)
-                
-                # keep all plots if desired
-                # or only keep plots to be printed to png
-                if (save_scatter) {
-                  saved_plots[[label]][[count]] <- temp_plot
-                }
-                else if (count <= max_pngs) {
-                  saved_plots[[label]][[count]] <- temp_plot
-                }
-                count <- count + 1
+        metadata_name <- features_by_metadata[row_num, 'metadata']
+        metadata_sub <- data.frame(sample = rownames(metadata),
+                               metadata = metadata[,metadata_name])
+        joined_features_metadata <- inner_join(feature_abun, metadata_sub, by = c('sample'))
+        
+        this_signif_association <- merged_results[merged_results$feature == feature_name & 
+                                                    merged_results$metadata == metadata_name,]
+        
+        if ('LM' %in% this_signif_association$model) {
+          coef_val <- this_signif_association[this_signif_association$model == 'LM',]$coef
+          qval <- this_signif_association[this_signif_association$model == 'LM',]$qval_individual
+          N_nonzero <- this_signif_association[this_signif_association$model == 'LM',]$N.not.zero
+          N_total <- this_signif_association[this_signif_association$model == 'LM',]$N
+          results_value <- this_signif_association[this_signif_association$model == 'LM',]$value
+          
+          joined_features_metadata_abun <- joined_features_metadata[!is.na(joined_features_metadata$feature_abun),]
+          if (is.numeric(joined_features_metadata_abun$metadata) & 
+              length(unique(joined_features_metadata_abun$metadata)) > 1) {
+            logging::loginfo(
+              "Creating scatter plot for continuous data (linear), %s vs %s",
+              metadata_name,
+              feature_name)
+            temp_plot <- ggplot2::ggplot(
+              data = joined_features_metadata_abun,
+              ggplot2::aes(
+                as.numeric(metadata),
+                as.numeric(feature_abun)
+              )) +
+              ggplot2::geom_point(
+                fill = 'darkolivegreen4',
+                color = 'black',
+                alpha = .5,
+                shape = 21,
+                size = 1,
+                stroke = 0.15
+              ) + 
+              ggplot2::scale_x_continuous(
+                limits = c(min(joined_features_metadata_abun['metadata']), 
+                           max(joined_features_metadata_abun['metadata']))) +
+              ggplot2::scale_y_continuous(
+                limits = c(min(joined_features_metadata_abun['feature_abun']), 
+                           max(joined_features_metadata_abun['feature_abun']))) +
+              scale_y_continuous(expand = expansion(mult = c(0, 0.2))) + 
+              ggplot2::stat_smooth(
+                method = "glm",
+                formula = 'y ~ x',
+                linewidth = 0.5,
+                color = 'blue',
+                na.rm = TRUE
+              ) + 
+              ggplot2::guides(alpha = 'none') + 
+              ggplot2::labs("") +
+              ggplot2::xlab(metadata_name) + 
+              ggplot2::ylab(feature_name) + 
+              nature_theme(joined_features_metadata_abun['metadata'], feature_name) + 
+            ggplot2::annotate(
+              geom = "text",
+              x = Inf,
+              y = Inf,
+              hjust = 1,
+              vjust = 1,
+              label = sprintf(
+                "FDR: %s\nCoefficient (in full model): %s\nN: %s\nN (not zero): %s",
+                formatC(qval, format = "e", digits = 3),
+                formatC(coef_val, format = "e", digits = 2),
+                formatC(N_total, format = 'f', digits = 0),
+                formatC(N_nonzero, format = 'f', digits = 0)
+              ) ,
+              color = "black",
+              size = 2,
+              fontface = "italic"
+            )
+          } else {
+            x_axis_label_names <- unique(joined_features_metadata_abun$metadata)
+            renamed_levels <- as.character(levels(metadata[,metadata_name]))
+            if (length(renamed_levels) == 0) {
+              renamed_levels <- x_axis_label_names
             }
-            dev.off()
+            for (name in x_axis_label_names) {
+              total <- length(which(joined_features_metadata_abun$metadata == name))
+              new_n <- paste(name, " (n=", total, ")", sep="")
+              levels(joined_features_metadata_abun[,'metadata'])[
+                levels(joined_features_metadata_abun[,'metadata']) == name] <- new_n
+              renamed_levels <- replace(renamed_levels, renamed_levels == name, new_n)
+            }
+
+            logging::loginfo(
+              "Creating box plot for categorical data (linear), %s vs %s",
+              metadata_name,
+              feature_name)
             
-            # print the saved figures
-            # this is done separately from pdf generation 
-            # because nested graphics devices cause problems in rmarkdown output
-            for (plot_number in seq(1, min((count-1), max_pngs))) {
-              png_file <- file.path(figures_folder,
-                    paste0(
-                        substr(basename(plot_file),1,nchar(basename(plot_file))-4),
-                        "_",plot_number,".png"))
-              png(png_file, res = 300, width = 960, height = 960)
-              stdout <- capture.output(print(saved_plots[[label]][[plot_number]]))
-              dev.off()
-            }
-            # give plots informative names
-            if (save_scatter) {
-              names(saved_plots[[label]]) <- make.names(output_df_all[data_index, 'feature'], unique = TRUE)
-            } else {
-              saved_plots[[label]] <- NULL  # instead remove plots if only saved for png generation
-            }
-            metadata_number <- metadata_number + 1
+            temp_plot <-
+              ggplot2::ggplot(
+                data = joined_features_metadata_abun, ggplot2::aes(metadata, feature_abun)) +
+              ggplot2::geom_boxplot(
+                ggplot2::aes(fill = metadata),
+                outlier.alpha = 0.0,
+                na.rm = TRUE,
+                alpha = .5,
+                show.legend = FALSE
+              ) +
+              ggplot2::geom_point(
+                ggplot2::aes(fill = metadata),
+                alpha = 0.75 ,
+                size = 1,
+                shape = 21,
+                stroke = 0.15,
+                color = 'black',
+                position = ggplot2::position_jitterdodge()
+              ) +
+              ggplot2::scale_fill_brewer(palette = "Spectral") + 
+              scale_y_continuous(expand = expansion(mult = c(0, 0.2)))
+            
+            temp_plot <- temp_plot + 
+              nature_theme(joined_features_metadata_abun['feature_abun'], metadata_name) +
+              ggplot2::theme(
+                panel.grid.major = ggplot2::element_blank(),
+                panel.grid.minor = ggplot2::element_blank(),
+                panel.background = ggplot2::element_blank(),
+                axis.line = ggplot2::element_line(colour = "black")
+              ) +
+              ggplot2::xlab(metadata_name) +
+              ggplot2::ylab(feature_name) +
+              ggplot2::theme(legend.position = "none") +
+              ggplot2::annotate(
+                geom = "text",
+                x = Inf,
+                y = Inf,
+                hjust = 1,
+                vjust = 1,
+                label = sprintf(
+                  "FDR: %s\nCoefficient (in full model): %s\nValue: %s",
+                  paste0(formatC(qval, format = "e", digits = 3), collapse = ', '),
+                  paste0(formatC(coef_val, format = "e", digits = 2), collapse = ', '),
+                  paste0(results_value, collapse = ', ')
+                ) ,
+                color = "black",
+                size = 2,
+                fontface = "italic"
+              )
+          }
         }
-        return(saved_plots)
-    }
+        
+        if ('logistic' %in% this_signif_association$model) {
+          coef_val <- this_signif_association[this_signif_association$model == 'logistic',]$coef
+          qval <- this_signif_association[this_signif_association$model == 'logistic',]$qval_individual
+          N_nonzero <- this_signif_association[this_signif_association$model == 'logistic',]$N.not.zero
+          N_total <- this_signif_association[this_signif_association$model == 'logistic',]$N
+          results_value <- this_signif_association[this_signif_association$model == 'logistic',]$value
+          
+          joined_features_metadata_prev <- joined_features_metadata
+          joined_features_metadata_prev$feature_abun <- 
+            ifelse(is.na(joined_features_metadata_prev$feature_abun), 'Absent', 'Present')
+          
+          joined_features_metadata_prev$feature_abun <- 
+            factor(joined_features_metadata_prev$feature_abun, levels = c('Present', 'Absent'))
+          
+          if (is.numeric(joined_features_metadata_prev$metadata) & 
+              length(unique(joined_features_metadata_prev$metadata)) > 1) {
+            logging::loginfo(
+              "Creating boxplot for continuous data (logistic), %s vs %s",
+              metadata_name,
+              feature_name)
+            
+            temp_plot <-
+              ggplot2::ggplot(
+                data = joined_features_metadata_prev, ggplot2::aes(feature_abun, metadata)) +
+              ggplot2::geom_boxplot(
+                ggplot2::aes(fill = feature_abun),
+                outlier.alpha = 0.0,
+                na.rm = TRUE,
+                alpha = .5,
+                show.legend = FALSE
+              ) +
+              ggplot2::geom_point(
+                ggplot2::aes(fill = feature_abun),
+                alpha = 0.75 ,
+                size = 1,
+                shape = 21,
+                stroke = 0.15,
+                color = 'black',
+                position = ggplot2::position_jitterdodge()
+              ) +
+              ggplot2::scale_fill_brewer(palette = "Spectral") + 
+              scale_x_discrete(expand = expansion(mult = c(0, 0.7)))
+            
+            temp_plot <- temp_plot + 
+              nature_theme(joined_features_metadata_abun['feature_abun'], metadata_name) +
+              ggplot2::theme(
+                panel.grid.major = ggplot2::element_blank(),
+                panel.grid.minor = ggplot2::element_blank(),
+                panel.background = ggplot2::element_blank(),
+                axis.line = ggplot2::element_line(colour = "black")
+              ) +
+              ggplot2::xlab(feature_name) +
+              ggplot2::ylab(metadata_name) +
+              ggplot2::theme(legend.position = "none") +
+              ggplot2::annotate(
+                geom = "text",
+                x = Inf,
+                y = Inf,
+                hjust = 1,
+                vjust = 1,
+                label = sprintf(
+                  "FDR: %s\nCoefficient (in full model): %s\nN: %s\nN (not zero): %s",
+                  formatC(qval, format = "e", digits = 3),
+                  formatC(coef_val, format = "e", digits = 2),
+                  formatC(N_total, format = 'f', digits = 0),
+                  formatC(N_nonzero, format = 'f', digits = 0)
+                ) ,
+                color = "black",
+                size = 2,
+                fontface = "italic"
+              ) + 
+              coord_flip()
+            
+          } else {
+            joined_features_metadata_prev$feature_abun <- 
+              factor(joined_features_metadata_prev$feature_abun, levels = c('Absent', 'Present'))
+            
+            x_axis_label_names <- unique(joined_features_metadata_prev$metadata)
+            renamed_levels <- as.character(levels(metadata[,metadata_name]))
+            if (length(renamed_levels) == 0) {
+              renamed_levels <- x_axis_label_names
+            }
+            for (name in x_axis_label_names) {
+              mean_abun <- mean(joined_features_metadata_prev$feature_abun[
+                joined_features_metadata_prev$metadata == name] == 'Present')
+              new_n <- paste(name, " (p=", round(mean_abun, 2), ")", sep="")
+              levels(joined_features_metadata_prev[,'metadata'])[
+                levels(joined_features_metadata_prev[,'metadata']) == name] <- new_n
+              renamed_levels <- replace(renamed_levels, renamed_levels == name, new_n)
+            }
+            
+            logging::loginfo(
+              "Creating tile plot for categorical data (logistic), %s vs %s",
+              metadata_name,
+              feature_name)
+            
+            count_df <- joined_features_metadata_prev %>%
+              dplyr::group_by(feature_abun, metadata) %>%
+              dplyr::summarise(count = n(), .groups = 'drop')
+            
+            x_vals <- unique(joined_features_metadata_prev$feature_abun)
+            y_vals <- unique(joined_features_metadata_prev$metadata)
+            complete_grid <- expand.grid(feature_abun = x_vals, 
+                                         metadata = y_vals)
+            
+            table_df <- complete_grid %>%
+              left_join(count_df, by = c("feature_abun", "metadata")) %>%
+              mutate(count = ifelse(is.na(count), 0, count))
+
+            temp_plot <- ggplot(table_df, aes(x = metadata, y = feature_abun)) +
+              geom_tile(aes(fill = count), color = "white",
+                        lwd = 1.5,
+                        linetype = 1) +
+              coord_fixed(ratio = 0.5)+
+              geom_text(aes(label = count), color = "black", size = 4) + 
+              scale_fill_gradient2(low = "#075AFF",
+                                   mid = "#FFFFCC",
+                                   high = "#FF0000") +
+              scale_y_discrete(expand = expansion(mult = c(0, 1.7))) + 
+              theme(panel.background = element_blank(),
+                    legend.position = "none")
+              
+            temp_plot <- temp_plot + 
+              nature_theme(joined_features_metadata_abun['feature_abun'], metadata_name) + 
+              ggplot2::theme(
+                panel.grid.major = ggplot2::element_blank(),
+                panel.grid.minor = ggplot2::element_blank(),
+                panel.background = ggplot2::element_blank(),
+                axis.line = ggplot2::element_line(colour = "black")
+              ) +
+              ggplot2::xlab(metadata_name) +
+              ggplot2::ylab(feature_name) +
+              ggplot2::theme(legend.position = "none") +
+              ggplot2::annotate(
+                geom = "text",
+                x = Inf,
+                y = Inf,
+                hjust = 1,
+                vjust = 1,
+                label = sprintf(
+                  "FDR: %s\nCoefficient (in full model): %s\nValue: %s",
+                  paste0(formatC(qval, format = "e", digits = 3), collapse = ', '),
+                  paste0(formatC(coef_val, format = "e", digits = 2), collapse = ', '),
+                  paste0(results_value, collapse = ', ')
+                ) ,
+                color = "black",
+                size = 2,
+                fontface = "italic"
+              )
+          }
+        }
+        
+        saved_plots[[metadata_name]][[feature_name]] <- temp_plot
+      }
+      
+      scatterplot_folder <- file.path(figures_folder, 'scatterplots')
+      if (!file.exists(scatterplot_folder)) {
+        dir.create(scatterplot_folder)
+      }
+      
+      for (metadata_variable in names(saved_plots)) {
+        for (feature in names(saved_plots[[metadata_variable]])) {
+          this_plot <- saved_plots[[metadata_variable]][[feature]]
+          
+          png_file <- file.path(scatterplot_folder,
+                                paste0(metadata_variable, '_', feature, ".png"))
+          png(png_file, res = 300, width = 960, height = 960)
+          stdout <- capture.output(print(this_plot))
+          dev.off()
+        }
+      }
+      
+      return(saved_plots)
+}

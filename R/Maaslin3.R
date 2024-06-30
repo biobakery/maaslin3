@@ -91,10 +91,11 @@ args$median_comparison_prevalence_threshold <- 0.25
 args$augment <- TRUE
 args$unscaled_abundance <- NULL
 args$plot_heatmap <- TRUE
-args$heatmap_first_n <- 50
+args$heatmap_first_n <- 25
+args$pointplot_vars <- NULL
+args$heatmap_vars <- NULL
 args$plot_scatter <- TRUE
 args$max_pngs <- 10
-args$save_scatter <- FALSE
 args$cores <- 1
 args$save_models <- FALSE
 args$reference <- NULL
@@ -349,6 +350,36 @@ options <-
         )
     )
 options <-
+  optparse::add_option(
+    options,
+    c("--pointplot_vars"),
+    type = "character",
+    dest = "pointplot_vars",
+    default = args$pointplot_vars,
+    help = paste("The variables to use in the pointplot",
+                 "section of the heatmap provided as a",
+                 "comma-separated string. Continuous variables",
+                 "should match the metadata column name, and",
+                 "categorical variables should be of the form:",
+                 "[metadata] [level]. [ Default: NA ]"
+    )
+  )
+options <-
+  optparse::add_option(
+    options,
+    c("--heatmap_vars"),
+    type = "character",
+    dest = "heatmap_vars",
+    default = args$pointplot_vars,
+    help = paste("The variables to use in the heatmap",
+                 "section of the heatmap provided as a",
+                 "comma-separated string. Continuous variables",
+                 "should match the metadata column name, and",
+                 "categorical variables should be of the form:",
+                 "[metadata] [level]. [ Default: NA ]"
+    )
+  )
+options <-
     optparse::add_option(
         options,
         c("-o", "--plot_scatter"),
@@ -368,17 +399,6 @@ options <-
         default = args$max_pngs,
         help = paste("The maximum number of scatterplots for signficant",
                      "associations to save as png files [ Default: %default ]"
-        )
-    )
-options <-
-    optparse::add_option(
-        options,
-        c("-O", "--save_scatter"),
-        type = "logical",
-        dest = "save_scatter",
-        default = args$save_scatter,
-        help = paste("Save all scatter plot ggplot objects",
-                     "to an RData file [ Default: %default ]"
         )
     )
 options <-
@@ -469,7 +489,6 @@ maaslin_parse_param_list <- function(param_list) {
                         heatmap_first_n = args$heatmap_first_n,
                         plot_scatter = args$plot_scatter,
                         max_pngs = args$max_pngs,
-                        save_scatter = args$save_scatter,
                         save_models = args$save_models,
                         unscaled_abundance = args$unscaled_abundance,
                         reference = args$reference)
@@ -561,12 +580,6 @@ maaslin_check_arguments <- function(param_list) {
         )
       }
     }
-  }
-  
-  # check that plots are generated if to be saved
-  if (!param_list[["plot_scatter"]] && param_list[["save_scatter"]]) {
-    logging::logerror("Scatter plots cannot be saved if they are not plotted")
-    stop("Option not valid", call. = FALSE)
   }
   
   return(param_list)
@@ -1556,7 +1569,6 @@ maaslin_write_results_lefse_format <- function(params_data_formula_fit) {
 # Create visualizations for results passing threshold #
 #######################################################
 
-# TODO
 maaslin_plot_results <- function(params_data_formula_fit) {
   param_list <- maaslin_parse_param_list(params_data_formula_fit[["param_list"]])
   output <- param_list[["output"]]
@@ -1566,64 +1578,59 @@ maaslin_plot_results <- function(params_data_formula_fit) {
     print("Creating output folder")
     dir.create(output)
   }
-  
   if (param_list[["plot_heatmap"]] || param_list[["plot_scatter"]]) {
     figures_folder <- file.path(output, "figures")
     if (!file.exists(figures_folder)) {
-      print("Creating output figures folder")
+      logging::loginfo("Creating output figures folder")
       dir.create(figures_folder)
     }
   }
   
-  fit_out_lm <- params_data_formula_fit$fit_data_non_zero$results
-  fit_out_lm <- fit_out_lm[c("feature", "value", "metadata", "coef", "pval_individual", "error", "qval_individual", "pval_joint", "qval_joint")]
-  fit_out_lm$association <- "abundance"
-  
-  fit_out_binary <- params_data_formula_fit$fit_data_binary$results
-  fit_out_binary <- fit_out_binary[c("feature", "value", "metadata", "coef", "pval_individual", "error", "qval_individual", "pval_joint", "qval_joint")]
-  fit_out_binary$association <- "prevalence"
-  
-  fit_out <- full_join(fit_out_lm, fit_out_binary, by = colnames(fit_out_lm))
+  merged_results <- full_join(params_data_formula_fit[["fit_data_non_zero"]][['results']], 
+                              params_data_formula_fit[["fit_data_binary"]][['results']], 
+                       by = colnames(fit_out_lm))
   
   if (param_list[["plot_heatmap"]]) {
-    heatmap_file <- file.path(output, "heatmap.pdf")
+    heatmap_file <- file.path(figures_folder, "heatmap.pdf")
     logging::loginfo(
       "Writing heatmap of significant results to file: %s",
       heatmap_file)
-    save_heatmap(fit_out, heatmap_file, figures_folder,
+    
+    pointplot_vars = param_list[["pointplot_vars"]]
+    heatmap_vars = param_list[["heatmap_vars"]]
+    
+    if (!is.null(pointplot_vars) & length(pointplot_vars) == 1) {
+      pointplot_vars <- trimws(unlist(strsplit(pointplot_vars, ',')))
+    }
+    if (!is.null(heatmap_vars) & length(heatmap_vars) == 1) {
+      heatmap_vars <- trimws(unlist(strsplit(heatmap_vars, ',')))
+    }
+    
+    save_heatmap(merged_results, 
+                 heatmap_file, 
+                 figures_folder,
                  first_n = param_list[["heatmap_first_n"]],
-                 max_significance = param_list[['max_significance']])
+                 max_significance = param_list[["max_significance"]],
+                 pointplot_vars = pointplot_vars,
+                 heatmap_vars = heatmap_vars)
   }
   
-  # if (param_list[["plot_scatter"]]) {
-  #   logging::loginfo(
-  #     paste("Writing association plots",
-  #           "(one for each significant association)",
-  #           "to output folder: %s"),
-  #     output
-  #   )
-  #   significant_results_file <-
-  #     file.path(output, "significant_results.tsv")
-  #   saved_plots <- maaslin2_association_plots(
-  #     params_data_formula_fit[["unfiltered_metadata"]],
-  #     params_data_formula_fit[["filtered_data"]],
-  #     significant_results_file,
-  #     output,
-  #     figures_folder,
-  #     param_list[["max_pngs"]],
-  #     param_list[["save_scatter"]])
-  #   if (param_list[["save_scatter"]]) {
-  #     scatter_file <- file.path(figures_folder, "scatter_plots.rds")
-  #     # remove plots file if already exists
-  #     if (file.exists(scatter_file)) {
-  #       logging::logwarn(
-  #         "Deleting existing scatter plot objects file: %s", scatter_file)
-  #       unlink(scatter_file)
-  #     }
-  #     logging::loginfo("Writing scatter plot objects to file %s", scatter_file)
-  #     saveRDS(saved_plots, file = scatter_file)   
-  #   }
-  # }
+  if (param_list[["plot_scatter"]]) {
+    logging::loginfo(
+      paste("Writing association plots",
+            "(one for each significant association)",
+            "to output folder: %s"),
+      figures_folder
+    )
+
+    return(maaslin3_association_plots(
+      merged_results = merged_results,
+      metadata = params_data_formula_fit[["unfiltered_metadata"]],
+      features = params_data_formula_fit[["filtered_data_norm_transformed"]],
+      max_significance = param_list[['max_significance']],
+      figures_folder = figures_folder,
+      max_pngs = param_list[["max_pngs"]]))
+  }
 }
 
 #######################################################
@@ -1715,9 +1722,10 @@ if (identical(environment(), globalenv()) &&
       cores = current_args$cores,
       plot_heatmap = current_args$plot_heatmap,
       heatmap_first_n = current_args$heatmap_first_n,
+      pointplot_vars = current_args$pointplot_vars,
+      heatmap_vars = current_args$heatmap_vars,
       plot_scatter = current_args$plot_scatter,
       max_pngs = current_args$max_pngs,
-      save_scatter = current_args$save_scatter,
       save_models = current_args$save_models,
       augment = current_args$augment,
       reference = current_args$reference,

@@ -369,8 +369,8 @@ maaslin3_association_plots <-
                            max(joined_features_metadata_abun['metadata']))) +
               ggplot2::scale_y_continuous(
                 limits = c(min(joined_features_metadata_abun['feature_abun']), 
-                           max(joined_features_metadata_abun['feature_abun']))) +
-              scale_y_continuous(expand = expansion(mult = c(0, 0.2))) + 
+                           max(joined_features_metadata_abun['feature_abun'])),
+                expand = expansion(mult = c(0, 0.2))) +
               ggplot2::stat_smooth(
                 method = "glm",
                 formula = 'y ~ x',
@@ -637,9 +637,7 @@ maaslin3_association_plots <-
           
           png_file <- file.path(scatterplot_folder,
                                 paste0(metadata_variable, '_', feature, ".png"))
-          png(png_file, res = 300, width = 960, height = 960)
-          stdout <- capture.output(print(this_plot))
-          dev.off()
+          ggsave(filename = png_file, plot = this_plot, dpi = 300, width = 960/300, height = 960/300)
         }
       }
       

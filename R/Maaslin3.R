@@ -95,7 +95,7 @@ args$heatmap_first_n <- 25
 args$pointplot_vars <- NULL
 args$heatmap_vars <- NULL
 args$plot_scatter <- TRUE
-args$max_pngs <- 10
+args$max_pngs <- 30
 args$cores <- 1
 args$save_models <- FALSE
 args$reference <- NULL

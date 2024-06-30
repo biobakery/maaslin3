@@ -282,12 +282,13 @@ save_heatmap <-
             max_significance,
             pointplot_vars,
             heatmap_vars)
-      
-      height_out <- 7 + max(first_n / 5 - 4, 0)
-      width_out <- 7.5 + ifelse(is.null(pointplot_vars), 3, length(pointplot_vars) * 2.5) + 
-        ifelse(is.null(heatmap_vars), 1.5, length(heatmap_vars) * 0.2)
-      
+
       if (!is.null(heatmap)) {
+        height_out <- 7 + max(first_n / 5 - 4, 0)
+        width_out <-  4 + max(nchar(merged_results$feature)) / 10 + 
+          ifelse(is.null(pointplot_vars), 3, length(pointplot_vars) * 2.5) + 
+          ifelse(is.null(heatmap_vars), 1.5, length(heatmap_vars) * 0.2)
+        
         ggsave(heatmap_file, plot = heatmap, height = height_out, width = width_out)
         png_file <- file.path(figures_folder, "heatmap.png")
         ggsave(png_file, plot = heatmap, height = height_out, width = width_out)
@@ -637,6 +638,7 @@ maaslin3_association_plots <-
           
           png_file <- file.path(scatterplot_folder,
                                 paste0(metadata_variable, '_', feature, ".png"))
+          height <- max(960, 12 * nchar(feature))
           ggsave(filename = png_file, plot = this_plot, dpi = 300, width = 960/300, height = 960/300)
         }
       }

@@ -24,7 +24,7 @@
 ###############################################################################
 
 # Load libararies
-for (lib in c('dplyr', 'ggplot2', 'viridis', "grid", 'RColorBrewer', 'patchwork')) {
+for (lib in c('dplyr', 'ggplot2', 'viridis', "grid", 'RColorBrewer', 'patchwork', 'scales')) {
     suppressPackageStartupMessages(require(lib, character.only = TRUE))
 }
 
@@ -137,11 +137,18 @@ maaslin3_heatmap <-
     if (length(pointplot_vars) > 0 & 
         sum(merged_results_sig$full_metadata_name %in% pointplot_vars) >= 1) {
       pointplot_data <- merged_results_sig[merged_results_sig$full_metadata_name %in% pointplot_vars,]
+      
+      # Make sure insignificant coefficients don't distort the plot
+      pointplot_data <- pointplot_data[pointplot_data$qval_individual < max_significance | 
+                                         abs(pointplot_data$coef) < 3 * abs(diff(quantile(pointplot_data$coef, c(0.25, 0.75), na.rm = T))),]
+
       p1 <- ggplot(pointplot_data, aes(x=coef, y=feature)) +
-        geom_pointrange(aes(xmin=coef - stderr, xmax=coef + stderr)) + 
+        geom_errorbar(aes(xmin = coef - stderr, xmax = coef + stderr), width = 0.2) + 
         geom_point(aes(shape = model, fill = qval_individual), size = 4.5, color = "black")+
         geom_vline(xintercept = 0, linetype="dashed") + 
-        scale_x_continuous(breaks = scales::breaks_extended(n = 5)) +  # 12 for 2.5 interval
+        scale_x_continuous(breaks = scales::breaks_extended(n = 5), 
+                           limits = c(min(pointplot_data$coef) - quantile(pointplot_data$stderr, 0.8), 
+                                      max(pointplot_data$coef) + quantile(pointplot_data$stderr, 0.8))) +
         scale_shape_manual(name = "Association", values=c(21, 24))+
         scale_fill_viridis(option = "viridis", 
                            limits=c(10^floor(log10(min(pointplot_data$qval_individual))), 1), 
@@ -174,7 +181,7 @@ maaslin3_heatmap <-
     }
     
     # Create column for significance star annotation
-    merged_results_sig$sig_star <- cut(merged_results_sig$qval_individual, breaks=c(-Inf, max_significance / 10, max_significance, Inf), label=c("**", "*", ""))  
+    merged_results_sig$sig_star <- cut(merged_results_sig$qval_individual, breaks=c(-Inf, max_significance / 100, max_significance / 10, max_significance, Inf), label=c("***", "**", "*", ""))  
 
     # Bin coefficients into categories
     coefficient_thresh <- round(max(abs(quantile(merged_results_sig$coef, c(0.1, 0.9)))) / 10, 1) * 5
@@ -638,8 +645,9 @@ maaslin3_association_plots <-
           
           png_file <- file.path(scatterplot_folder,
                                 paste0(metadata_variable, '_', feature, ".png"))
-          height <- max(960, 12 * nchar(feature))
-          ggsave(filename = png_file, plot = this_plot, dpi = 300, width = 960/300, height = 960/300)
+          height <- max(960, 15 * nchar(feature))
+          print(nchar(feature))
+          ggsave(filename = png_file, plot = this_plot, dpi = 300, width = 960/300, height = height/300)
         }
       }
       

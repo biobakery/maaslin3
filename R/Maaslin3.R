@@ -1588,9 +1588,8 @@ maaslin_plot_results <- function(params_data_formula_fit) {
     }
   }
   
-  merged_results <- full_join(params_data_formula_fit[["fit_data_non_zero"]][['results']], 
-                              params_data_formula_fit[["fit_data_binary"]][['results']], 
-                       by = colnames(fit_out_lm))
+  merged_results <- rbind(params_data_formula_fit[["fit_data_non_zero"]][['results']],
+                          params_data_formula_fit[["fit_data_binary"]][['results']])
   
   if (param_list[["plot_heatmap"]]) {
     heatmap_file <- file.path(figures_folder, "heatmap.pdf")

@@ -196,6 +196,7 @@ fit.model <- function(
   #############################################################
   
   optimizers <- c('nloptwrap', 'nlminbwrap', 'bobyqa', 'Nelder_Mead')
+  optCtrlList <- list(list(maxeval = 100000), list(maxit = 1500), list(maxfun = 100000), list(maxfun = 100000))
   
   ################
   # Linear Model #
@@ -233,7 +234,8 @@ fit.model <- function(
                       formula(formula), 
                       data = data, 
                       na.action = na.action, 
-                      control = lmerControl(optimizer = optimizers[index])))
+                      control = lmerControl(optimizer = optimizers[index],
+                                            optCtrl = optCtrlList[[index]])))
                   }, warning = function(w) {
                     'warning'
                   }, error = function(e) {
@@ -248,7 +250,8 @@ fit.model <- function(
                   formula(formula), 
                   data = data, 
                   na.action = na.action, 
-                  control = lmerControl(optimizer = optimizers[index])))
+                  control = lmerControl(optimizer = optimizers[index],
+                                        optCtrl = optCtrlList[[index]])))
               }
           summary_function <- function(fit, names_to_include) {
               lm_summary <- coef(summary(fit))
@@ -328,7 +331,8 @@ fit.model <- function(
                     family = 'binomial',
                     na.action = na.action,
                     weights = weight_sch_current,
-                    control = glmerControl(optimizer = optimizers[index]))
+                    control = glmerControl(optimizer = optimizers[index],
+                                           optCtrl = optCtrlList[[index]]))
                 }, warning=function(w) {
                   if (w$message == "non-integer #successes in a binomial glm!") {
                     # Still worked
@@ -357,7 +361,8 @@ fit.model <- function(
                     family = 'binomial',
                     na.action = na.action,
                     weights = weight_sch_current,
-                    control = glmerControl(optimizer = optimizers[index]))
+                    control = glmerControl(optimizer = optimizers[index],
+                                           optCtrl = optCtrlList[[index]]))
               }, warning=function(w) {
                 if (w$message == "non-integer #successes in a binomial glm!") {
                   # Still worked
@@ -383,7 +388,8 @@ fit.model <- function(
                   data = data, 
                   family = 'binomial',
                   na.action = na.action,
-                  control = glmerControl(optimizer = optimizers[index]))
+                  control = glmerControl(optimizer = optimizers[index],
+                                         optCtrl = optCtrlList[[index]]))
               }, warning = function(w) {
                 'warning'
               }, error = function(e) {
@@ -404,7 +410,8 @@ fit.model <- function(
                 data = data, 
                 family = 'binomial',
                 na.action = na.action,
-                control = glmerControl(optimizer = optimizers[index])))
+                control = glmerControl(optimizer = optimizers[index],
+                                       optCtrl = optCtrlList[[index]])))
             } else  {
               return(glm_out)
             }

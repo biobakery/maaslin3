@@ -215,7 +215,7 @@ maaslin3_heatmap <-
     }
     
     # Create column for significance star annotation
-    merged_results_sig$sig_star <- cut(merged_results_sig$qval_individual, breaks=c(-Inf, max_significance / 100, max_significance / 10, max_significance, Inf), label=c("***", "**", "*", ""))  
+    merged_results_sig$sig_star <- cut(merged_results_sig$qval_individual, breaks=c(-Inf, max_significance / 10, max_significance, Inf), label=c("**", "*", ""))  
 
     # Bin coefficients into categories
     coefficient_thresh <- round(max(abs(quantile(merged_results_sig$coef, c(0.1, 0.9)))) / 10, 1) * 5

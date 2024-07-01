@@ -89,8 +89,8 @@ maaslin3_heatmap <-
              paste0(merged_results$metadata, ' ', merged_results$value))
     
     median_df <- merged_results %>%
-      dplyr::group_by(full_metadata_name, model) %>%
-      dplyr::summarize(median_val = median(coef), .groups = 'drop')
+      dplyr::group_by(.data$full_metadata_name, .data$model) %>%
+      dplyr::summarize(median_val = median(.data$coef), .groups = 'drop')
     
     if (!median_comparison_abundance) {
       median_df$median_val[median_df$model == 'Abundance'] <- 0
@@ -118,7 +118,7 @@ maaslin3_heatmap <-
     signif_taxa <- unique(merged_results_joint_only$feature)[1:first_n]
 
     merged_results_sig <- merged_results %>%
-      filter(feature %in% signif_taxa)
+      dplyr::filter(.data$feature %in% signif_taxa)
     
     # order feature
     ord_feature <- with(merged_results_sig, reorder(feature, coef))
@@ -128,8 +128,8 @@ maaslin3_heatmap <-
     
     if(is.null(pointplot_vars)) {
       mean_log_qval <- merged_results_sig %>%
-        dplyr::group_by(full_metadata_name) %>%
-        dplyr::summarise(mean_value = mean(log(qval_joint), na.rm = TRUE))
+        dplyr::group_by(.data$full_metadata_name) %>%
+        dplyr::summarise(mean_value = mean(log(.data$qval_joint), na.rm = TRUE))
       
       pointplot_vars <- mean_log_qval$full_metadata_name[order(mean_log_qval$mean_value)]
       pointplot_vars <- setdiff(pointplot_vars, heatmap_vars)
@@ -140,8 +140,8 @@ maaslin3_heatmap <-
     
     if(is.null(heatmap_vars)) {
       mean_log_qval <- merged_results_sig %>%
-        dplyr::group_by(full_metadata_name) %>%
-        dplyr::summarise(mean_value = mean(log(qval_joint), na.rm = TRUE))
+        dplyr::group_by(.data$full_metadata_name) %>%
+        dplyr::summarise(mean_value = mean(log(.data$qval_joint), na.rm = TRUE))
       
       heatmap_vars <- mean_log_qval$full_metadata_name[order(mean_log_qval$mean_value)]
       heatmap_vars <- setdiff(heatmap_vars, pointplot_vars)
@@ -152,9 +152,9 @@ maaslin3_heatmap <-
       pointplot_data <- merged_results_sig[merged_results_sig$full_metadata_name %in% pointplot_vars,]
       
       quantile_df <- pointplot_data %>%
-        dplyr::group_by(full_metadata_name) %>%
-        dplyr::summarise(lower_q = median(coef) - 10 * (median(coef) - quantile(coef, 0.25)), 
-                         upper_q = median(coef) + 10 * (quantile(coef, 0.75) - median(coef))) %>%
+        dplyr::group_by(.data$full_metadata_name) %>%
+        dplyr::summarise(lower_q = median(.data$coef) - 10 * (median(.data$coef) - quantile(.data$coef, 0.25)), 
+                         upper_q = median(.data$coef) + 10 * (quantile(.data$coef, 0.75) - median(.data$coef))) %>%
         data.frame()
       rownames(quantile_df) <- quantile_df$full_metadata_name
       
@@ -163,51 +163,51 @@ maaslin3_heatmap <-
                                          (pointplot_data$coef > quantile_df[pointplot_data$full_metadata_name, 'lower_q'] & 
                                             pointplot_data$coef < quantile_df[pointplot_data$full_metadata_name, 'upper_q']),]
 
-      p1 <- ggplot(pointplot_data, aes(x=coef, y=feature)) +
-        geom_errorbar(aes(xmin = coef - stderr, xmax = coef + stderr), width = 0.2) + 
-        geom_point(aes(shape = model, fill = qval_individual), size = 4.5, color = "black")+
-        scale_x_continuous(breaks = scales::breaks_extended(n = 5), 
+      p1 <- ggplot2::ggplot(pointplot_data, ggplot2::aes(x=.data$coef, y=.data$feature)) +
+        ggplot2::geom_errorbar(ggplot2::aes(xmin = .data$coef - .data$stderr, xmax = .data$coef + .data$stderr), width = 0.2) + 
+        ggplot2::geom_point(ggplot2::aes(shape = .data$model, fill = .data$qval_individual), size = 4.5, color = "black")+
+        ggplot2::scale_x_continuous(breaks = scales::breaks_extended(n = 5), 
                            limits = c(min(pointplot_data$coef) - quantile(pointplot_data$stderr, 0.8), 
                                       max(pointplot_data$coef) + quantile(pointplot_data$stderr, 0.8))) +
-        scale_shape_manual(name = "Association", values=c(21, 24))+
-        scale_fill_viridis(option = "viridis", 
+        ggplot2::scale_shape_manual(name = "Association", values=c(21, 24))+
+        viridis::scale_fill_viridis(option = "viridis", 
                            limits=c(10^floor(log10(min(pointplot_data$qval_individual))), 1), 
                            breaks=c(10^floor(log10(min(pointplot_data$qval_individual))), max_significance, 1), 
                            labels = c(paste0("1e", floor(log10(min(pointplot_data$qval_individual)))), 
                                       paste0("1e", floor(log10(max_significance))),
                                       "1"),
-                           trans = scales::pseudo_log_trans(sigma = 0.001),
+                           transform = scales::pseudo_log_trans(sigma = 0.001),
                            name = expression(P["FDR"]), direction = -1) +
-        labs(x =expression(paste(beta, " coefficient")),  y = "Feature") +
-        theme_bw() + 
-        theme(axis.title = element_text(size = 16),
-              axis.text.y = element_text(size = 14),
-              axis.text.x =element_text(size = 14),
-              legend.title = element_text(size = 16),
-              legend.text = element_text(size = 14, face = "plain"),
+        ggplot2::labs(x =expression(paste(beta, " coefficient")),  y = "Feature") +
+        ggplot2::theme_bw() + 
+        ggplot2::theme(axis.title = ggplot2::element_text(size = 16),
+              axis.text.y = ggplot2::element_text(size = 14),
+              axis.text.x =ggplot2::element_text(size = 14),
+              legend.title = ggplot2::element_text(size = 16),
+              legend.text = ggplot2::element_text(size = 14, face = "plain"),
               legend.position = "right",
-              legend.background = element_rect(fill = "transparent"),
-              panel.spacing=unit(0, "lines"),
-              panel.grid.minor = element_blank(),
-              strip.text = element_text(size=14),
-              strip.background = element_rect(fill = "transparent")) + 
-        facet_wrap(~ full_metadata_name, scales = 'free_x', ncol = length(pointplot_vars))
+              legend.background = ggplot2::element_rect(fill = "transparent"),
+              panel.spacing=ggplot2::unit(0, "lines"),
+              panel.grid.minor = ggplot2::element_blank(),
+              strip.text = ggplot2::element_text(size=14),
+              strip.background = ggplot2::element_rect(fill = "transparent")) + 
+        ggplot2::facet_wrap(~ full_metadata_name, scales = 'free_x', ncol = length(pointplot_vars))
       
       if (median_comparison_prevalence | median_comparison_abundance) {
         p1 <- p1 + 
-          guides(
-            shape = guide_legend(override.aes = list(color = "black")),
-            linetype = guide_legend(title = 'Association median'),
+          ggplot2::guides(
+            shape = ggplot2::guide_legend(override.aes = list(color = "black")),
+            linetype = ggplot2::guide_legend(title = 'Association median'),
           ) + 
-          geom_vline(data = median_df[median_df$full_metadata_name %in% pointplot_vars,], 
-                     aes(xintercept = median_val, linetype = model), color = "black") +
-          scale_linetype_manual(values = c("Prevalence" = "dashed", "Abundance" = "solid"))
+          ggplot2::geom_vline(data = median_df[median_df$full_metadata_name %in% pointplot_vars,], 
+                     ggplot2::aes(xintercept = .data$median_val, linetype = .data$model), color = "black") +
+          ggplot2::scale_linetype_manual(values = c("Prevalence" = "dashed", "Abundance" = "solid"))
       } else {
         p1 <- p1 + 
-          guides(
-            shape = guide_legend(override.aes = list(color = "black")),
+          ggplot2::guides(
+            shape = ggplot2::guide_legend(override.aes = list(color = "black")),
           ) + 
-          geom_vline(aes(xintercept = 0), color = "black", linetype = 'dashed')
+          ggplot2::geom_vline(ggplot2::aes(xintercept = 0), color = "black", linetype = 'dashed')
       }
       
     } else {
@@ -232,10 +232,10 @@ maaslin3_heatmap <-
     })
     
     merged_results_sig <- merged_results_sig %>%
-      mutate(coef_cat = threshold_set[threshold_indices])
+      dplyr::mutate(coef_cat = threshold_set[threshold_indices])
     merged_results_sig$coef_cat <- factor(merged_results_sig$coef_cat, levels = threshold_set)
     
-    scale_fill_values <- rev((brewer.pal(n = 6, name = "RdBu")))
+    scale_fill_values <- rev((RColorBrewer::brewer.pal(n = 6, name = "RdBu")))
     names(scale_fill_values) <- threshold_set
     
     if (length(heatmap_vars) > 0 & 
@@ -250,30 +250,30 @@ maaslin3_heatmap <-
       heatmap_data <- merge(grid, heatmap_data, by = c("feature", "full_metadata_name", "model"), all.x = TRUE)
       heatmap_data$coef[is.na(heatmap_data$coef)] <- NA
 
-      p2 <- ggplot(heatmap_data, aes(x = full_metadata_name, y = feature)) +
-        geom_tile(data = heatmap_data, aes(fill = coef_cat), colour="white", linewidth=0.2) +
-        scale_fill_manual(name = "Beta coefficient", na.value="#EEEEEE",
+      p2 <- ggplot2::ggplot(heatmap_data, ggplot2::aes(x = .data$full_metadata_name, y = .data$feature)) +
+        ggplot2::geom_tile(data = heatmap_data, ggplot2::aes(fill = .data$coef_cat), colour="white", linewidth=0.2) +
+        ggplot2::scale_fill_manual(name = "Beta coefficient", na.value="#EEEEEE",
                           values = scale_fill_values) + 
-        geom_text(label = heatmap_data$sig_star, color = "black", size=6, vjust = 0.75, hjust = 0.5) + 
-        labs(x ='',  y = "Feature", caption = "") +
-        theme_bw() + 
-        theme(axis.title = element_text(size = 16),
-              axis.text.x =element_text(size = 14, angle = 90, vjust = 0.5, hjust = 1),
-              legend.title = element_text(size = 16),
-              legend.text = element_text(size = 14, face = "plain"),
+        ggplot2::geom_text(label = heatmap_data$sig_star, color = "black", size=6, vjust = 0.75, hjust = 0.5) + 
+        ggplot2::labs(x ='',  y = "Feature", caption = "") +
+        ggplot2::theme_bw() + 
+        ggplot2::theme(axis.title = ggplot2::element_text(size = 16),
+              axis.text.x =ggplot2::element_text(size = 14, angle = 90, vjust = 0.5, hjust = 1),
+              legend.title = ggplot2::element_text(size = 16),
+              legend.text = ggplot2::element_text(size = 14, face = "plain"),
               legend.position = "right",
-              legend.background = element_rect(fill = "transparent"),
-              panel.spacing=unit(0, "lines"),
-              panel.grid.minor = element_blank(),
-              strip.text = element_text(size=14),
-              strip.background = element_rect(fill = "transparent")) + 
-        facet_grid(~ model, labeller = labeller(model = c("abundance" = "Abundance", "prevalence" = "Prevalence")))
+              legend.background = ggplot2::element_rect(fill = "transparent"),
+              panel.spacing=ggplot2::unit(0, "lines"),
+              panel.grid.minor = ggplot2::element_blank(),
+              strip.text = ggplot2::element_text(size=14),
+              strip.background = ggplot2::element_rect(fill = "transparent")) + 
+        ggplot2::facet_grid(~ model, labeller = ggplot2::labeller(model = c("abundance" = "Abundance", "prevalence" = "Prevalence")))
       
       if (!is.null(p1)) {
-        p2 <- p2 + theme(
-          axis.text.y = element_blank(),
-          axis.title.y = element_blank(),
-          axis.ticks.y = element_blank(),
+        p2 <- p2 + ggplot2::theme(
+          axis.text.y = ggplot2::element_blank(),
+          axis.title.y = ggplot2::element_blank(),
+          axis.ticks.y = ggplot2::element_blank(),
         )             
       }
       
@@ -282,9 +282,7 @@ maaslin3_heatmap <-
     }
     
     if (!is.null(p1) & !is.null(p2)) {
-      final_plot <- p1 + 
-        p2 + 
-        plot_layout(ncol = 3, widths = c(max(0, length(pointplot_vars) - 2) + 2, 
+      final_plot <- patchwork::wrap_plots(p1, p2, ncol = 3, widths = c(max(0, length(pointplot_vars) - 2) + 2, 
                                          max(0, length(heatmap_vars) / 4 - 2) + 2, 0.5), guides = 'collect')
     } else if (is.null(p1) & !is.null(p2)) {
       final_plot <- p2
@@ -334,9 +332,9 @@ save_heatmap <-
           ifelse(is.null(pointplot_vars), 3, length(pointplot_vars) * 2.5) + 
           ifelse(is.null(heatmap_vars), 1.5, length(heatmap_vars) * 0.2)
         
-        ggsave(heatmap_file, plot = heatmap, height = height_out, width = width_out)
+        ggplot2::ggsave(heatmap_file, plot = heatmap, height = height_out, width = width_out)
         png_file <- file.path(figures_folder, "heatmap.png")
-        ggsave(png_file, plot = heatmap, height = height_out, width = width_out)
+        ggplot2::ggsave(png_file, plot = heatmap, height = height_out, width = width_out)
       }
 }
 
@@ -377,7 +375,7 @@ maaslin3_association_plots <-
         metadata_name <- features_by_metadata[row_num, 'metadata']
         metadata_sub <- data.frame(sample = rownames(metadata),
                                metadata = metadata[,metadata_name])
-        joined_features_metadata <- inner_join(feature_abun, metadata_sub, by = c('sample'))
+        joined_features_metadata <- dplyr::inner_join(feature_abun, metadata_sub, by = c('sample'))
         
         this_signif_association <- merged_results[merged_results$feature == feature_name & 
                                                     merged_results$metadata == metadata_name,]
@@ -399,8 +397,8 @@ maaslin3_association_plots <-
             temp_plot <- ggplot2::ggplot(
               data = joined_features_metadata_abun,
               ggplot2::aes(
-                as.numeric(metadata),
-                as.numeric(feature_abun)
+                as.numeric(.data$metadata),
+                as.numeric(.data$feature_abun)
               )) +
               ggplot2::geom_point(
                 fill = 'darkolivegreen4',
@@ -416,7 +414,7 @@ maaslin3_association_plots <-
               ggplot2::scale_y_continuous(
                 limits = c(min(joined_features_metadata_abun['feature_abun']), 
                            max(joined_features_metadata_abun['feature_abun'])),
-                expand = expansion(mult = c(0, 0.2))) +
+                expand = ggplot2::expansion(mult = c(0, 0.2))) +
               ggplot2::stat_smooth(
                 method = "glm",
                 formula = 'y ~ x',
@@ -467,16 +465,16 @@ maaslin3_association_plots <-
             
             temp_plot <-
               ggplot2::ggplot(
-                data = joined_features_metadata_abun, ggplot2::aes(metadata, feature_abun)) +
+                data = joined_features_metadata_abun, ggplot2::aes(.data$metadata, .data$feature_abun)) +
               ggplot2::geom_boxplot(
-                ggplot2::aes(fill = metadata),
+                ggplot2::aes(fill = .data$metadata),
                 outlier.alpha = 0.0,
                 na.rm = TRUE,
                 alpha = .5,
                 show.legend = FALSE
               ) +
               ggplot2::geom_point(
-                ggplot2::aes(fill = metadata),
+                ggplot2::aes(fill = .data$metadata),
                 alpha = 0.75 ,
                 size = 1,
                 shape = 21,
@@ -485,7 +483,7 @@ maaslin3_association_plots <-
                 position = ggplot2::position_jitterdodge()
               ) +
               ggplot2::scale_fill_brewer(palette = "Spectral") + 
-              scale_y_continuous(expand = expansion(mult = c(0, 0.2)))
+              ggplot2::scale_y_continuous(expand = ggplot2::expansion(mult = c(0, 0.2)))
             
             temp_plot <- temp_plot + 
               nature_theme(metadata_name, joined_features_metadata_abun['feature_abun']) +
@@ -540,16 +538,16 @@ maaslin3_association_plots <-
             
             temp_plot <-
               ggplot2::ggplot(
-                data = joined_features_metadata_prev, ggplot2::aes(feature_abun, metadata)) +
+                data = joined_features_metadata_prev, ggplot2::aes(.data$feature_abun, .data$metadata)) +
               ggplot2::geom_boxplot(
-                ggplot2::aes(fill = feature_abun),
+                ggplot2::aes(fill = .data$feature_abun),
                 outlier.alpha = 0.0,
                 na.rm = TRUE,
                 alpha = .5,
                 show.legend = FALSE
               ) +
               ggplot2::geom_point(
-                ggplot2::aes(fill = feature_abun),
+                ggplot2::aes(fill = .data$feature_abun),
                 alpha = 0.75 ,
                 size = 1,
                 shape = 21,
@@ -558,7 +556,7 @@ maaslin3_association_plots <-
                 position = ggplot2::position_jitterdodge()
               ) +
               ggplot2::scale_fill_brewer(palette = "Spectral") + 
-              scale_x_discrete(expand = expansion(mult = c(0, 0.7)))
+              ggplot2::scale_x_discrete(expand = ggplot2::expansion(mult = c(0, 0.7)))
             
             temp_plot <- temp_plot + 
               nature_theme(metadata_name, joined_features_metadata_abun['feature_abun']) +
@@ -588,7 +586,7 @@ maaslin3_association_plots <-
                 size = 2,
                 fontface = "italic"
               ) + 
-              coord_flip()
+              ggplot2::coord_flip()
             
           } else {
             joined_features_metadata_prev$feature_abun <- 
@@ -614,8 +612,8 @@ maaslin3_association_plots <-
               feature_name)
             
             count_df <- joined_features_metadata_prev %>%
-              dplyr::group_by(feature_abun, metadata) %>%
-              dplyr::summarise(count = n(), .groups = 'drop')
+              dplyr::group_by(.data$feature_abun, .data$metadata) %>%
+              dplyr::summarise(count = dplyr::n(), .groups = 'drop')
             
             x_vals <- unique(joined_features_metadata_prev$feature_abun)
             y_vals <- unique(joined_features_metadata_prev$metadata)
@@ -623,20 +621,20 @@ maaslin3_association_plots <-
                                          metadata = y_vals)
             
             table_df <- complete_grid %>%
-              left_join(count_df, by = c("feature_abun", "metadata")) %>%
-              mutate(count = ifelse(is.na(count), 0, count))
+              dplyr::left_join(count_df, by = c("feature_abun", "metadata")) %>%
+              dplyr::mutate(count = ifelse(is.na(.data$count), 0, .data$count))
 
-            temp_plot <- ggplot(table_df, aes(x = metadata, y = feature_abun)) +
-              geom_tile(aes(fill = count), color = "white",
+            temp_plot <- ggplot2::ggplot(table_df, ggplot2::aes(x = .data$metadata, y = .data$feature_abun)) +
+              ggplot2::geom_tile(ggplot2::aes(fill = .data$count), color = "white",
                         lwd = 1.5,
                         linetype = 1) +
-              coord_fixed(ratio = 0.5)+
-              geom_text(aes(label = count), color = "black", size = 4) + 
-              scale_fill_gradient2(low = "#075AFF",
+              ggplot2::coord_fixed(ratio = 0.5)+
+              ggplot2::geom_text(ggplot2::aes(label = .data$count), color = "black", size = 4) + 
+              ggplot2::scale_fill_gradient2(low = "#075AFF",
                                    mid = "#FFFFCC",
                                    high = "#FF0000") +
-              scale_y_discrete(expand = expansion(mult = c(0, 1.7))) + 
-              theme(panel.background = element_blank(),
+              ggplot2::scale_y_discrete(expand = ggplot2::expansion(mult = c(0, 1.7))) + 
+              ggplot2::theme(panel.background = ggplot2::element_blank(),
                     legend.position = "none")
               
             temp_plot <- temp_plot + 
@@ -684,7 +682,7 @@ maaslin3_association_plots <-
           png_file <- file.path(association_plots_folder,
                                 paste0(metadata_variable, '_', feature, ".png"))
           height <- max(960, 15 * nchar(feature))
-          ggsave(filename = png_file, plot = this_plot, dpi = 300, width = 960/300, height = height/300)
+          ggplot2::ggsave(filename = png_file, plot = this_plot, dpi = 300, width = 960/300, height = height/300)
         }
       }
       

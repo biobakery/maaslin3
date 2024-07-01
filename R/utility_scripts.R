@@ -122,8 +122,8 @@ cumNormStat <- function (counts, qFlag = TRUE, pFlag = FALSE, rel = 0.1, ...) {
     plot(abs(diff(diffr2[diffr2 > 0]))/diffr2[diffr2 > 0][-1], 
          type = "h", ylab = "Relative difference for reference", 
          xaxt = "n", ...)
-    abline(h = rel)
-    axis(1, at = seq(0, length(diffr2), length.out = 5), 
+    graphics::abline(h = rel)
+    graphics::axis(1, at = seq(0, length(diffr2), length.out = 5), 
          labels = seq(0, 1, length.out = 5))
   }
   x = which(abs(diff(diffr2))/diffr2[-1] > rel)[1]/length(diffr2)

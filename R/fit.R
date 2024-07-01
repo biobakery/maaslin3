@@ -57,7 +57,7 @@ get_fixed_effects <- function(formula, random_effects_formula, dat_sub, groups, 
     names_to_include <- colnames(model.matrix(formula(gsub("^expr ", "", safe_deparse(formula))), dat_sub))
     names_to_include <- names_to_include[names_to_include != "(Intercept)"]
   } else { # Random effects
-    patterns <- paste0("(", unlist(findbars(formula(gsub("^expr ", "", safe_deparse(formula))))), ")")
+    patterns <- paste0("(", unlist(lme4::findbars(formula(gsub("^expr ", "", safe_deparse(formula))))), ")")
     
     for (pattern in patterns) {
       fixed_effects_only <- gsub(pattern, "", 
@@ -107,7 +107,7 @@ add_joint_signif <- function(fit_data_non_zero, fit_data_binary, analysis_method
   colnames(fit_data_non_zero_signif) <- c("feature", "metadata", "value", "name", analysis_method, "LM_error")
   
   # Join and check linear and logistic pieces
-  merged_signif <- full_join(unique(fit_data_binary_signif), unique(fit_data_non_zero_signif), 
+  merged_signif <- dplyr::full_join(unique(fit_data_binary_signif), unique(fit_data_non_zero_signif), 
                              by=c("feature", "metadata", "value", "name"))
   
   # Stop everything and show the difference between the logistic and linear models fit
@@ -115,8 +115,8 @@ add_joint_signif <- function(fit_data_non_zero, fit_data_binary, analysis_method
     print(nrow(unique(merged_signif)))
     print(nrow(unique(fit_data_binary_signif)))
     print(nrow(unique(fit_data_non_zero_signif)))
-    print(anti_join(unique(fit_data_binary_signif), unique(fit_data_non_zero_signif), by=c("feature", "metadata", "value", "name")))
-    print(anti_join(unique(fit_data_non_zero_signif), unique(fit_data_binary_signif), by=c("feature", "metadata", "value", "name")))
+    print(dplyr::anti_join(unique(fit_data_binary_signif), unique(fit_data_non_zero_signif), by=c("feature", "metadata", "value", "name")))
+    print(dplyr::anti_join(unique(fit_data_non_zero_signif), unique(fit_data_binary_signif), by=c("feature", "metadata", "value", "name")))
     stop("Merged significance tables have different associations. This is likely a package error due to unexpected data or models.")
   }
   
@@ -140,7 +140,7 @@ add_joint_signif <- function(fit_data_non_zero, fit_data_binary, analysis_method
 append_joint <- function(outputs, merged_signif) {
   merged_signif <- merged_signif[,c("feature", "metadata", "value", "name", "pval_joint", "qval_joint")]
   tmp_colnames <- colnames(outputs$results)
-  tmp_colnames <- case_when(tmp_colnames == "pval" ~ "pval_individual",
+  tmp_colnames <- dplyr::case_when(tmp_colnames == "pval" ~ "pval_individual",
                             tmp_colnames == "qval" ~ "qval_individual",
                             TRUE ~ tmp_colnames)
   colnames(outputs$results) <- tmp_colnames
@@ -234,7 +234,7 @@ fit.model <- function(
                       formula(formula), 
                       data = data, 
                       na.action = na.action, 
-                      control = lmerControl(optimizer = optimizers[index],
+                      control = lme4::lmerControl(optimizer = optimizers[index],
                                             optCtrl = optCtrlList[[index]])))
                   }, warning = function(w) {
                     'warning'
@@ -250,7 +250,7 @@ fit.model <- function(
                   formula(formula), 
                   data = data, 
                   na.action = na.action, 
-                  control = lmerControl(optimizer = optimizers[index],
+                  control = lme4::lmerControl(optimizer = optimizers[index],
                                         optCtrl = optCtrlList[[index]])))
               }
           summary_function <- function(fit, names_to_include) {
@@ -331,7 +331,7 @@ fit.model <- function(
                     family = 'binomial',
                     na.action = na.action,
                     weights = weight_sch_current,
-                    control = glmerControl(optimizer = optimizers[index],
+                    control = lme4::glmerControl(optimizer = optimizers[index],
                                            optCtrl = optCtrlList[[index]]))
                 }, warning=function(w) {
                   if (w$message == "non-integer #successes in a binomial glm!") {
@@ -361,7 +361,7 @@ fit.model <- function(
                     family = 'binomial',
                     na.action = na.action,
                     weights = weight_sch_current,
-                    control = glmerControl(optimizer = optimizers[index],
+                    control = lme4::glmerControl(optimizer = optimizers[index],
                                            optCtrl = optCtrlList[[index]]))
               }, warning=function(w) {
                 if (w$message == "non-integer #successes in a binomial glm!") {
@@ -388,7 +388,7 @@ fit.model <- function(
                   data = data, 
                   family = 'binomial',
                   na.action = na.action,
-                  control = glmerControl(optimizer = optimizers[index],
+                  control = lme4::glmerControl(optimizer = optimizers[index],
                                          optCtrl = optCtrlList[[index]]))
               }, warning = function(w) {
                 'warning'
@@ -410,7 +410,7 @@ fit.model <- function(
                 data = data, 
                 family = 'binomial',
                 na.action = na.action,
-                control = glmerControl(optimizer = optimizers[index],
+                control = lme4::glmerControl(optimizer = optimizers[index],
                                        optCtrl = optCtrlList[[index]])))
             } else  {
               return(glm_out)
@@ -673,12 +673,12 @@ fit.model <- function(
                   pval_new <- tryCatch({anova(fit_new, fit)[2, 'Pr(>Chisq)']},
                                        error = function(err) { NA })
                 } else {
-                  contrast_mat <- matrix(0, ncol = length(fixef(fit)), nrow = length(levels(dat_sub[[group]])[-1]))
+                  contrast_mat <- matrix(0, ncol = length(lme4::fixef(fit)), nrow = length(levels(dat_sub[[group]])[-1]))
                   contrast_mat[1:length(levels(dat_sub[[group]])[-1]),
-                               which(names(fixef(fit)) %in% paste0(group, levels(dat_sub[[group]])[-1]))] <- 
+                               which(names(lme4::fixef(fit)) %in% paste0(group, levels(dat_sub[[group]])[-1]))] <- 
                     diag(1, nrow = length(levels(dat_sub[[group]])[-1]))
                   
-                  pval_new <- tryCatch({contest(fit, contrast_mat, rhs = rep(0, length(levels(dat_sub[[group]])[-1])))[['Pr(>F)']]},
+                  pval_new <- tryCatch({lmerTest::contest(fit, contrast_mat, rhs = rep(0, length(levels(dat_sub[[group]])[-1])))[['Pr(>F)']]},
                                           error = function(err) { NA })
                 }
               }
@@ -727,25 +727,25 @@ fit.model <- function(
                 sigmas_new <- c()
                 for (row_num in 1:nrow(contrast_mat)) {
                   contrast_vec <- t(matrix(contrast_mat[row_num,]))
-                  pvals_new <- c(pvals_new, tryCatch({summary(glht(fit, linfct = contrast_vec, 
+                  pvals_new <- c(pvals_new, tryCatch({summary(multcomp::glht(fit, linfct = contrast_vec, 
                                                       rhs = 0))$test$pvalues},
                                         error = function(err) { NA }))
-                  coefs_new <- c(coefs_new, tryCatch({summary(glht(fit, linfct = contrast_vec, 
+                  coefs_new <- c(coefs_new, tryCatch({summary(multcomp::glht(fit, linfct = contrast_vec, 
                                                                    rhs = 0))$test$coefficients},
                                                      error = function(err) { NA }))
-                  sigmas_new <- c(sigmas_new, tryCatch({summary(glht(fit, linfct = contrast_vec, 
+                  sigmas_new <- c(sigmas_new, tryCatch({summary(multcomp::glht(fit, linfct = contrast_vec, 
                                                                    rhs = 0))$test$sigma},
                                                      error = function(err) { NA }))
                 }
               } else { # Random effects linear
-                if (any(!ordered_levels %in% names(fixef(fit)))) {
+                if (any(!ordered_levels %in% names(lme4::fixef(fit)))) {
                   fit_and_message[[length(fit_and_message)]] <- "Error: Some ordered levels are missing"
                   stop("Some ordered levels are missing")
                 }
                 
-                contrast_mat <- matrix(0, ncol = length(fixef(fit)), nrow = length(levels(dat_sub[[ordered]])[-1]))
+                contrast_mat <- matrix(0, ncol = length(lme4::fixef(fit)), nrow = length(levels(dat_sub[[ordered]])[-1]))
                 
-                cols_to_add_1s <- which(names(fixef(fit)) %in% ordered_levels)
+                cols_to_add_1s <- which(names(lme4::fixef(fit)) %in% ordered_levels)
                 contrast_mat[1, cols_to_add_1s[1]] <- 1
                 for (i in seq_along(cols_to_add_1s[-1])) {
                   contrast_mat[i + 1, cols_to_add_1s[-1][i]] <- 1
@@ -758,13 +758,13 @@ fit.model <- function(
                   sigmas_new <- c()
                   for (row_num in 1:nrow(contrast_mat)) {
                     contrast_vec <- t(matrix(contrast_mat[row_num,]))
-                    pvals_new <- c(pvals_new, tryCatch({summary(glht(fit, linfct = contrast_vec, 
+                    pvals_new <- c(pvals_new, tryCatch({summary(multcomp::glht(fit, linfct = contrast_vec, 
                                                                      rhs = 0))$test$pvalues},
                                                        error = function(err) { NA }))
-                    coefs_new <- c(coefs_new, tryCatch({summary(glht(fit, linfct = contrast_vec, 
+                    coefs_new <- c(coefs_new, tryCatch({summary(multcomp::glht(fit, linfct = contrast_vec, 
                                                                      rhs = 0))$test$coefficients},
                                                        error = function(err) { NA }))
-                    sigmas_new <- c(sigmas_new, tryCatch({summary(glht(fit, linfct = contrast_vec, 
+                    sigmas_new <- c(sigmas_new, tryCatch({summary(multcomp::glht(fit, linfct = contrast_vec, 
                                                                        rhs = 0))$test$sigma},
                                                          error = function(err) { NA }))
                   }
@@ -774,9 +774,9 @@ fit.model <- function(
                   sigmas_new <- c()
                   for (row_num in 1:nrow(contrast_mat)) {
                     contrast_vec <- t(matrix(contrast_mat[row_num,]))
-                    pvals_new <- c(pvals_new, tryCatch({contest(fit, matrix(contrast_vec, T), rhs = 0)[['Pr(>F)']]},
+                    pvals_new <- c(pvals_new, tryCatch({lmerTest::contest(fit, matrix(contrast_vec, T), rhs = 0)[['Pr(>F)']]},
                                                        error = function(err) { NA }))
-                    coefs_new <- c(coefs_new, tryCatch({contrast_vec %*% fixef(fit)},
+                    coefs_new <- c(coefs_new, tryCatch({contrast_vec %*% lme4::fixef(fit)},
                                                        error = function(err) { NA }))
                     sigmas_new <- c(sigmas_new, tryCatch({sqrt((contrast_vec %*% vcov(fit) %*% t(contrast_vec))[1,1])},
                                                          error = function(err) { NA }))
@@ -1011,7 +1011,7 @@ fit.model <- function(
               }
   
               contrast_vec <- t(matrix(contrast_mat[which(paste0(ordered, levels(metadata[[ordered]])[-1]) == metadata_variable),]))
-              pval_new_current <- tryCatch({summary(glht(cur_fit, linfct = contrast_vec, 
+              pval_new_current <- tryCatch({summary(multcomp::glht(cur_fit, linfct = contrast_vec, 
                                                                rhs = cur_median))$test$pvalues},
                                                  error = function(err) { NA })
             }
@@ -1020,12 +1020,12 @@ fit.model <- function(
           } else { # Random effects linear
             cur_fit <- fits[[feature]]
             
-            if (!metadata_variable %in% names(fixef(cur_fit))) {
+            if (!metadata_variable %in% names(lme4::fixef(cur_fit))) {
               pvals_new <- c(pvals_new, NA)
               next
             }
             
-            if (any(!paste0(ordered, levels(metadata[[ordered]])[-1]) %in% names(fixef(cur_fit)))) {
+            if (any(!paste0(ordered, levels(metadata[[ordered]])[-1]) %in% names(lme4::fixef(cur_fit)))) {
               pvals_new <- c(pvals_new, NA)
               next
             }
@@ -1037,8 +1037,8 @@ fit.model <- function(
               median_comparison_threshold_updated <- median_comparison_threshold
             }
             
-            contrast_mat <- matrix(0, ncol = length(fixef(cur_fit)), nrow = length(levels(metadata[[ordered]])[-1]))
-            cols_to_add_1s <- which(names(fixef(cur_fit)) %in% paste0(ordered, levels(metadata[[ordered]])[-1]))
+            contrast_mat <- matrix(0, ncol = length(lme4::fixef(cur_fit)), nrow = length(levels(metadata[[ordered]])[-1]))
+            cols_to_add_1s <- which(names(lme4::fixef(cur_fit)) %in% paste0(ordered, levels(metadata[[ordered]])[-1]))
             contrast_mat[1, cols_to_add_1s[1]] <- 1
             for (i in seq_along(cols_to_add_1s[-1])) {
               contrast_mat[i + 1, cols_to_add_1s[-1][i]] <- 1
@@ -1047,25 +1047,25 @@ fit.model <- function(
             contrast_vec <- t(matrix(contrast_mat[which(paste0(ordered, levels(metadata[[ordered]])[-1]) == metadata_variable),]))
             
             if (model == "logistic") {
-              if (is.na(fixef(cur_fit)[which(names(fixef(cur_fit)) == metadata_variable)])) {
+              if (is.na(lme4::fixef(cur_fit)[which(names(lme4::fixef(cur_fit)) == metadata_variable)])) {
                 pval_new_current <- NA
-              } else if (abs(fixef(cur_fit)[which(names(fixef(cur_fit)) == metadata_variable)] - 
+              } else if (abs(lme4::fixef(cur_fit)[which(names(lme4::fixef(cur_fit)) == metadata_variable)] - 
                              cur_median) < median_comparison_threshold_updated) {
                 pval_new_current <- 1
               } else {
-                pval_new_current <- tryCatch({summary(glht(cur_fit, linfct = contrast_vec, 
+                pval_new_current <- tryCatch({summary(multcomp::glht(cur_fit, linfct = contrast_vec, 
                                                            rhs = cur_median))$test$pvalues},
                                              error = function(err) { NA })
               }
               pvals_new <- c(pvals_new, pval_new_current)
             } else {
-              if (is.na(fixef(cur_fit)[which(names(fixef(cur_fit)) == metadata_variable)])) {
+              if (is.na(lme4::fixef(cur_fit)[which(names(lme4::fixef(cur_fit)) == metadata_variable)])) {
                 pval_new_current <- NA
-              } else if (abs(fixef(cur_fit)[which(names(fixef(cur_fit)) == metadata_variable)] - 
+              } else if (abs(lme4::fixef(cur_fit)[which(names(lme4::fixef(cur_fit)) == metadata_variable)] - 
                              cur_median) < median_comparison_threshold_updated) {
                 pval_new_current <- 1
               } else {
-                pval_new_current <- tryCatch({contest(cur_fit, matrix(contrast_vec, T), rhs = cur_median)[['Pr(>F)']]},
+                pval_new_current <- tryCatch({lmerTest::contest(cur_fit, matrix(contrast_vec, T), rhs = cur_median)[['Pr(>F)']]},
                                                    error = function(err) { NA })
               }
               
@@ -1099,7 +1099,7 @@ fit.model <- function(
                            cur_median) < median_comparison_threshold_updated) {
               pval_new_current <- 1
             } else {
-              pval_new_current <- tryCatch({summary(glht(fits[[feature]], linfct = matrix(contrast_vec, T), 
+              pval_new_current <- tryCatch({summary(multcomp::glht(fits[[feature]], linfct = matrix(contrast_vec, T), 
                                                          rhs = cur_median))$test$pvalues[1]},
                                            error = function(err) { NA })
             }
@@ -1108,7 +1108,7 @@ fit.model <- function(
           } else { # Random effects linear
             cur_fit <- fits[[feature]]
             
-            if (!metadata_variable %in% names(fixef(cur_fit))) {
+            if (!metadata_variable %in% names(lme4::fixef(cur_fit))) {
               pvals_new <- c(pvals_new, NA)
               next
             }
@@ -1120,30 +1120,30 @@ fit.model <- function(
               median_comparison_threshold_updated <- median_comparison_threshold
             }
             
-            contrast_vec <- rep(0, length(fixef(cur_fit)))
-            contrast_vec[which(names(fixef(cur_fit)) == metadata_variable)] <- 1
+            contrast_vec <- rep(0, length(lme4::fixef(cur_fit)))
+            contrast_vec[which(names(lme4::fixef(cur_fit)) == metadata_variable)] <- 1
             
             if (model == "logistic") {
-              if (is.na(fixef(cur_fit)[which(names(fixef(cur_fit)) == metadata_variable)])) {
+              if (is.na(lme4::fixef(cur_fit)[which(names(lme4::fixef(cur_fit)) == metadata_variable)])) {
                 pval_new_current <- NA
-              } else if (abs(fixef(cur_fit)[which(names(fixef(cur_fit)) == metadata_variable)] - 
+              } else if (abs(lme4::fixef(cur_fit)[which(names(lme4::fixef(cur_fit)) == metadata_variable)] - 
                              cur_median) < median_comparison_threshold_updated) {
                 pval_new_current <- 1
               } else {
-                pval_new_current <- tryCatch({summary(glht(fits[[feature]], linfct = matrix(contrast_vec, T), 
+                pval_new_current <- tryCatch({summary(multcomp::glht(fits[[feature]], linfct = matrix(contrast_vec, T), 
                                                            rhs = cur_median))$test$pvalues[1]},
                                              error = function(err) { NA })
               }
               
               pvals_new <- c(pvals_new, pval_new_current)
             } else {
-              if (is.na(fixef(cur_fit)[which(names(fixef(cur_fit)) == metadata_variable)])) {
+              if (is.na(lme4::fixef(cur_fit)[which(names(lme4::fixef(cur_fit)) == metadata_variable)])) {
                 pval_new_current <- NA
-              } else if (abs(fixef(cur_fit)[which(names(fixef(cur_fit)) == metadata_variable)] - 
+              } else if (abs(lme4::fixef(cur_fit)[which(names(lme4::fixef(cur_fit)) == metadata_variable)] - 
                              cur_median) < median_comparison_threshold_updated) {
                 pval_new_current <- 1
               } else {
-                pval_new_current <- tryCatch({contest(cur_fit, matrix(contrast_vec, T), rhs = cur_median)[['Pr(>F)']]},
+                pval_new_current <- tryCatch({lmerTest::contest(cur_fit, matrix(contrast_vec, T), rhs = cur_median)[['Pr(>F)']]},
                                              error = function(err) { NA })
               }
               

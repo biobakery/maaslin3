@@ -14,10 +14,10 @@ maaslin_normalize(params_and_data_and_formula)
     The results of \code{maaslin_filter_and_standardize} or a list containing the following named items:
     \describe{
       \item{(1)}{\code{param_list}: An input parameter list with \code{normalization}.}
-      \item{(2)}{\code{data}: The input data dataframe.}
-      \item{(3)}{\code{filtered_data}: The abundance data dataframe after filtering.}
-      \item{(4)}{\code{unfiltered_metadata}: The input metadata dataframe.}
-      \item{(5)}{\code{metadata}: The metadata dataframe after filtering.}
+      \item{(2)}{\code{data}: The input data data frame.}
+      \item{(3)}{\code{filtered_data}: The abundance data data frame after filtering.}
+      \item{(4)}{\code{unfiltered_metadata}: The input metadata data frame.}
+      \item{(5)}{\code{metadata}: The metadata data frame after filtering.}
       \item{(6)}{\code{formula}: A list with the named items \code{formula} as a computed formula object and \code{random_effects_formula} as the random effects component of the formula.}
     }
 }
@@ -26,11 +26,11 @@ maaslin_normalize(params_and_data_and_formula)
 A list containing the following named items:
     \describe{
       \item{(1)}{\code{param_list}: An input parameter list with \code{normalization}.}
-      \item{(2)}{\code{data}: The input data dataframe.}
-      \item{(3)}{\code{filtered_data}: The abundance data dataframe after filtering.}
+      \item{(2)}{\code{data}: The input data data frame.}
+      \item{(3)}{\code{filtered_data}: The abundance data data frame after filtering.}
       \item{(4)}{\code{filtered_data_norm}: The abundance data after filtering and normalization.}
-      \item{(5)}{\code{unfiltered_metadata}: The input metadata dataframe.}
-      \item{(6)}{\code{metadata}: The metadata dataframe after filtering.}
+      \item{(5)}{\code{unfiltered_metadata}: The input metadata data frame.}
+      \item{(6)}{\code{metadata}: The metadata data frame after filtering.}
       \item{(7)}{\code{formula}: A list with the named items \code{formula} as a computed formula object and \code{random_effects_formula} as the random effects component of the formula.}
     }
 }
@@ -56,7 +56,7 @@ A list containing the following named items:
                      output = 'output', 
                      formula = '~ diagnosis + dysbiosisUC + dysbiosisCD + antibiotics + 
                         age + reads_filtered + (1 | subject)', 
-                     plot_heatmap = FALSE, 
+                     plot_summary_plot = FALSE, 
                      plot_associations = FALSE)
   
   #Run MaAsLin3

@@ -86,7 +86,7 @@ The \code{results} tables contain the following columns for each association (ro
                      output = 'output', 
                      formula = '~ diagnosis + dysbiosisUC + dysbiosisCD + antibiotics + 
                         age + reads_filtered', 
-                     plot_heatmap = FALSE, 
+                     plot_summary_plot = FALSE, 
                      plot_associations = FALSE)
   
   #Run MaAsLin3

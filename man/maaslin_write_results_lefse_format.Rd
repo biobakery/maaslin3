@@ -50,7 +50,7 @@ Results will be written to the \code{lefse_style_results_abundance.res} file in 
                      output = 'output', 
                      formula = '~ diagnosis + dysbiosisUC + dysbiosisCD + antibiotics + 
                         age + reads_filtered', 
-                     plot_heatmap = FALSE, 
+                     plot_summary_plot = FALSE, 
                      plot_associations = FALSE)
   
   #Run MaAsLin3

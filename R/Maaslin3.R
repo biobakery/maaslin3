@@ -90,9 +90,9 @@ args$median_comparison_abundance_threshold <- 0.25
 args$median_comparison_prevalence_threshold <- 0.25
 args$augment <- TRUE
 args$unscaled_abundance <- NULL
-args$plot_heatmap <- TRUE
-args$heatmap_first_n <- 25
-args$pointplot_vars <- NULL
+args$plot_summary_plot <- TRUE
+args$summary_plot_first_n <- 25
+args$coef_plot_vars <- NULL
 args$heatmap_vars <- NULL
 args$plot_associations <- TRUE
 args$max_pngs <- 30
@@ -330,34 +330,34 @@ options <-
 options <-
     optparse::add_option(
         options,
-        c("-l", "--plot_heatmap"),
+        c("-l", "--plot_summary_plot"),
         type = "logical",
-        dest = "plot_heatmap",
-        default = args$plot_heatmap,
-        help = paste("Generate a heatmap for the significant",
+        dest = "plot_summary_plot",
+        default = args$plot_summary_plot,
+        help = paste("Generate a summary plot for the significant",
             "associations [ Default: %default ]"
         )
     )
 options <-
     optparse::add_option(
         options,
-        c("-i", "--heatmap_first_n"),
+        c("-i", "--summary_plot_first_n"),
         type = "double",
-        dest = "heatmap_first_n",
-        default = args$heatmap_first_n,
-        help = paste("In heatmap, plot top N features with significant",
+        dest = "summary_plot_first_n",
+        default = args$summary_plot_first_n,
+        help = paste("In summary plot, plot top N features with significant",
             "associations [ Default: %default ]"
         )
     )
 options <-
   optparse::add_option(
     options,
-    c("--pointplot_vars"),
+    c("--coef_plot_vars"),
     type = "character",
-    dest = "pointplot_vars",
-    default = args$pointplot_vars,
-    help = paste("The variables to use in the pointplot",
-                 "section of the heatmap provided as a",
+    dest = "coef_plot_vars",
+    default = args$coef_plot_vars,
+    help = paste("The variables to use in the coefficient plot",
+                 "section of the summary plot provided as a",
                  "comma-separated string. Continuous variables",
                  "should match the metadata column name, and",
                  "categorical variables should be of the form:",
@@ -370,9 +370,9 @@ options <-
     c("--heatmap_vars"),
     type = "character",
     dest = "heatmap_vars",
-    default = args$pointplot_vars,
+    default = args$coef_plot_vars,
     help = paste("The variables to use in the heatmap",
-                 "section of the heatmap provided as a",
+                 "section of the summary plot provided as a",
                  "comma-separated string. Continuous variables",
                  "should match the metadata column name, and",
                  "categorical variables should be of the form:",
@@ -485,10 +485,10 @@ maaslin_parse_param_list <- function(param_list) {
                         median_comparison_prevalence_threshold = args$median_comparison_prevalence_threshold,
                         augment = args$augment,
                         cores = args$cores,
-                        plot_heatmap = args$plot_heatmap,
-                        heatmap_first_n = args$heatmap_first_n,
+                        plot_summary_plot = args$plot_summary_plot,
+                        summary_plot_first_n = args$summary_plot_first_n,
                         heatmap_vars = args$heatmap_vars,
-                        pointplot_vars = args$pointplot_vars,
+                        coef_plot_vars = args$coef_plot_vars,
                         plot_associations = args$plot_associations,
                         max_pngs = args$max_pngs,
                         save_models = args$save_models,
@@ -1581,7 +1581,7 @@ maaslin_plot_results <- function(params_data_formula_fit) {
     print("Creating output folder")
     dir.create(output)
   }
-  if (param_list[["plot_heatmap"]] || param_list[["plot_associations"]]) {
+  if (param_list[["plot_summary_plot"]] || param_list[["plot_associations"]]) {
     figures_folder <- file.path(output, "figures")
     if (!file.exists(figures_folder)) {
       logging::loginfo("Creating output figures folder")
@@ -1592,28 +1592,28 @@ maaslin_plot_results <- function(params_data_formula_fit) {
   merged_results <- rbind(params_data_formula_fit[["fit_data_abundance"]][['results']],
                           params_data_formula_fit[["fit_data_prevalence"]][['results']])
   
-  if (param_list[["plot_heatmap"]]) {
-    heatmap_file <- file.path(figures_folder, "heatmap.pdf")
+  if (param_list[["plot_summary_plot"]]) {
+    summary_plot_file <- file.path(figures_folder, "summary_plot.pdf")
     logging::loginfo(
-      "Writing heatmap of significant results to file: %s",
-      heatmap_file)
+      "Writing summary plot of significant results to file: %s",
+      summary_plot_file)
     
-    pointplot_vars = param_list[["pointplot_vars"]]
+    coef_plot_vars = param_list[["coef_plot_vars"]]
     heatmap_vars = param_list[["heatmap_vars"]]
     
-    if (!is.null(pointplot_vars) & length(pointplot_vars) == 1) {
-      pointplot_vars <- trimws(unlist(strsplit(pointplot_vars, ',')))
+    if (!is.null(coef_plot_vars) & length(coef_plot_vars) == 1) {
+      coef_plot_vars <- trimws(unlist(strsplit(coef_plot_vars, ',')))
     }
     if (!is.null(heatmap_vars) & length(heatmap_vars) == 1) {
       heatmap_vars <- trimws(unlist(strsplit(heatmap_vars, ',')))
     }
     
-    save_heatmap(merged_results, 
-                 heatmap_file, 
+    save_summary_plot(merged_results, 
+                 summary_plot_file, 
                  figures_folder,
-                 first_n = param_list[["heatmap_first_n"]],
+                 first_n = param_list[["summary_plot_first_n"]],
                  max_significance = param_list[["max_significance"]],
-                 pointplot_vars = pointplot_vars,
+                 coef_plot_vars = coef_plot_vars,
                  heatmap_vars = heatmap_vars,
                  median_comparison_abundance = param_list[["median_comparison_abundance"]],
                  median_comparison_prevalence = param_list[["median_comparison_prevalence"]])
@@ -1665,7 +1665,7 @@ maaslin3 <- function(param_list) {
 
   maaslin_write_results(params_data_formula_fit)
   
-  if (params_data_formula_fit[['param_list']][['plot_heatmap']] | 
+  if (params_data_formula_fit[['param_list']][['plot_summary_plot']] | 
       params_data_formula_fit[['param_list']][['plot_associations']]) {
     maaslin_plot_results(params_data_formula_fit)
   }
@@ -1724,9 +1724,9 @@ if (identical(environment(), globalenv()) &&
       correction = current_args$correction,
       standardize = current_args$standardize,
       cores = current_args$cores,
-      plot_heatmap = current_args$plot_heatmap,
-      heatmap_first_n = current_args$heatmap_first_n,
-      pointplot_vars = current_args$pointplot_vars,
+      plot_summary_plot = current_args$plot_summary_plot,
+      summary_plot_first_n = current_args$summary_plot_first_n,
+      coef_plot_vars = current_args$coef_plot_vars,
       heatmap_vars = current_args$heatmap_vars,
       plot_associations = current_args$plot_associations,
       max_pngs = current_args$max_pngs,

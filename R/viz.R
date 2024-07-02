@@ -62,15 +62,15 @@ nature_theme <- function(x_axis_labels, y_label) {
    )
 }
 
-# MaAsLin2 heatmap function for overall view of associations
-maaslin3_heatmap <-
+# MaAsLin2 summary_plot function for overall view of associations
+maaslin3_summary_plot <-
   function(
     merged_results,
-    heatmap_file,
+    summary_plot_file,
     figures_folder,
     first_n = 25,
     max_significance = 0.1,
-    pointplot_vars = NULL,
+    coef_plot_vars = NULL,
     heatmap_vars = NULL,
     median_comparison_abundance = FALSE,
     median_comparison_prevalence = FALSE) {
@@ -79,7 +79,7 @@ maaslin3_heatmap <-
     merged_results <- merged_results[is.na(merged_results$error),]
     if (nrow(merged_results) == 0) {
       logging::loginfo(
-        paste("No associtions were without errors. No heatmap generated."))
+        paste("No associtions were without errors. No summary plot generated."))
       return(NULL)
     }
     merged_results$model <- ifelse(merged_results$model == 'LM', 'Abundance', 'Prevalence')
@@ -99,15 +99,15 @@ maaslin3_heatmap <-
       median_df$median_val[median_df$model == 'Prevalence'] <- 0
     }
     
-    if (!is.null(pointplot_vars) | !is.null(heatmap_vars)) {
-      if (any(!c(pointplot_vars, heatmap_vars) %in% unique(merged_results$full_metadata_name))) {
+    if (!is.null(coef_plot_vars) | !is.null(heatmap_vars)) {
+      if (any(!c(coef_plot_vars, heatmap_vars) %in% unique(merged_results$full_metadata_name))) {
         logging::loginfo(
           paste0("The following specified variables were not found in the associations: ", 
-                paste0(setdiff(c(pointplot_vars, heatmap_vars), unique(merged_results$full_metadata_name)), collapse = ', '), collapse = ''))
+                paste0(setdiff(c(coef_plot_vars, heatmap_vars), unique(merged_results$full_metadata_name)), collapse = ', '), collapse = ''))
         return(NULL)
       }
       merged_results <- merged_results[merged_results$full_metadata_name %in% 
-                                         c(pointplot_vars, heatmap_vars),]
+                                         c(coef_plot_vars, heatmap_vars),]
     }
     
     merged_results_joint_only <- unique(merged_results[,c('feature', 'qval_joint')])
@@ -126,15 +126,15 @@ maaslin3_heatmap <-
     
     merged_results_sig$feature <- factor(merged_results_sig$feature, levels = ord_feature)
     
-    if(is.null(pointplot_vars)) {
+    if(is.null(coef_plot_vars)) {
       mean_log_qval <- merged_results_sig %>%
         dplyr::group_by(.data$full_metadata_name) %>%
         dplyr::summarise(mean_value = mean(log(.data$qval_joint), na.rm = TRUE))
       
-      pointplot_vars <- mean_log_qval$full_metadata_name[order(mean_log_qval$mean_value)]
-      pointplot_vars <- setdiff(pointplot_vars, heatmap_vars)
-      if (length(pointplot_vars) > 0) {
-        pointplot_vars <- pointplot_vars[1:min(2, length(pointplot_vars))]
+      coef_plot_vars <- mean_log_qval$full_metadata_name[order(mean_log_qval$mean_value)]
+      coef_plot_vars <- setdiff(coef_plot_vars, heatmap_vars)
+      if (length(coef_plot_vars) > 0) {
+        coef_plot_vars <- coef_plot_vars[1:min(2, length(coef_plot_vars))]
       }
     }
     
@@ -144,14 +144,14 @@ maaslin3_heatmap <-
         dplyr::summarise(mean_value = mean(log(.data$qval_joint), na.rm = TRUE))
       
       heatmap_vars <- mean_log_qval$full_metadata_name[order(mean_log_qval$mean_value)]
-      heatmap_vars <- setdiff(heatmap_vars, pointplot_vars)
+      heatmap_vars <- setdiff(heatmap_vars, coef_plot_vars)
     }
     
-    if (length(pointplot_vars) > 0 & 
-        sum(merged_results_sig$full_metadata_name %in% pointplot_vars) >= 1) {
-      pointplot_data <- merged_results_sig[merged_results_sig$full_metadata_name %in% pointplot_vars,]
+    if (length(coef_plot_vars) > 0 & 
+        sum(merged_results_sig$full_metadata_name %in% coef_plot_vars) >= 1) {
+      coef_plot_data <- merged_results_sig[merged_results_sig$full_metadata_name %in% coef_plot_vars,]
       
-      quantile_df <- pointplot_data %>%
+      quantile_df <- coef_plot_data %>%
         dplyr::group_by(.data$full_metadata_name) %>%
         dplyr::summarise(lower_q = median(.data$coef) - 10 * (median(.data$coef) - quantile(.data$coef, 0.25)), 
                          upper_q = median(.data$coef) + 10 * (quantile(.data$coef, 0.75) - median(.data$coef))) %>%
@@ -159,21 +159,21 @@ maaslin3_heatmap <-
       rownames(quantile_df) <- quantile_df$full_metadata_name
       
       # Make sure insignificant coefficients don't distort the plot
-      pointplot_data <- pointplot_data[pointplot_data$qval_individual < max_significance | 
-                                         (pointplot_data$coef > quantile_df[pointplot_data$full_metadata_name, 'lower_q'] & 
-                                            pointplot_data$coef < quantile_df[pointplot_data$full_metadata_name, 'upper_q']),]
+      coef_plot_data <- coef_plot_data[coef_plot_data$qval_individual < max_significance | 
+                                         (coef_plot_data$coef > quantile_df[coef_plot_data$full_metadata_name, 'lower_q'] & 
+                                            coef_plot_data$coef < quantile_df[coef_plot_data$full_metadata_name, 'upper_q']),]
 
-      p1 <- ggplot2::ggplot(pointplot_data, ggplot2::aes(x=.data$coef, y=.data$feature)) +
+      p1 <- ggplot2::ggplot(coef_plot_data, ggplot2::aes(x=.data$coef, y=.data$feature)) +
         ggplot2::geom_errorbar(ggplot2::aes(xmin = .data$coef - .data$stderr, xmax = .data$coef + .data$stderr), width = 0.2) + 
         ggplot2::geom_point(ggplot2::aes(shape = .data$model, fill = .data$qval_individual), size = 4.5, color = "black")+
         ggplot2::scale_x_continuous(breaks = scales::breaks_extended(n = 5), 
-                           limits = c(min(pointplot_data$coef) - quantile(pointplot_data$stderr, 0.8), 
-                                      max(pointplot_data$coef) + quantile(pointplot_data$stderr, 0.8))) +
+                           limits = c(min(coef_plot_data$coef) - quantile(coef_plot_data$stderr, 0.8), 
+                                      max(coef_plot_data$coef) + quantile(coef_plot_data$stderr, 0.8))) +
         ggplot2::scale_shape_manual(name = "Association", values=c(21, 24))+
         viridis::scale_fill_viridis(option = "viridis", 
-                           limits=c(10^floor(log10(min(pointplot_data$qval_individual))), 1), 
-                           breaks=c(10^floor(log10(min(pointplot_data$qval_individual))), max_significance, 1), 
-                           labels = c(paste0("1e", floor(log10(min(pointplot_data$qval_individual)))), 
+                           limits=c(10^floor(log10(min(coef_plot_data$qval_individual))), 1), 
+                           breaks=c(10^floor(log10(min(coef_plot_data$qval_individual))), max_significance, 1), 
+                           labels = c(paste0("1e", floor(log10(min(coef_plot_data$qval_individual)))), 
                                       paste0("1e", floor(log10(max_significance))),
                                       "1"),
                            transform = scales::pseudo_log_trans(sigma = 0.001),
@@ -191,7 +191,7 @@ maaslin3_heatmap <-
               panel.grid.minor = ggplot2::element_blank(),
               strip.text = ggplot2::element_text(size=14),
               strip.background = ggplot2::element_rect(fill = "transparent")) + 
-        ggplot2::facet_wrap(~ full_metadata_name, scales = 'free_x', ncol = length(pointplot_vars))
+        ggplot2::facet_wrap(~ full_metadata_name, scales = 'free_x', ncol = length(coef_plot_vars))
       
       if (median_comparison_prevalence | median_comparison_abundance) {
         p1 <- p1 + 
@@ -199,7 +199,7 @@ maaslin3_heatmap <-
             shape = ggplot2::guide_legend(override.aes = list(color = "black")),
             linetype = ggplot2::guide_legend(title = 'Association median'),
           ) + 
-          ggplot2::geom_vline(data = median_df[median_df$full_metadata_name %in% pointplot_vars,], 
+          ggplot2::geom_vline(data = median_df[median_df$full_metadata_name %in% coef_plot_vars,], 
                      ggplot2::aes(xintercept = .data$median_val, linetype = .data$model), color = "black") +
           ggplot2::scale_linetype_manual(values = c("Prevalence" = "dashed", "Abundance" = "solid"))
       } else {
@@ -282,7 +282,7 @@ maaslin3_heatmap <-
     }
     
     if (!is.null(p1) & !is.null(p2)) {
-      final_plot <- patchwork::wrap_plots(p1, p2, ncol = 3, widths = c(max(0, length(pointplot_vars) - 2) + 2, 
+      final_plot <- patchwork::wrap_plots(p1, p2, ncol = 3, widths = c(max(0, length(coef_plot_vars) - 2) + 2, 
                                          max(0, length(heatmap_vars) / 4 - 2) + 2, 0.5), guides = 'collect')
     } else if (is.null(p1) & !is.null(p2)) {
       final_plot <- p2
@@ -295,14 +295,14 @@ maaslin3_heatmap <-
     return(final_plot)
 }
 
-save_heatmap <-
+save_summary_plot <-
     function(
         merged_results,
-        heatmap_file,
+        summary_plot_file,
         figures_folder,
         first_n = 30,
         max_significance = 0.1,
-        pointplot_vars = NULL,
+        coef_plot_vars = NULL,
         heatmap_vars = NULL,
         median_comparison_abundance = FALSE,
         median_comparison_prevalence = FALSE) {
@@ -314,27 +314,27 @@ save_heatmap <-
       }
 
       # generate a heatmap and save it to a pdf and as a png
-      heatmap <-
-          maaslin3_heatmap(
+      summary_plot <-
+          maaslin3_summary_plot(
             merged_results,
-            heatmap_file,
+            summary_plot_file,
             figures_folder,
             first_n,
             max_significance,
-            pointplot_vars,
+            coef_plot_vars,
             heatmap_vars,
             median_comparison_abundance,
             median_comparison_prevalence)
 
-      if (!is.null(heatmap)) {
+      if (!is.null(summary_plot)) {
         height_out <- 8 + max(first_n / 5 - 5, 0)
         width_out <-  4 + max(nchar(merged_results$feature)) / 10 + 
-          ifelse(is.null(pointplot_vars), 3, length(pointplot_vars) * 2.5) + 
+          ifelse(is.null(coef_plot_vars), 3, length(coef_plot_vars) * 2.5) + 
           ifelse(is.null(heatmap_vars), 1.5, length(heatmap_vars) * 0.2)
         
-        ggplot2::ggsave(heatmap_file, plot = heatmap, height = height_out, width = width_out)
-        png_file <- file.path(figures_folder, "heatmap.png")
-        ggplot2::ggsave(png_file, plot = heatmap, height = height_out, width = width_out)
+        ggplot2::ggsave(summary_plot_file, plot = summary_plot, height = height_out, width = width_out)
+        png_file <- file.path(figures_folder, "summary_plot.png")
+        ggplot2::ggsave(png_file, plot = summary_plot, height = height_out, width = width_out)
       }
 }
 
@@ -559,7 +559,7 @@ maaslin3_association_plots <-
               ggplot2::scale_x_discrete(expand = ggplot2::expansion(mult = c(0, 0.7)))
             
             temp_plot <- temp_plot + 
-              nature_theme(metadata_name, joined_features_metadata_abun['feature_abun']) +
+              nature_theme(metadata_name, joined_features_metadata_prev['feature_abun']) +
               ggplot2::theme(
                 panel.grid.major = ggplot2::element_blank(),
                 panel.grid.minor = ggplot2::element_blank(),
@@ -638,7 +638,7 @@ maaslin3_association_plots <-
                     legend.position = "none")
               
             temp_plot <- temp_plot + 
-              nature_theme(metadata_name, joined_features_metadata_abun['feature_abun']) + 
+              nature_theme(metadata_name, joined_features_metadata_prev['feature_abun']) + 
               ggplot2::theme(
                 panel.grid.major = ggplot2::element_blank(),
                 panel.grid.minor = ggplot2::element_blank(),

@@ -1,0 +1,234 @@
+2024-07-02 09:38:31.474998 INFO::Writing function arguments to log file
+2024-07-02 09:38:31.475755 DEBUG::Function arguments
+2024-07-02 09:38:31.47601 DEBUG::Output folder: output
+2024-07-02 09:38:31.476199 DEBUG::Min Abundance: 0.000000
+2024-07-02 09:38:31.476391 DEBUG::Zero Threshold: 0.000000
+2024-07-02 09:38:31.476549 DEBUG::Min Prevalence: 0.000000
+2024-07-02 09:38:31.47671 DEBUG::Normalization: TSS
+2024-07-02 09:38:31.476863 DEBUG::Transform: LOG
+2024-07-02 09:38:31.47702 DEBUG::Max significance: 0.100000
+2024-07-02 09:38:31.477188 DEBUG::Random effects:
+2024-07-02 09:38:31.477353 DEBUG::Fixed effects:
+2024-07-02 09:38:31.477505 DEBUG::Group effects:
+2024-07-02 09:38:31.477664 DEBUG::Ordered effects:
+2024-07-02 09:38:31.477831 DEBUG::Formula: ~ diagnosis + dysbiosisUC + dysbiosisCD + antibiotics + 
+                        age + reads_filtered
+2024-07-02 09:38:31.477995 DEBUG::Correction method: BH
+2024-07-02 09:38:31.478147 DEBUG::Standardize: TRUE
+2024-07-02 09:38:31.478315 DEBUG::Augment: TRUE
+2024-07-02 09:38:31.478495 DEBUG::Cores: 1
+2024-07-02 09:38:31.478652 DEBUG::Abundance median comparison: TRUE
+2024-07-02 09:38:31.478815 DEBUG::Prevalence median comparison: FALSE
+2024-07-02 09:38:31.478988 DEBUG::Abundance median comparison threshold: 0.25
+2024-07-02 09:38:31.479175 DEBUG::Prevalence median comparison threshold: 0.25
+2024-07-02 09:38:31.479449 INFO::Verifying options selected are valid
+2024-07-02 09:38:31.480048 INFO::Determining format of input files
+2024-07-02 09:38:31.480472 INFO::Input format is data samples as rows and metadata samples as rows
+2024-07-02 09:38:31.48124 DEBUG::A total of 1595 samples were found in both the data and metadata
+2024-07-02 09:38:31.481407 DEBUG::Reordering data/metadata to use same sample ordering
+2024-07-02 09:38:31.483162 INFO::Formula for fixed effects: expr ~ diagnosis + dysbiosisUC + dysbiosisCD + antibiotics + ,    age + reads_filtered
+2024-07-02 09:38:31.483571 INFO::Filter data based on min abundance and min prevalence
+2024-07-02 09:38:31.483873 INFO::Total samples in data: 1595
+2024-07-02 09:38:31.484175 INFO::Min samples required with min abundance for a feature not to be filtered: 0.000000
+2024-07-02 09:38:31.488643 INFO::Total filtered features: 0
+2024-07-02 09:38:31.489804 INFO::Filtered feature names from abundance and prevalence filtering:
+2024-07-02 09:38:31.507794 INFO::Total filtered features with variance filtering: 0
+2024-07-02 09:38:31.508166 INFO::Filtered feature names from variance filtering:
+2024-07-02 09:38:31.508461 INFO::Writing filtered data to file output/features/filtered_data.tsv
+2024-07-02 09:38:31.553998 INFO::Applying z-score to standardize continuous metadata
+2024-07-02 09:38:31.562477 INFO::Running selected normalization method: TSS
+2024-07-02 09:38:31.637846 INFO::Writing filtered, normalized data to file output/features/filtered_data_norm.tsv
+2024-07-02 09:38:31.686862 INFO::Running selected transform method: LOG
+2024-07-02 09:38:31.691977 INFO::Writing filtered, normalized, transformed data to file output/features/filtered_data_norm_transformed.tsv
+2024-07-02 09:38:31.732722 INFO::Running the linear model (LM) component
+2024-07-02 09:38:31.736792 INFO::Fitting model to feature number 1, Bifidobacterium.adolescentis
+2024-07-02 09:38:31.741811 INFO::Fitting model to feature number 2, Bifidobacterium.bifidum
+2024-07-02 09:38:31.760708 INFO::Fitting model to feature number 3, Bifidobacterium.longum
+2024-07-02 09:38:31.764243 INFO::Fitting model to feature number 4, Bifidobacterium.pseudocatenulatum
+2024-07-02 09:38:31.767049 INFO::Fitting model to feature number 5, Collinsella.aerofaciens
+2024-07-02 09:38:31.769985 INFO::Fitting model to feature number 6, Bacteroides.caccae
+2024-07-02 09:38:31.773051 INFO::Fitting model to feature number 7, Bacteroides.cellulosilyticus
+2024-07-02 09:38:31.776644 INFO::Fitting model to feature number 8, Bacteroides.dorei
+2024-07-02 09:38:31.7801 INFO::Fitting model to feature number 9, Bacteroides.eggerthii
+2024-07-02 09:38:31.783216 INFO::Fitting model to feature number 10, Bacteroides.faecis
+2024-07-02 09:38:31.786918 INFO::Fitting model to feature number 11, Bacteroides.finegoldii
+2024-07-02 09:38:31.790808 INFO::Fitting model to feature number 12, Bacteroides.fragilis
+2024-07-02 09:38:31.795031 INFO::Fitting model to feature number 13, Bacteroides.intestinalis
+2024-07-02 09:38:31.796724 WARNING::Fitting problem for feature 13 returning NA
+2024-07-02 09:38:31.798859 INFO::Fitting model to feature number 14, Bacteroides.massiliensis
+2024-07-02 09:38:31.806307 INFO::Fitting model to feature number 15, Bacteroides.ovatus
+2024-07-02 09:38:31.810011 INFO::Fitting model to feature number 16, Bacteroides.salyersiae
+2024-07-02 09:38:31.811227 WARNING::Fitting problem for feature 16 returning NA
+2024-07-02 09:38:31.81298 INFO::Fitting model to feature number 17, Bacteroides.stercoris
+2024-07-02 09:38:31.816566 INFO::Fitting model to feature number 18, Bacteroides.thetaiotaomicron
+2024-07-02 09:38:31.820945 INFO::Fitting model to feature number 19, Bacteroides.uniformis
+2024-07-02 09:38:31.824633 INFO::Fitting model to feature number 20, Bacteroides.vulgatus
+2024-07-02 09:38:31.828406 INFO::Fitting model to feature number 21, Bacteroides.xylanisolvens
+2024-07-02 09:38:31.832456 INFO::Fitting model to feature number 22, Bacteroidales.bacterium.ph8
+2024-07-02 09:38:31.835744 INFO::Fitting model to feature number 23, Barnesiella.intestinihominis
+2024-07-02 09:38:31.839961 INFO::Fitting model to feature number 24, Coprobacter.fastidiosus
+2024-07-02 09:38:31.843856 INFO::Fitting model to feature number 25, Odoribacter.splanchnicus
+2024-07-02 09:38:31.847869 INFO::Fitting model to feature number 26, Parabacteroides.distasonis
+2024-07-02 09:38:31.851878 INFO::Fitting model to feature number 27, Parabacteroides.goldsteinii
+2024-07-02 09:38:31.85549 INFO::Fitting model to feature number 28, Parabacteroides.merdae
+2024-07-02 09:38:31.859516 INFO::Fitting model to feature number 29, Parabacteroides.unclassified
+2024-07-02 09:38:31.863569 INFO::Fitting model to feature number 30, Paraprevotella.clara
+2024-07-02 09:38:31.867308 INFO::Fitting model to feature number 31, Paraprevotella.unclassified
+2024-07-02 09:38:31.881929 INFO::Fitting model to feature number 32, Prevotella.copri
+2024-07-02 09:38:31.886057 INFO::Fitting model to feature number 33, Alistipes.finegoldii
+2024-07-02 09:38:31.890194 INFO::Fitting model to feature number 34, Alistipes.onderdonkii
+2024-07-02 09:38:31.894382 INFO::Fitting model to feature number 35, Alistipes.putredinis
+2024-07-02 09:38:31.898309 INFO::Fitting model to feature number 36, Alistipes.shahii
+2024-07-02 09:38:31.90229 INFO::Fitting model to feature number 37, Alistipes.unclassified
+2024-07-02 09:38:31.905703 INFO::Fitting model to feature number 38, Streptococcus.salivarius
+2024-07-02 09:38:31.920072 INFO::Fitting model to feature number 39, Clostridium.bolteae
+2024-07-02 09:38:31.923405 INFO::Fitting model to feature number 40, Clostridium.citroniae
+2024-07-02 09:38:31.926224 INFO::Fitting model to feature number 41, Clostridium.clostridioforme
+2024-07-02 09:38:31.929032 INFO::Fitting model to feature number 42, Clostridium.hathewayi
+2024-07-02 09:38:31.931917 INFO::Fitting model to feature number 43, Clostridium.leptum
+2024-07-02 09:38:31.934769 INFO::Fitting model to feature number 44, Clostridium.nexile
+2024-07-02 09:38:31.937505 INFO::Fitting model to feature number 45, Clostridium.symbiosum
+2024-07-02 09:38:31.940399 INFO::Fitting model to feature number 46, Flavonifractor.plautii
+2024-07-02 09:38:31.943331 INFO::Fitting model to feature number 47, Eubacterium.eligens
+2024-07-02 09:38:31.946241 INFO::Fitting model to feature number 48, Eubacterium.hallii
+2024-07-02 09:38:31.94915 INFO::Fitting model to feature number 49, Eubacterium.rectale
+2024-07-02 09:38:31.952136 INFO::Fitting model to feature number 50, Eubacterium.siraeum
+2024-07-02 09:38:31.954963 INFO::Fitting model to feature number 51, Eubacterium.sp.3.1.31
+2024-07-02 09:38:31.957611 INFO::Fitting model to feature number 52, Eubacterium.ventriosum
+2024-07-02 09:38:31.960444 INFO::Fitting model to feature number 53, Ruminococcus.gnavus
+2024-07-02 09:38:31.963339 INFO::Fitting model to feature number 54, Ruminococcus.obeum
+2024-07-02 09:38:31.967231 INFO::Fitting model to feature number 55, Ruminococcus.torques
+2024-07-02 09:38:31.97112 INFO::Fitting model to feature number 56, Coprococcus.comes
+2024-07-02 09:38:31.974829 INFO::Fitting model to feature number 57, Dorea.longicatena
+2024-07-02 09:38:31.978669 INFO::Fitting model to feature number 58, Lachnospiraceae.bacterium.1.1.57FAA
+2024-07-02 09:38:31.981573 INFO::Fitting model to feature number 59, Lachnospiraceae.bacterium.3.1.46FAA
+2024-07-02 09:38:31.984499 INFO::Fitting model to feature number 60, Roseburia.hominis
+2024-07-02 09:38:31.987483 INFO::Fitting model to feature number 61, Roseburia.intestinalis
+2024-07-02 09:38:31.990453 INFO::Fitting model to feature number 62, Roseburia.inulinivorans
+2024-07-02 09:38:31.993428 INFO::Fitting model to feature number 63, Roseburia.unclassified
+2024-07-02 09:38:31.99627 INFO::Fitting model to feature number 64, Oscillibacter.unclassified
+2024-07-02 09:38:31.999284 INFO::Fitting model to feature number 65, Peptostreptococcaceae.noname.unclassified
+2024-07-02 09:38:32.002109 INFO::Fitting model to feature number 66, Faecalibacterium.prausnitzii
+2024-07-02 09:38:32.00519 INFO::Fitting model to feature number 67, Ruminococcus.bromii
+2024-07-02 09:38:32.00807 INFO::Fitting model to feature number 68, Ruminococcus.callidus
+2024-07-02 09:38:32.010859 INFO::Fitting model to feature number 69, Ruminococcus.lactaris
+2024-07-02 09:38:32.022642 INFO::Fitting model to feature number 70, Subdoligranulum.unclassified
+2024-07-02 09:38:32.026399 INFO::Fitting model to feature number 71, Coprobacillus.unclassified
+2024-07-02 09:38:32.029208 INFO::Fitting model to feature number 72, Acidaminococcus.unclassified
+2024-07-02 09:38:32.030314 WARNING::Fitting problem for feature 72 returning NA
+2024-07-02 09:38:32.031351 INFO::Fitting model to feature number 73, Dialister.invisus
+2024-07-02 09:38:32.034222 INFO::Fitting model to feature number 74, Veillonella.atypica
+2024-07-02 09:38:32.03701 INFO::Fitting model to feature number 75, Veillonella.dispar
+2024-07-02 09:38:32.03978 INFO::Fitting model to feature number 76, Veillonella.parvula
+2024-07-02 09:38:32.042654 INFO::Fitting model to feature number 77, Veillonella.unclassified
+2024-07-02 09:38:32.045539 INFO::Fitting model to feature number 78, Burkholderiales.bacterium.1.1.47
+2024-07-02 09:38:32.048345 INFO::Fitting model to feature number 79, Parasutterella.excrementihominis
+2024-07-02 09:38:32.05117 INFO::Fitting model to feature number 80, Sutterella.wadsworthensis
+2024-07-02 09:38:32.053902 INFO::Fitting model to feature number 81, Bilophila.unclassified
+2024-07-02 09:38:32.056743 INFO::Fitting model to feature number 82, Escherichia.coli
+2024-07-02 09:38:32.059651 INFO::Fitting model to feature number 83, Escherichia.unclassified
+2024-07-02 09:38:32.062484 INFO::Fitting model to feature number 84, Klebsiella.pneumoniae
+2024-07-02 09:38:32.065119 INFO::Fitting model to feature number 85, Haemophilus.parainfluenzae
+2024-07-02 09:38:32.067993 INFO::Fitting model to feature number 86, Akkermansia.muciniphila
+2024-07-02 09:38:32.070761 INFO::Fitting model to feature number 87, C2likevirus.unclassified
+2024-07-02 09:38:32.07646 INFO::Performing tests against medians
+2024-07-02 09:38:32.487726 INFO::Counting total values for each feature
+2024-07-02 09:38:32.501363 INFO::Running the logistic model component
+2024-07-02 09:38:32.502281 INFO::Fitting model to feature number 1, Bifidobacterium.adolescentis
+2024-07-02 09:38:32.514332 INFO::Fitting model to feature number 2, Bifidobacterium.bifidum
+2024-07-02 09:38:32.533796 INFO::Fitting model to feature number 3, Bifidobacterium.longum
+2024-07-02 09:38:32.543603 INFO::Fitting model to feature number 4, Bifidobacterium.pseudocatenulatum
+2024-07-02 09:38:32.555945 INFO::Fitting model to feature number 5, Collinsella.aerofaciens
+2024-07-02 09:38:32.574176 INFO::Fitting model to feature number 6, Bacteroides.caccae
+2024-07-02 09:38:32.583967 INFO::Fitting model to feature number 7, Bacteroides.cellulosilyticus
+2024-07-02 09:38:32.602185 INFO::Fitting model to feature number 8, Bacteroides.dorei
+2024-07-02 09:38:32.612123 INFO::Fitting model to feature number 9, Bacteroides.eggerthii
+2024-07-02 09:38:32.633344 INFO::Fitting model to feature number 10, Bacteroides.faecis
+2024-07-02 09:38:32.643237 INFO::Fitting model to feature number 11, Bacteroides.finegoldii
+2024-07-02 09:38:32.653712 INFO::Fitting model to feature number 12, Bacteroides.fragilis
+2024-07-02 09:38:32.670132 INFO::Fitting model to feature number 13, Bacteroides.intestinalis
+2024-07-02 09:38:32.683175 INFO::Fitting model to feature number 14, Bacteroides.massiliensis
+2024-07-02 09:38:32.700323 INFO::Fitting model to feature number 15, Bacteroides.ovatus
+2024-07-02 09:38:32.710846 INFO::Fitting model to feature number 16, Bacteroides.salyersiae
+2024-07-02 09:38:32.723888 INFO::Fitting model to feature number 17, Bacteroides.stercoris
+2024-07-02 09:38:32.74043 INFO::Fitting model to feature number 18, Bacteroides.thetaiotaomicron
+2024-07-02 09:38:32.750163 INFO::Fitting model to feature number 19, Bacteroides.uniformis
+2024-07-02 09:38:32.760663 INFO::Fitting model to feature number 20, Bacteroides.vulgatus
+2024-07-02 09:38:32.785367 INFO::Fitting model to feature number 21, Bacteroides.xylanisolvens
+2024-07-02 09:38:32.795244 INFO::Fitting model to feature number 22, Bacteroidales.bacterium.ph8
+2024-07-02 09:38:32.80574 INFO::Fitting model to feature number 23, Barnesiella.intestinihominis
+2024-07-02 09:38:32.823354 INFO::Fitting model to feature number 24, Coprobacter.fastidiosus
+2024-07-02 09:38:32.83467 INFO::Fitting model to feature number 25, Odoribacter.splanchnicus
+2024-07-02 09:38:32.844238 INFO::Fitting model to feature number 26, Parabacteroides.distasonis
+2024-07-02 09:38:32.860824 INFO::Fitting model to feature number 27, Parabacteroides.goldsteinii
+2024-07-02 09:38:32.871987 INFO::Fitting model to feature number 28, Parabacteroides.merdae
+2024-07-02 09:38:32.88154 INFO::Fitting model to feature number 29, Parabacteroides.unclassified
+2024-07-02 09:38:32.898092 INFO::Fitting model to feature number 30, Paraprevotella.clara
+2024-07-02 09:38:32.90935 INFO::Fitting model to feature number 31, Paraprevotella.unclassified
+2024-07-02 09:38:32.91967 INFO::Fitting model to feature number 32, Prevotella.copri
+2024-07-02 09:38:33.218922 INFO::Fitting model to feature number 33, Alistipes.finegoldii
+2024-07-02 09:38:33.229876 INFO::Fitting model to feature number 34, Alistipes.onderdonkii
+2024-07-02 09:38:33.241082 INFO::Fitting model to feature number 35, Alistipes.putredinis
+2024-07-02 09:38:33.2519 INFO::Fitting model to feature number 36, Alistipes.shahii
+2024-07-02 09:38:33.263685 INFO::Fitting model to feature number 37, Alistipes.unclassified
+2024-07-02 09:38:33.281901 INFO::Fitting model to feature number 38, Streptococcus.salivarius
+2024-07-02 09:38:33.291786 INFO::Fitting model to feature number 39, Clostridium.bolteae
+2024-07-02 09:38:33.301359 INFO::Fitting model to feature number 40, Clostridium.citroniae
+2024-07-02 09:38:33.310969 INFO::Fitting model to feature number 41, Clostridium.clostridioforme
+2024-07-02 09:38:33.320657 INFO::Fitting model to feature number 42, Clostridium.hathewayi
+2024-07-02 09:38:33.331178 INFO::Fitting model to feature number 43, Clostridium.leptum
+2024-07-02 09:38:33.348233 INFO::Fitting model to feature number 44, Clostridium.nexile
+2024-07-02 09:38:33.358777 INFO::Fitting model to feature number 45, Clostridium.symbiosum
+2024-07-02 09:38:33.368349 INFO::Fitting model to feature number 46, Flavonifractor.plautii
+2024-07-02 09:38:33.377911 INFO::Fitting model to feature number 47, Eubacterium.eligens
+2024-07-02 09:38:33.387874 INFO::Fitting model to feature number 48, Eubacterium.hallii
+2024-07-02 09:38:33.40513 INFO::Fitting model to feature number 49, Eubacterium.rectale
+2024-07-02 09:38:33.415635 INFO::Fitting model to feature number 50, Eubacterium.siraeum
+2024-07-02 09:38:33.425176 INFO::Fitting model to feature number 51, Eubacterium.sp.3.1.31
+2024-07-02 09:38:33.434644 INFO::Fitting model to feature number 52, Eubacterium.ventriosum
+2024-07-02 09:38:33.445176 INFO::Fitting model to feature number 53, Ruminococcus.gnavus
+2024-07-02 09:38:33.461798 INFO::Fitting model to feature number 54, Ruminococcus.obeum
+2024-07-02 09:38:33.472311 INFO::Fitting model to feature number 55, Ruminococcus.torques
+2024-07-02 09:38:33.483439 INFO::Fitting model to feature number 56, Coprococcus.comes
+2024-07-02 09:38:33.492902 INFO::Fitting model to feature number 57, Dorea.longicatena
+2024-07-02 09:38:33.502758 INFO::Fitting model to feature number 58, Lachnospiraceae.bacterium.1.1.57FAA
+2024-07-02 09:38:33.520839 INFO::Fitting model to feature number 59, Lachnospiraceae.bacterium.3.1.46FAA
+2024-07-02 09:38:33.531553 INFO::Fitting model to feature number 60, Roseburia.hominis
+2024-07-02 09:38:33.543432 INFO::Fitting model to feature number 61, Roseburia.intestinalis
+2024-07-02 09:38:33.554208 INFO::Fitting model to feature number 62, Roseburia.inulinivorans
+2024-07-02 09:38:33.565011 INFO::Fitting model to feature number 63, Roseburia.unclassified
+2024-07-02 09:38:33.576069 INFO::Fitting model to feature number 64, Oscillibacter.unclassified
+2024-07-02 09:38:33.593816 INFO::Fitting model to feature number 65, Peptostreptococcaceae.noname.unclassified
+2024-07-02 09:38:33.604113 INFO::Fitting model to feature number 66, Faecalibacterium.prausnitzii
+2024-07-02 09:38:33.617044 INFO::Fitting model to feature number 67, Ruminococcus.bromii
+2024-07-02 09:38:33.628133 INFO::Fitting model to feature number 68, Ruminococcus.callidus
+2024-07-02 09:38:33.646439 INFO::Fitting model to feature number 69, Ruminococcus.lactaris
+2024-07-02 09:38:33.656586 INFO::Fitting model to feature number 70, Subdoligranulum.unclassified
+2024-07-02 09:38:33.67052 INFO::Fitting model to feature number 71, Coprobacillus.unclassified
+2024-07-02 09:38:33.680751 INFO::Fitting model to feature number 72, Acidaminococcus.unclassified
+2024-07-02 09:38:33.701746 INFO::Fitting model to feature number 73, Dialister.invisus
+2024-07-02 09:38:33.711509 INFO::Fitting model to feature number 74, Veillonella.atypica
+2024-07-02 09:38:33.721342 INFO::Fitting model to feature number 75, Veillonella.dispar
+2024-07-02 09:38:33.731371 INFO::Fitting model to feature number 76, Veillonella.parvula
+2024-07-02 09:38:33.741781 INFO::Fitting model to feature number 77, Veillonella.unclassified
+2024-07-02 09:38:33.758286 INFO::Fitting model to feature number 78, Burkholderiales.bacterium.1.1.47
+2024-07-02 09:38:33.768022 INFO::Fitting model to feature number 79, Parasutterella.excrementihominis
+2024-07-02 09:38:33.777557 INFO::Fitting model to feature number 80, Sutterella.wadsworthensis
+2024-07-02 09:38:33.788513 INFO::Fitting model to feature number 81, Bilophila.unclassified
+2024-07-02 09:38:33.805438 INFO::Fitting model to feature number 82, Escherichia.coli
+2024-07-02 09:38:33.815187 INFO::Fitting model to feature number 83, Escherichia.unclassified
+2024-07-02 09:38:33.824758 INFO::Fitting model to feature number 84, Klebsiella.pneumoniae
+2024-07-02 09:38:33.835425 INFO::Fitting model to feature number 85, Haemophilus.parainfluenzae
+2024-07-02 09:38:33.852392 INFO::Fitting model to feature number 86, Akkermansia.muciniphila
+2024-07-02 09:38:33.862131 INFO::Fitting model to feature number 87, C2likevirus.unclassified
+2024-07-02 09:38:33.884717 INFO::Counting total values for each feature
+2024-07-02 09:38:33.916278 WARNING::Deleting existing residuals file: output/fits/residuals_LM.rds
+2024-07-02 09:38:33.916812 INFO::Writing residuals to file output/fits/residuals_LM.rds
+2024-07-02 09:38:33.940402 WARNING::Deleting existing fitted file: output/fits/fitted_LM.rds
+2024-07-02 09:38:33.940826 INFO::Writing fitted values to file output/fits/fitted_LM.rds
+2024-07-02 09:38:33.963545 WARNING::Deleting existing residuals file: output/fits/residuals_logistic.rds
+2024-07-02 09:38:33.963961 INFO::Writing residuals to file output/fits/residuals_logistic.rds
+2024-07-02 09:38:34.057529 WARNING::Deleting existing fitted file: output/fits/fitted_logistic.rds
+2024-07-02 09:38:34.057917 INFO::Writing fitted values to file output/fits/fitted_logistic.rds
+2024-07-02 09:38:34.148272 INFO::Writing all the results to file (ordered by increasing joint q-values): output/all_results.tsv
+2024-07-02 09:38:34.153593 INFO::Writing the significant results without errors (those which are less than or equal to the threshold of 0.100000 ) to file (ordered by increasing joint q-values): output/significant_results.tsv

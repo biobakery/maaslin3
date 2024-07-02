@@ -53,7 +53,7 @@ A list containing the following named items:
                      output = 'output', 
                      formula = '~ diagnosis + dysbiosisUC + dysbiosisCD + antibiotics + 
                         age + reads_filtered + (1 | subject)', 
-                     plot_heatmap = FALSE, 
+                     plot_summary_plot = FALSE, 
                      plot_associations = FALSE)
   
   #Run MaAsLin3

@@ -4,7 +4,7 @@
 Plot the results from a MaAsLin 3 run.
 }
 \description{
-Two types of plots are generated. First, the heatmap summary plot contains sorted per-feature coefficients plotted with their standard errors for key variables and a heatmap summarizing the remaining variables. Second, for significant features, association plots (scatterplots, boxplots, or tables depending on the association) are generated to visualize and verify the model fits. The data are shown with their transformed values in the association plots since this is the scale on which the models are fit.
+Two types of plots are generated. First, the summary plot contains sorted per-feature coefficients plotted with their standard errors for key variables and a heatmap summarizing the remaining variables. Second, for significant features, association plots (scatterplots, boxplots, or tables depending on the association) are generated to visualize and verify the model fits. The data are shown with their transformed values in the association plots since this is the scale on which the models are fit.
 }
 \usage{
 maaslin_plot_results(params_data_formula_fit)
@@ -13,7 +13,7 @@ maaslin_plot_results(params_data_formula_fit)
     \item{params_data_formula_fit}{
     The results of \code{maaslin_fit} or a list containing the following named items:
     \describe{
-      \item{(1)}{\code{param_list}: An input parameter list. The parameters \code{plot_heatmap} and \code{plot_associations} determine whether to plot the heatmap and individual associations respectively. The parameter \code{heatmap_first_n} determines how many features to include in the heatmap. The parameter \code{max_pngs} determines how many individual associations will be plotted. The parameters \code{heatmap_vars} and \code{pointplot_vars} are vectors of names that specify which variables should be included in the heatmap and pointplot portion of the heatmap summary result. Continuous variables should match the metadata column name, and categorical variables should be of the form \code{"[variable] [level]"}.}
+      \item{(1)}{\code{param_list}: An input parameter list. The parameters \code{plot_summary_plot} and \code{plot_associations} determine whether to plot the summary plot and individual associations respectively. The parameter \code{summary_plot_first_n} determines how many features to include in the summary plot. The parameter \code{max_pngs} determines how many individual associations will be plotted. The parameters \code{heatmap_vars} and \code{coef_plot_vars} are vectors of names that specify which variables should be included in the heatmap and coefficient plot portion of the summary plot. Continuous variables should match the metadata column name, and categorical variables should be of the form \code{"[variable] [level]"}.}
       \item{(2)}{\code{data}: The input data dataframe.}
       \item{(3)}{\code{filtered_data}: The abundance data dataframe after filtering.}
       \item{(4)}{\code{filtered_data_norm}: The abundance data after filtering and normalization.}
@@ -50,7 +50,7 @@ Results will be written to the \code{figures} folder within the folder \code{out
                      output = 'output', 
                      formula = '~ diagnosis + dysbiosisUC + dysbiosisCD + antibiotics + 
                         age + reads_filtered', 
-                     plot_heatmap = FALSE, 
+                     plot_summary_plot = FALSE, 
                      plot_associations = FALSE)
   
   #Run MaAsLin3

@@ -40,7 +40,7 @@ maaslin_read_data(param_list)
        }
     The parameter list may also specify how to account for compositionality:
     \itemize{
-       \item \code{unscaled_abundance}: A data frame of with a single column of absolute abundances or a filepath to such a tab-delimited file. The row names should match the names of the samples in \code{input_data} and \code{input_metadata}. When using spike-ins, the single column should have the same name as one of the features in \code{input_data}, and the \code{unscaled_abundance} should correspond to the absolute quantity of the spike-in. When using total abundance scaling, the single column should have the name 'total', and the \code{unscaled_abundance} should correspond to the total abundance of each sample.
+       \item \code{unscaled_abundance}: A data frame with a single column of absolute abundances or a filepath to such a tab-delimited file. The row names should match the names of the samples in \code{input_data} and \code{input_metadata}. When using spike-ins, the single column should have the same name as one of the features in \code{input_data}, and the \code{unscaled_abundance} should correspond to the absolute quantity of the spike-in. When using total abundance scaling, the single column should have the name 'total', and the \code{unscaled_abundance} should correspond to the total abundance of each sample.
        \item \code{median_comparison_abundance} (default \code{TRUE}): Test abundance coefficients against a null value corresponding to the median coefficient for a metadata variable across the features. This is recommended for relative abundance data but should not be used for absolute abundance data.
        \item \code{median_comparison_prevalence} (default \code{FALSE}): Test prevalence coefficients against a null value corresponding to the median coefficient for a metadata variable across the features. This is only recommended if the analyst is interested in how feature prevalence associations compare to each other or if there is likely strong compositionality-induced sparsity.
        \item \code{median_comparison_abundance_threshold} (default \code{0.25}): Coefficients within \code{median_comparison_abundance_threshold} of the median association will automatically be counted as insignificant (p-value set to 1) since they likely represent compositionality-induced associations. This threshold will be divided by the metadata variable's standard deviation if the metadatum is continuous to ensure the threshold applies to the right scale.
@@ -49,10 +49,10 @@ maaslin_read_data(param_list)
        }
     The parameter list can also include plotting parameters:
     \itemize{
-       \item \code{plot_heatmap} (default \code{TRUE}): Generate a heatmap of significant associations.
-       \item \code{heatmap_first_n} (default \code{25}): Include the top \code{heatmap_first_n} features with significant associations.
-       \item \code{pointplot_vars}: Vector of variable names to be used in the pointplot section of the heatmap. Continuous variables should match the metadata column name, and categorical variables should be of the form \code{"[variable] [level]"}.
-       \item \code{heatmap_vars}: Vector of variable names to be used in the heatmap section of the heatmap. Continuous variables should match the metadata column name, and categorical variables should be of the form \code{"[variable] [level]"}.
+       \item \code{plot_summary_plot} (default \code{TRUE}): Generate a summary plot of significant associations.
+       \item \code{summary_plot_first_n} (default \code{25}): Include the top \code{summary_plot_first_n} features with significant associations.
+       \item \code{coef_plot_vars}: Vector of variable names to be used in the coefficient plot section of the summary plot. Continuous variables should match the metadata column name, and categorical variables should be of the form \code{"[variable] [level]"}.
+       \item \code{heatmap_vars}: Vector of variable names to be used in the heatmap section of the summary plot. Continuous variables should match the metadata column name, and categorical variables should be of the form \code{"[variable] [level]"}.
        \item \code{plot_associations} (default \code{TRUE}): Whether to generate plots for significance associations.
        \item \code{max_pngs} (default \code{30}): The top \code{max_pngs} associations will be plotted.
     }
@@ -66,9 +66,9 @@ maaslin_read_data(param_list)
 \value{
     A list containing the following items:
     \describe{
-      \item{(1)}{\code{param_list}: The parameter list with \code{unscaled_abundance} replaced by a dataframe of absolute abundances if specified.}
-      \item{(2)}{\code{data}: A dataframe of feature abundances.}
-      \item{(3)}{\code{metadata}: A dataframe of metadata.}
+      \item{(1)}{\code{param_list}: The parameter list with \code{unscaled_abundance} replaced by a data frame of absolute abundances if specified.}
+      \item{(2)}{\code{data}: A data frame of feature abundances.}
+      \item{(3)}{\code{metadata}: A data frame of metadata.}
     }
 }
 \author{
@@ -93,7 +93,7 @@ maaslin_read_data(param_list)
                      output = 'output', 
                      formula = '~ diagnosis + dysbiosisUC + dysbiosisCD + antibiotics + 
                         age + reads_filtered + (1 | subject)', 
-                     plot_heatmap = FALSE, 
+                     plot_summary_plot = FALSE, 
                      plot_associations = FALSE)
   
   #Run MaAsLin3

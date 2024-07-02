@@ -13,9 +13,9 @@ maaslin_reorder_data(params_and_data)
     \item{params_and_data}{
     The results of \code{maaslin_read_data} or a list containing the following named items:
     \describe{
-      \item{(1)}{\code{param_list}: The parameter list with \code{unscaled_abundance} replaced by a dataframe of absolute abundances if specified.}
-      \item{(2)}{\code{data}: A dataframe of feature abundances.}
-      \item{(3)}{\code{metadata}: A dataframe of metadata.}
+      \item{(1)}{\code{param_list}: The parameter list with \code{unscaled_abundance} replaced by a data frame of absolute abundances if specified.}
+      \item{(2)}{\code{data}: A data frame of feature abundances.}
+      \item{(3)}{\code{metadata}: A data frame of metadata.}
     }
 }
 }
@@ -23,8 +23,8 @@ maaslin_reorder_data(params_and_data)
     A list containing the following named items:
     \describe{
       \item{(1)}{\code{param_list}: The parameter list with \code{unscaled_abundance} trimmed of samples with missing abundances or metadata.}
-      \item{(2)}{\code{data}: A dataframe of feature abundances trimmed of samples with missing abundances or metadata.}
-      \item{(3)}{\code{metadata}: A dataframe of metadata trimmed of samples with missing abundances or metadata.}
+      \item{(2)}{\code{data}: A data frame of feature abundances trimmed of samples with missing abundances or metadata.}
+      \item{(3)}{\code{metadata}: A data frame of metadata trimmed of samples with missing abundances or metadata.}
     }
 }
 \author{
@@ -49,7 +49,7 @@ maaslin_reorder_data(params_and_data)
                      output = 'output', 
                      formula = '~ diagnosis + dysbiosisUC + dysbiosisCD + antibiotics + 
                         age + reads_filtered + (1 | subject)', 
-                     plot_heatmap = FALSE, 
+                     plot_summary_plot = FALSE, 
                      plot_associations = FALSE)
   
   #Run MaAsLin3

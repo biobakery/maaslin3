@@ -14,8 +14,8 @@ maaslin_compute_formula(params_and_data)
     The results of \code{maaslin_reorder_data} or a list containing the following named items:
     \describe{
       \item{(1)}{\code{param_list}: The parameter list with \code{unscaled_abundance} trimmed of samples with missing abundances or metadata and \code{fixed_effects}, \code{random_effects}, \code{group_effects}, or \code{ordered_effects} specified.}
-      \item{(2)}{\code{data}: A dataframe of feature abundances trimmed of samples with missing abundances or metadata.}
-      \item{(3)}{\code{metadata}: A dataframe of metadata trimmed of samples with missing abundances or metadata.}
+      \item{(2)}{\code{data}: A data frame of feature abundances trimmed of samples with missing abundances or metadata.}
+      \item{(3)}{\code{metadata}: A data frame of metadata trimmed of samples with missing abundances or metadata.}
     }
 }
 }
@@ -23,8 +23,8 @@ maaslin_compute_formula(params_and_data)
 A list containing the following named items:
     \describe{
       \item{(1)}{\code{param_list}: The same input parameter list.}
-      \item{(2)}{\code{data}: The same input data dataframe.}
-      \item{(3)}{\code{metadata}: The same input metadata dataframe.}
+      \item{(2)}{\code{data}: The same input data data frame.}
+      \item{(3)}{\code{metadata}: The same input metadata data frame.}
       \item{(4)}{\code{formula}: A list with the named items \code{formula} as a computed formula object and \code{random_effects_formula} as the random effects component of the formula.}
     }
 }
@@ -51,7 +51,7 @@ A list containing the following named items:
                      fixed_effects = c('diagnosis', 'dysbiosisUC', 'dysbiosisCD', 'antibiotics',
                       'age', 'reads_filtered'), 
                      random_effects = c('subject'),
-                     plot_heatmap = FALSE, 
+                     plot_summary_plot = FALSE, 
                      plot_associations = FALSE)
   
   #Run MaAsLin3

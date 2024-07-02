@@ -1,9 +1,9 @@
 ---
 title: "Maaslin3"
-date: "Tuesday, June 18, 2024"
+date: "Tuesday, July 2, 2024"
 author:
  - name: William Nickols
-   email: willnickols@college.harvard.edu
+   email: willnickols@g.harvard.edu
  - name: Jacob Nearing
    email: nearing@broadinstitute.org
  - name: Sagun Maharjan
@@ -85,9 +85,9 @@ the MaAsLin3 dependencies.
 Install Bioconductor and then install MaAsLin3
 
 ```{r, eval=FALSE}
-if(!requireNamespace("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
-BiocManager::install("MaAsLin3")
+# if(!requireNamespace("BiocManager", quietly = TRUE))
+#     install.packages("BiocManager")
+# BiocManager::install("MaAsLin3")
 ```
 
 ## How to Run ##
@@ -187,17 +187,32 @@ the HMP2 data which can be downloaded from https://ibdmdb.org/ .
 #### In R ####
 
 ```{r}
-library(MaAsLin3)
-input_data <- system.file(
-    'extdata','HMP2_taxonomy.tsv', package="MaAsLin3")
-input_metadata <-system.file(
-    'extdata','HMP2_metadata.tsv', package="MaAsLin3")
-fit_data <- MaAsLin3(
-    input_data, input_metadata, 'demo_output',
-    fixed_effects = c('diagnosis', 'dysbiosisnonIBD','dysbiosisUC','dysbiosisCD', 'antibiotics', 'age'),
-    random_effects = c('site', 'subject'),
-    reference = "diagnosis,nonIBD",
-    standardize = FALSE)
+library(maaslin3)
+taxa_table_name <- system.file("extdata", "HMP2_taxonomy.tsv", package = "maaslin3")
+taxa_table <- read.csv(taxa_table_name, sep = '\t')
+rownames(taxa_table) <- taxa_table$ID; taxa_table$ID <- NULL
+
+#Read metadata table
+metadata_name <- system.file("extdata", "HMP2_metadata.tsv", package = "maaslin3")
+metadata <- read.csv(metadata_name, sep = '\t')
+rownames(metadata) <- metadata$ID; metadata$ID <- NULL
+
+#Prepare parameter lists 
+param_list <- list(input_data = taxa_table, 
+                   input_metadata = metadata, 
+                   output = 'output', 
+                   normalization = 'TSS', 
+                   transform = 'LOG', 
+                   formula = '~ diagnosis + dysbiosisUC + dysbiosisCD + antibiotics + age + reads_filtered', 
+                   plot_heatmap = FALSE, 
+                   plot_associations = FALSE, 
+                   max_significance = 0.1, 
+                   augment = TRUE, 
+                   median_comparison_abundance = TRUE, 
+                   median_comparison_prevalence = FALSE)
+
+#Run MaAsLin3
+fit_out <- maaslin3::maaslin3(param_list)
 ```
 
 ##### Session Info #####

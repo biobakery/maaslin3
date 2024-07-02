@@ -26,24 +26,7 @@ If you have questions, please direct it to:  [MaAsLin3 Forum](https://forum.biob
 MaAsLin3 finds associations between microbiome multi-omics features and complex metadata in population-scale epidemiological studies. The software includes multiple analysis methods (including support for multiple covariates and repeated measures), filtering, normalization, and transform options to customize analysis for your specific study. 
 
 ## Requirements ##
-MaAsLin3 is an R package that can be run on the command line or as an R function.The following packages are required dependencies:
-```
-optparse
-logging
-data.table
-dplyr
-pbapply
-lmerTest
-parallel
-lme4
-plyr
-TcGSA
-ggplot2
-grid
-pheatmap
-gridExtra
-multcomp
-```
+MaAsLin3 is an R package that can be run on the command line or as an R function.
 
 ## Installation ##
 

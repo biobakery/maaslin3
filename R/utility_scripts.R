@@ -441,9 +441,9 @@ write_fits <- function(params_data_formula_fit) {
   
   for (model_type in c('LM', 'logistic')) {
     if (model_type == 'LM') {
-      fit_data <- params_data_formula_fit[["fit_data_non_zero"]]
+      fit_data <- params_data_formula_fit[["fit_data_abundance"]]
     } else {
-      fit_data <- params_data_formula_fit[["fit_data_binary"]]
+      fit_data <- params_data_formula_fit[["fit_data_prevalence"]]
     }
 
     ################################
@@ -512,8 +512,12 @@ write_results <- function(params_data_formula_fit) {
   param_list <- maaslin_parse_param_list(params_data_formula_fit[["param_list"]])
   output <- param_list[["output"]]
   max_significance <- param_list[["max_significance"]]
-  fit_data <- rbind(params_data_formula_fit[["fit_data_non_zero"]]$results,
-                    params_data_formula_fit[["fit_data_binary"]]$results)
+  fit_data <- rbind(params_data_formula_fit[["fit_data_abundance"]]$results,
+                    params_data_formula_fit[["fit_data_prevalence"]]$results)
+  
+  fit_data$model <- dplyr::case_when(fit_data$model == 'LM' ~ 'abundance',
+                                     fit_data$model == 'logistic' ~ 'prevalence',
+                                     TRUE ~ NA)
   
   fit_data <- fit_data[order(fit_data$qval_joint),]
   fit_data <- fit_data[order(!is.na(fit_data$error)),] # Move all that had errors to the end

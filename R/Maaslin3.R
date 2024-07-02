@@ -1102,7 +1102,7 @@ maaslin_check_formula <- function(params_and_data) {
       !is.null(param_list[["group_effects"]]) | 
       !is.null(param_list[["ordered_effects"]])) {
     logging::logwarn(
-      paste("fixed_effects, random_effects, group_effects, ordered_effects provided in addition to formula,", 
+      paste("fixed_effects, random_effects, group_effects, or ordered_effects provided in addition to formula,", 
             "using only formula"))
   }
   
@@ -1242,6 +1242,14 @@ maaslin_filter_and_standardize <- function(params_and_data_and_formula) {
   # Filter by abundance using zero as value for NAs
   data_zeros <- unfiltered_data
   data_zeros[is.na(data_zeros)] <- 0
+  
+  ##################################################################################
+  # Apply the non-zero abundance threshold to split the data into 0s and non-zeros #
+  ##################################################################################
+  
+  prevalence_mask <- ifelse(data_zeros > param_list[["zero_threshold"]], 1, 0)
+  data_zeros <- data_zeros * prevalence_mask
+  
   filtered_data <-
     unfiltered_data[, 
                     colSums(data_zeros > param_list[["min_abundance"]]) > min_samples,
@@ -1253,13 +1261,6 @@ maaslin_filter_and_standardize <- function(params_and_data_and_formula) {
     setdiff(names(unfiltered_data), names(filtered_data))
   logging::loginfo("Filtered feature names from abundance and prevalence filtering: %s",
                    toString(filtered_feature_names))
-  
-  ##################################################################################
-  # Apply the non-zero abundance threshold to split the data into 0s and non-zeros #
-  ##################################################################################
-  
-  prevalence_mask <- ifelse(filtered_data > param_list[["zero_threshold"]], 1, 0)
-  filtered_data <- filtered_data * prevalence_mask
   
   #################################
   # Filter data based on variance #
@@ -1309,8 +1310,8 @@ maaslin_filter_and_standardize <- function(params_and_data_and_formula) {
   
   return(list("param_list" = params_and_data_and_formula[["param_list"]],
               "data" = data, 
-              "metadata" = metadata,
               "filtered_data" = filtered_data, 
+              "metadata" = metadata,
               "unfiltered_metadata" = unfiltered_metadata, 
               "formula" = params_and_data_and_formula[["formula"]]))
 }
@@ -1356,10 +1357,10 @@ maaslin_normalize = function(params_and_data_and_formula) {
   
   return(list("param_list" = params_and_data_and_formula[["param_list"]], 
               "data" = params_and_data_and_formula[["data"]], 
-              "metadata" = params_and_data_and_formula[["metadata"]],
-              "unfiltered_metadata" = params_and_data_and_formula[["unfiltered_metadata"]], 
               "filtered_data" = params_and_data_and_formula[["filtered_data"]][,colnames(features), drop = F], 
               "filtered_data_norm" = features,
+              "metadata" = params_and_data_and_formula[["metadata"]],
+              "unfiltered_metadata" = params_and_data_and_formula[["unfiltered_metadata"]], 
               "formula" = params_and_data_and_formula[["formula"]]))
 }
 
@@ -1397,10 +1398,10 @@ maaslin_transform = function(params_and_data_and_formula) {
   
   return(list("param_list" = params_and_data_and_formula[["param_list"]], 
               "data" = params_and_data_and_formula[["data"]], 
-              "metadata" = params_and_data_and_formula[["metadata"]],
-              "unfiltered_metadata" = params_and_data_and_formula[["unfiltered_metadata"]], 
               "filtered_data" = params_and_data_and_formula[["filtered_data"]], 
               "filtered_data_norm_transformed" = features,
+              "metadata" = params_and_data_and_formula[["metadata"]],
+              "unfiltered_metadata" = params_and_data_and_formula[["unfiltered_metadata"]], 
               "formula" = params_and_data_and_formula[["formula"]]))
 }
 
@@ -1419,7 +1420,7 @@ maaslin_fit = function(params_and_data_and_formula) {
   # For non-zero models #
   #######################
   
-  fit_data_non_zero <-
+  fit_data_abundance <-
     fit.model(
       features = params_and_data_and_formula[["filtered_data_norm_transformed"]],
       metadata = params_and_data_and_formula[["metadata"]],
@@ -1440,16 +1441,16 @@ maaslin_fit = function(params_and_data_and_formula) {
   
   logging::loginfo("Counting total values for each feature")
   
-  fit_data_non_zero$results$N <-
+  fit_data_abundance$results$N <-
     apply(
-      fit_data_non_zero$results,
+      fit_data_abundance$results,
       1,
       FUN = function(x)
         length(params_and_data_and_formula[["filtered_data_norm_transformed"]][, x[1]])
     )
-  fit_data_non_zero$results$N.not.zero <-
+  fit_data_abundance$results$N.not.zero <-
     apply(
-      fit_data_non_zero$results,
+      fit_data_abundance$results,
       1,
       FUN = function(x)
         length(which(params_and_data_and_formula[["filtered_data"]][, x[1]] != 0))
@@ -1461,7 +1462,7 @@ maaslin_fit = function(params_and_data_and_formula) {
   
   logging::loginfo("Running the logistic model component")
   
-  fit_data_binary <-
+  fit_data_prevalence <-
     fit.model(
       features = prevalence_mask,
       metadata = params_and_data_and_formula[["metadata"]],
@@ -1478,58 +1479,58 @@ maaslin_fit = function(params_and_data_and_formula) {
 
   logging::loginfo("Counting total values for each feature")
   
-  fit_data_binary$results$N <-
+  fit_data_prevalence$results$N <-
     apply(
-      fit_data_binary$results,
+      fit_data_prevalence$results,
       1,
       FUN = function(x)
         length(params_and_data_and_formula[["filtered_data_norm_transformed"]][, x[1]])
     )
-  fit_data_binary$results$N.not.zero <-
+  fit_data_prevalence$results$N.not.zero <-
     apply(
-      fit_data_binary$results,
+      fit_data_prevalence$results,
       1,
       FUN = function(x)
         length(which(params_and_data_and_formula[["filtered_data"]][, x[1]] != 0))
     )
   
-  results <- add_joint_signif(fit_data_non_zero, fit_data_binary, 'LM', param_list[["correction"]])
-  fit_data_non_zero$results <- results[[1]]
-  fit_data_binary$results <- results[[2]]
+  results <- add_joint_signif(fit_data_abundance, fit_data_prevalence, 'LM', param_list[["correction"]])
+  fit_data_abundance$results <- results[[1]]
+  fit_data_prevalence$results <- results[[2]]
   
-  current_errors_for_likely_issues <- fit_data_binary$results$error[!is.na(fit_data_binary$results$N.not.zero) & 
-                                                                      (fit_data_binary$results$N.not.zero < 50 &
-                                                                         fit_data_binary$results$N.not.zero / fit_data_binary$results$N < 0.05) &
-                                                                      ((!is.na(fit_data_binary$results$coef) & 
-                                                                          abs(fit_data_binary$results$coef) > 15) |
-                                                                         (!is.na(fit_data_binary$results$pval_individual) & 
-                                                                         fit_data_binary$results$pval_individual < 10^-10))]
-  fit_data_binary$results$error[!is.na(fit_data_binary$results$N.not.zero) & 
-                                  (fit_data_binary$results$N.not.zero < 50 &
-                                  fit_data_binary$results$N.not.zero / fit_data_binary$results$N < 0.05) &
-                                  ((!is.na(fit_data_binary$results$coef) & 
-                                      abs(fit_data_binary$results$coef) > 15) |
-                                     (!is.na(fit_data_binary$results$pval_individual) & 
-                                        fit_data_binary$results$pval_individual < 10^-10))] <- 
+  current_errors_for_likely_issues <- fit_data_prevalence$results$error[!is.na(fit_data_prevalence$results$N.not.zero) & 
+                                                                      (fit_data_prevalence$results$N.not.zero < 50 &
+                                                                         fit_data_prevalence$results$N.not.zero / fit_data_prevalence$results$N < 0.05) &
+                                                                      ((!is.na(fit_data_prevalence$results$coef) & 
+                                                                          abs(fit_data_prevalence$results$coef) > 15) |
+                                                                         (!is.na(fit_data_prevalence$results$pval_individual) & 
+                                                                         fit_data_prevalence$results$pval_individual < 10^-10))]
+  fit_data_prevalence$results$error[!is.na(fit_data_prevalence$results$N.not.zero) & 
+                                  (fit_data_prevalence$results$N.not.zero < 50 &
+                                  fit_data_prevalence$results$N.not.zero / fit_data_prevalence$results$N < 0.05) &
+                                  ((!is.na(fit_data_prevalence$results$coef) & 
+                                      abs(fit_data_prevalence$results$coef) > 15) |
+                                     (!is.na(fit_data_prevalence$results$pval_individual) & 
+                                        fit_data_prevalence$results$pval_individual < 10^-10))] <- 
     ifelse(!is.na(current_errors_for_likely_issues),
            current_errors_for_likely_issues,
            "A large coefficient (>15 in absolute value) or small p-value (< 10^-10) was obtained from a feature present in <5% of samples. Check this is intended.")
   
-  fit_data_non_zero$results <- fit_data_non_zero$results[order(fit_data_non_zero$results$qval_joint),]
-  fit_data_non_zero$results <- fit_data_non_zero$results[order(!is.na(fit_data_non_zero$results$error)),] # Move all that had errors to the end
+  fit_data_abundance$results <- fit_data_abundance$results[order(fit_data_abundance$results$qval_joint),]
+  fit_data_abundance$results <- fit_data_abundance$results[order(!is.na(fit_data_abundance$results$error)),] # Move all that had errors to the end
   
-  fit_data_binary$results <- fit_data_binary$results[order(fit_data_binary$results$qval_joint),]
-  fit_data_binary$results <- fit_data_binary$results[order(!is.na(fit_data_binary$results$error)),] # Move all that had errors to the end
+  fit_data_prevalence$results <- fit_data_prevalence$results[order(fit_data_prevalence$results$qval_joint),]
+  fit_data_prevalence$results <- fit_data_prevalence$results[order(!is.na(fit_data_prevalence$results$error)),] # Move all that had errors to the end
   
   return(list("param_list" = params_and_data_and_formula[["param_list"]], 
               "data" = params_and_data_and_formula[["data"]], 
-              "metadata" = params_and_data_and_formula[["metadata"]],
-              "unfiltered_metadata" = params_and_data_and_formula[["unfiltered_metadata"]], 
               "filtered_data" = params_and_data_and_formula[["filtered_data"]], 
               "filtered_data_norm_transformed" = params_and_data_and_formula[["filtered_data_norm_transformed"]],
+              "metadata" = params_and_data_and_formula[["metadata"]],
+              "unfiltered_metadata" = params_and_data_and_formula[["unfiltered_metadata"]], 
               "formula" = params_and_data_and_formula[["formula"]],
-              "fit_data_non_zero" = fit_data_non_zero,
-              "fit_data_binary" = fit_data_binary
+              "fit_data_abundance" = fit_data_abundance,
+              "fit_data_prevalence" = fit_data_prevalence
               ))
 }
 
@@ -1561,9 +1562,9 @@ maaslin_write_results_lefse_format <- function(params_data_formula_fit) {
     dir.create(output)
   }
   
-  write_results_in_lefse_format(params_data_formula_fit$fit_data_non_zero$results, 
+  write_results_in_lefse_format(params_data_formula_fit$fit_data_abundance$results, 
                                 file.path(output, 'lefse_style_results_abundance.res'))
-  write_results_in_lefse_format(params_data_formula_fit$fit_data_binary$results, 
+  write_results_in_lefse_format(params_data_formula_fit$fit_data_prevalence$results, 
                                 file.path(output, 'lefse_style_results_prevalence.res'))
 }
 
@@ -1588,8 +1589,8 @@ maaslin_plot_results <- function(params_data_formula_fit) {
     }
   }
   
-  merged_results <- rbind(params_data_formula_fit[["fit_data_non_zero"]][['results']],
-                          params_data_formula_fit[["fit_data_binary"]][['results']])
+  merged_results <- rbind(params_data_formula_fit[["fit_data_abundance"]][['results']],
+                          params_data_formula_fit[["fit_data_prevalence"]][['results']])
   
   if (param_list[["plot_heatmap"]]) {
     heatmap_file <- file.path(figures_folder, "heatmap.pdf")

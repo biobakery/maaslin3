@@ -1,19 +1,13 @@
-\name{maaslin3}
-\alias{maaslin3}
+\name{maaslin_read_data}
+\alias{maaslin_read_data}
 \title{
-MaAsLin 3: A multivariable statistical framework for finding abundance and prevalence 
-    associations between metadata and high-dimensional microbial multi-omics data.
+Read in the abundance data and metadata.
 }
 \description{
-This wrapper for all MaAsLin 3 steps finds abundance and prevalence 
-    associations between microbiome meta-omics features and 
-    complex metadata in population-scale epidemiological studies. 
-    The software includes multiple analysis methods (including 
-    support for multiple covariates, repeated measures, and ordered predictors),
-    filtering, normalization, and transform options to customize analysis for your specific study.
+Read in the abundance data and metadata from files if necessary.
 }
 \usage{
-maaslin3(param_list)
+maaslin_read_data(param_list)
 }
 \arguments{
     \item{param_list}{
@@ -72,15 +66,9 @@ maaslin3(param_list)
 \value{
     A list containing the following items:
     \describe{
-      \item{(1)}{\code{param_list}: The list of input parameters, augmented by the default parameters for any parameters not specified.}
-      \item{(2)}{\code{data}: A dataframe of feature abundances with the retained samples for fitting.}
-      \item{(3)}{\code{filtered_data}: A dataframe of feature abundances on the original scale after filtering.}
-      \item{(4)}{\code{filtered_data_norm_transformed}: A dataframe of feature abundances after filtering, normalization, and transformation.}
-      \item{(5)}{\code{unfiltered_metadata}: A dataframe of metadata with the retained samples for fitting.}
-      \item{(6)}{\code{metadata}: A dataframe of metadata after scaling (if selected).}
-      \item{(7)}{\code{formula}: A checked or constructed formula specifying the model to be fit.}
-      \item{(8)}{\code{fit_data_abundance}: The results from the fit abundance models (see \code{maaslin_fit}).}
-      \item{(9)}{\code{fit_data_prevalence}: The results from the fit prevalence models (see \code{maaslin_fit}).}
+      \item{(1)}{\code{param_list}: The parameter list with \code{unscaled_abundance} replaced by a dataframe of absolute abundances if specified.}
+      \item{(2)}{\code{data}: A dataframe of feature abundances.}
+      \item{(3)}{\code{metadata}: A dataframe of metadata.}
     }
 }
 \author{
@@ -104,10 +92,11 @@ maaslin3(param_list)
                      input_metadata = metadata, 
                      output = 'output', 
                      formula = '~ diagnosis + dysbiosisUC + dysbiosisCD + antibiotics + 
-                        age + reads_filtered', 
+                        age + reads_filtered + (1 | subject)', 
                      plot_heatmap = FALSE, 
                      plot_associations = FALSE)
   
   #Run MaAsLin3
-  fit_out <- maaslin3::maaslin3(param_list)
+  param_list <- maaslin3::maaslin_log_arguments(param_list)
+  params_and_data <- maaslin3::maaslin_read_data(param_list)
 }

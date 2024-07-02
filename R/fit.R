@@ -6,8 +6,6 @@ for (lib in c(
   'lmerTest',
   'parallel',
   'lme4',
-  'plyr',
-  'TcGSA',
   'multcomp'
 )) {
   suppressPackageStartupMessages(require(lib, character.only = TRUE))
@@ -99,24 +97,24 @@ get_character_cols <- function(dat_sub) {
 }
 
 # Get joint significance for zeros and non-zeros
-add_joint_signif <- function(fit_data_non_zero, fit_data_binary, analysis_method, correction) {
+add_joint_signif <- function(fit_data_abundance, fit_data_prevalence, analysis_method, correction) {
   # Subset to shared columns
-  fit_data_binary_signif <- fit_data_binary$results[,c("feature", "metadata", "value", "name", "pval", "error")]
-  colnames(fit_data_binary_signif) <- c("feature", "metadata", "value", "name", "logistic", "logistic_error")
-  fit_data_non_zero_signif <- fit_data_non_zero$results[,c("feature", "metadata", "value", "name", "pval", "error")]
-  colnames(fit_data_non_zero_signif) <- c("feature", "metadata", "value", "name", analysis_method, "LM_error")
+  fit_data_prevalence_signif <- fit_data_prevalence$results[,c("feature", "metadata", "value", "name", "pval", "error")]
+  colnames(fit_data_prevalence_signif) <- c("feature", "metadata", "value", "name", "logistic", "logistic_error")
+  fit_data_abundance_signif <- fit_data_abundance$results[,c("feature", "metadata", "value", "name", "pval", "error")]
+  colnames(fit_data_abundance_signif) <- c("feature", "metadata", "value", "name", analysis_method, "LM_error")
   
   # Join and check linear and logistic pieces
-  merged_signif <- dplyr::full_join(unique(fit_data_binary_signif), unique(fit_data_non_zero_signif), 
+  merged_signif <- dplyr::full_join(unique(fit_data_prevalence_signif), unique(fit_data_abundance_signif), 
                              by=c("feature", "metadata", "value", "name"))
   
   # Stop everything and show the difference between the logistic and linear models fit
-  if (nrow(merged_signif) != nrow(unique(fit_data_binary_signif)) | nrow(merged_signif) != nrow(unique(fit_data_non_zero_signif))) {
+  if (nrow(merged_signif) != nrow(unique(fit_data_prevalence_signif)) | nrow(merged_signif) != nrow(unique(fit_data_abundance_signif))) {
     print(nrow(unique(merged_signif)))
-    print(nrow(unique(fit_data_binary_signif)))
-    print(nrow(unique(fit_data_non_zero_signif)))
-    print(dplyr::anti_join(unique(fit_data_binary_signif), unique(fit_data_non_zero_signif), by=c("feature", "metadata", "value", "name")))
-    print(dplyr::anti_join(unique(fit_data_non_zero_signif), unique(fit_data_binary_signif), by=c("feature", "metadata", "value", "name")))
+    print(nrow(unique(fit_data_prevalence_signif)))
+    print(nrow(unique(fit_data_abundance_signif)))
+    print(dplyr::anti_join(unique(fit_data_prevalence_signif), unique(fit_data_abundance_signif), by=c("feature", "metadata", "value", "name")))
+    print(dplyr::anti_join(unique(fit_data_abundance_signif), unique(fit_data_prevalence_signif), by=c("feature", "metadata", "value", "name")))
     stop("Merged significance tables have different associations. This is likely a package error due to unexpected data or models.")
   }
   
@@ -133,7 +131,7 @@ add_joint_signif <- function(fit_data_non_zero, fit_data_binary, analysis_method
                                      NA, merged_signif$pval_joint)
   merged_signif$qval_joint <- as.numeric(p.adjust(merged_signif$pval_joint, method = correction))
   
-  return(list(append_joint(fit_data_non_zero, merged_signif), append_joint(fit_data_binary, merged_signif)))
+  return(list(append_joint(fit_data_abundance, merged_signif), append_joint(fit_data_prevalence, merged_signif)))
 }
 
 # Take logistic or LM component and add on the merged significance pieces
@@ -276,7 +274,7 @@ fit.model <- function(
     if (is.null(random_effects_formula)) { # Fixed effects only
       if (augment) {
         model_function <- function(formula, mm, weight_scheme, na.action) {
-          weight_sch_current <<- weight_scheme # Needs to be global variable ?!
+          assign("weight_sch_current", weight_scheme, envir = environment(formula))
           
           glm_out <- glm(
             formula = formula(formula),
@@ -285,8 +283,6 @@ fit.model <- function(
             weights = weight_sch_current,
             na.action = na.action,
           )
-          
-          remove(weight_sch_current, pos = ".GlobalEnv") # Stop being global
           
           return(glm_out)
         }
@@ -318,8 +314,8 @@ fit.model <- function(
       if (augment) {
         model_function <-
           function(formula, mm, weight_scheme, na.action) {
-            weight_sch_current <<- weight_scheme # Needs to be global variable ?!
-            
+            assign("weight_sch_current", weight_scheme, envir = environment(formula))
+
             index <- 1
             
             while (index < length(optimizers)) {
@@ -369,10 +365,8 @@ fit.model <- function(
                   invokeRestart("muffleWarning")
                 }
               })
-              remove(weight_sch_current, pos = ".GlobalEnv")
               return(fit1)
             } else  {
-              remove(weight_sch_current, pos = ".GlobalEnv")
               return(glm_out)
             }
           }
@@ -456,8 +450,6 @@ fit.model <- function(
       'lmerTest',
       'parallel',
       'lme4',
-      'plyr',
-      'TcGSA',
       'multcomp'
     )) {
       suppressPackageStartupMessages(require(lib, character.only = TRUE))
@@ -654,8 +646,8 @@ fit.model <- function(
               } else { # Random effects
                 if (model == "logistic") {
                   if (augment) {
-                    weight_sch_current <<- weight_scheme
-                    
+                    assign("weight_sch_current", weight_scheme, envir = environment(formula))
+
                     fit_new <-
                       model_function(
                         formula = update.formula(formula(fit), formula(paste0('~.-', group))),
@@ -1161,7 +1153,7 @@ fit.model <- function(
   }
   
   # Return NULL rather than empty object if fits aren't saved
-  if (all(is.na(fits))) {
+  if (all(is.na(fits)) | !save_models) {
     fits <- NULL
   }
   

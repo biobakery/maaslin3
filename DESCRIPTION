@@ -6,7 +6,7 @@ Authors@R: c(
   person("William", "Nickols", email = "willnickols@g.harvard.edu", role = c("aut", "cre")), 
   person("Jacob", "Nearing", email = "nearing@broadinstitute.org", role = "aut")
   )
-Depends: R (>= 4.4)
+Depends: R (>= 4.3)
 Description: MaAsLin 3 refines and extends generalized multivariate linear models for meta-omicron association discovery. It finds abundance and prevalence associations between microbiome meta-omics features and complex metadata in population-scale epidemiological studies. The software includes multiple analysis methods (including support for multiple covariates, repeated measures, and ordered predictors), filtering, normalization, and transform options to customize analysis for your specific study.
 License: MIT + file LICENSE
 LazyData: false

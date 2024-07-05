@@ -305,8 +305,10 @@ maaslin3_summary_plot <-
     }
     
     if (!is.null(p1) & !is.null(p2)) {
-      final_plot <- patchwork::wrap_plots(p1, p2, ncol = 3, widths = c(max(0, length(coef_plot_vars) - 2) + 2, 
-                                         max(0, length(heatmap_vars) / 4 - 2) + 2, 0.5), guides = 'collect')
+      final_plot <- patchwork::wrap_plots(p1, p2, ncol = 3, 
+                                          widths = c(max(0, length(coef_plot_vars) * (max(20, max(nchar(as.character(coef_plot_vars))))) / 20 - 2) + 2,
+                                                     max(0, length(heatmap_vars) / 4 - 2) + 2, 
+                                                     0.5), guides = 'collect')
     } else if (is.null(p1) & !is.null(p2)) {
       final_plot <- p2
     } else if (!is.null(p1) & is.null(p2)) {
@@ -318,7 +320,7 @@ maaslin3_summary_plot <-
     if (!is.null(final_plot)) {
       height_out <- 8 + max(first_n / 5 - 5, 0) + max(nchar(c(as.character(coef_plot_vars), as.character(heatmap_vars)))) / 10
       width_out <-  5 + max(nchar(merged_results$feature)) / 12 + 
-        length(coef_plot_vars) * 2.5 + 
+        (length(coef_plot_vars) * (max(20, max(nchar(as.character(coef_plot_vars))))) / 20) * 2.5 + 
         length(heatmap_vars) * 0.25
       
       ggplot2::ggsave(summary_plot_file, plot = final_plot, height = height_out, width = width_out)

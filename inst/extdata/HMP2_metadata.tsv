@@ -1,4 +1,4 @@
-"ID"	"participant_id"	"site_name"	"week_num"	"reads"	"diagnosis"	"dysbiosis_state"	"antibiotics"	"age"	"sex"	"race"	"education"	"probiotic"	"red_meat"	"sweets"
+"participant_id"	"site_name"	"week_num"	"reads"	"diagnosis"	"dysbiosis_state"	"antibiotics"	"age"	"sex"	"race"	"education"	"probiotic"	"red_meat"	"sweets"
 "CSM5FZ3N_P"	"C3001"	"Cedars-Sinai"	0	9961743	"CD"	"none"	"No"	43	"Female"	"White"	"Bachelor's degree"	"No, I did not consume these products in the last 7 days"	"No, I did not consume these products in the last 7 days"	"Within the past 2 to 3 days"
 "CSM5FZ3R_P"	"C3001"	"Cedars-Sinai"	2	16456391	"CD"	"none"	"No"	43	"Female"	"White"	"Bachelor's degree"	"No, I did not consume these products in the last 7 days"	"No, I did not consume these products in the last 7 days"	"Within the past 2 to 3 days"
 "CSM5FZ3T_P"	"C3002"	"Cedars-Sinai"	0	10511448	"CD"	"none"	"No"	76	"Female"	"White"	"Professional/Doctoral degree"	"No, I did not consume these products in the last 7 days"	"No, I did not consume these products in the last 7 days"	"Yesterday, 1 to 2 times"

@@ -5,8 +5,6 @@ expected_results_run1 <- read.table("expected_results_run1.tsv", header = TRUE, 
 
 taxa_table <- read.table(system.file(package="maaslin3","extdata","HMP2_taxonomy.tsv"), header = TRUE, sep="\t")
 metadata <- read.table(system.file(package="maaslin3","extdata","HMP2_metadata.tsv"), header = TRUE, sep="\t")
-rownames(taxa_table) <- taxa_table$ID; taxa_table$ID <- NULL
-rownames(metadata) <- metadata$ID; metadata$ID <- NULL
 
 metadata$diagnosis <- factor(metadata$diagnosis, levels = c('nonIBD', 'UC', 'CD'))
 metadata$dysbiosis_state <- factor(metadata$dysbiosis_state, levels = c('none', 'dysbiosis_UC', 'dysbiosis_CD'))

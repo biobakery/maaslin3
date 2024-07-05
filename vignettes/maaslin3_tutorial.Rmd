@@ -9,7 +9,7 @@ author:
    email: smaharjan@hsph.harvard.edu
 output: html_document
 vignette: >
-    %\VignetteIndexEntry{Maaslin3}
+    %\VignetteIndexEntry{Tutorial}
     %\VignetteEngine{knitr::rmarkdown}
     %\VignetteEncoding{UTF-8}
 ---
@@ -103,6 +103,9 @@ if (!require('devtools', character.only = TRUE)) {
 
 library("devtools")
 install_github("biobakery/MaAsLin3")
+```
+
+```{r, eval=T}
 library("maaslin3")
 ```
 
@@ -110,34 +113,18 @@ library("maaslin3")
 
 ### 3.1 MaAsLin 3 Input
 
-**Set up**
+MaAsLin3 requires two input files.
 
-Launch a fresh R session and in the R script window:
-
-```R
-getwd()
-setwd("~/Desktop")
-dir.create("R_Maaslin_tutorial") # Create a new directory
-setwd("R_Maaslin_tutorial") # Change the current working directory 
-getwd() #check if directory has been successfully changed
-
-#Load MaAsLin 2 package into the R environment
-library(Maaslin2)
-?Maaslin2
-```
-
-MaAsLin 3 requires two input files, one for taxonomic or functional feature 
-abundances, and one for sample metadata.
-
-1. Data (or features) file
-    * This file is tab-delimited.
+1. Feature abundance data frame
     * Formatted with features as columns and samples as rows.
     * The transpose of this format is also okay.
-    * Possible features in this file include microbes, genes, pathways, etc.
-2. Metadata file
-    * This file is tab-delimited.
-    * Formatted with features as columns and samples as rows.
+    * Possible features in this file include taxonomy or genes.
+    * This can be a filepath to a tab-delimited file.
+2. Metadata data frame
+    * Formatted with variables as columns and samples as rows.
     * The transpose of this format is also okay.
+    * Possible metadata in this file include gender or age.
+    * This can be a filepath to a tab-delimited file.
 
 The data file can contain samples not included in the metadata file
 (along with the reverse case). For both cases, those samples not 
@@ -148,89 +135,62 @@ Example input files can be found in the ``inst/extdata`` folder
 of the MaAsLin 3 source. The files provided were generated from
 the HMP2 data which can be downloaded from https://ibdmdb.org/ .
 
-```R   
-input_data = system.file("extdata", "HMP2_taxonomy.tsv", package="Maaslin2") # The abundance table file
-input_data
+```{R}   
+# Read abundance table
+taxa_table_name <- system.file("extdata", "HMP2_taxonomy.tsv", package = "maaslin3")
+taxa_table <- read.csv(taxa_table_name, sep = '\t')
 
-input_metadata = system.file("extdata", "HMP2_metadata.tsv", package="Maaslin2") # The metadata table file
-input_metadata
+# Read metadata table
+metadata_name <- system.file("extdata", "HMP2_metadata.tsv", package = "maaslin3")
+metadata <- read.csv(metadata_name, sep = '\t')
 
-#get the pathway (functional) data - place holder
-download.file("https://raw.githubusercontent.com/biobakery/biobakery_workflows/master/examples/tutorial/stats_vis/input/pathabundance_relab.tsv", "./pathabundance_relab.tsv")
+# Factor the categorical variables to test against controls
+metadata$diagnosis <- 
+  factor(metadata$diagnosis, levels = c('nonIBD', 'UC', 'CD'))
+metadata$dysbiosis_state <- 
+  factor(metadata$dysbiosis_state, levels = c('none', 'dysbiosis_UC', 'dysbiosis_CD'))
+metadata$antibiotics <- 
+  factor(metadata$antibiotics, levels = c('No', 'Yes'))
 
+taxa_table[1:5, 1:5]
+metadata[1:5, 1:5]
 ```
 
-``HMP2_taxonomy.tsv``: is a tab-demilited file with species as columns and 
-samples as rows. It is a subset of the taxonomy file so it just includes the 
-species abundances for all samples.
+``HMP2_taxonomy.tsv``: is a tab-delimited file with samples as rows and 
+species as columns. It is a subset of the taxonomy file that includes just some of the the 
+species abundances.
 
 ``HMP2_metadata.tsv``: is a tab-delimited file with samples as rows and metadata 
-as columns. It is a subset of the metadata file so that it just includes some of 
+as columns. It is a subset of the metadata file that includes just some of 
 the fields.
-
-``pathabundance_relab.tsv``: is a tab-delimited file with samples as columns and pathway level features 
-as rows. It is a subset of the pathway file so it just includes the 
-species abundances for all samples.
-
-
-**Saving inputs as data frames**
-
-```R
-df_input_data = read.table(file             = input_data,
-                           header           = TRUE,
-                           sep              = "\t", 
-                           row.names        = 1,
-                           stringsAsFactors = FALSE)
-df_input_data[1:5, 1:5]
-
-df_input_metadata = read.table(file             = input_metadata, 
-                               header           = TRUE, 
-                               sep              = "\t", 
-                               row.names        = 1,
-                               stringsAsFactors = FALSE)
-df_input_metadata[1:5, ]
-
-df_input_path = read.csv("./pathabundance_relab.tsv", 
-                         sep              = "\t", 
-                         stringsAsFactors = FALSE, 
-                         row.names        = 1)
-df_input_path[1:5, 1:5]
-```
 
 ### 3.2 Running MaAsLin 3
 
-Several different types of statistical models can be used for association testing in **MaAsLin** (e.g. simple linear, zero-inflated, count-based, etc.). We have evaluated their pros and cons in the  [associated manuscript](https://www.biorxiv.org/content/10.1101/2021.01.20.427420v1), and while the default is generally appropriate for most analyses, a user might want to select a different model under some circumstances. This is true for many different microbial community data types (taxonomy or functional profiles), environments (human or otherwise), and measurements (counts or relative proportions), as long as alternative models are used with appropriately modified normalization/transformation schemes.
+MaAsLin 3 is run by specifying a `param_list` that contains the abundance table (`input_data`), the metadata table (`input_metadata`), the output directory (`output`), and a model specification. The model specification can come from a formula or vectors of terms.
 
-* For models, if your inputs are counts, then you can use `NEGBIN` and `ZINB`, whereas, for non-count (e.g. percentage, CPM, or relative abundance) input, you can use `LM` and `CPLM`.
-* Among the normalization approaches implemented in MaAsLin 3, `TMM` and `CSS` only work on counts, and they also return normalized counts, unlike `TSS` and `CLR`. Therefore, if your inputs are counts, you can use the above two normalizations (i.e., `TMM`, `CSS`, or `NONE` (in case the data is already normalized)) without a further transformation (i.e. transform = `NONE`).
-* Among the non-count models, `CPLM` requires the data to be positive. Therefore, any transformation that produces negative values will typically NOT work for `CPLM`.
-* All the non-LM models use an intrinsic log link transformation due to their close connection to GLMs and they are recommended to be run with `transform = NONE`.
-* Apart from that, `LM` is the only model that works on both positive and negative values (following normalization/transformation), and (as per our manuscript), it is generally much more robust to parameter changes (which are typically limited for non-LM models).
-Regarding whether to use `LM`, `CPLM`, or other models, intuitively, `CPLM` or a zero-inflated alternative should perform better in the presence of zeroes, but based on our benchmarking, we do not have evidence that `CPLM` is significantly better than `LM` in practice.
-
-
-| Model (-m ANALYSIS_METHOD) | Data type | Normalization (-n NORMALIZATION) | Transformation (-t TRANSFORM) |
-|-------|--------------|---------------|-----------------|
-| LM | count and non-count | `TSS`,`CLR`, `NONE` | `LOG`, `LOGIT`, `AST`,`NONE` |
-| CPLM | count and non-count | `TSS`, `TMM`, `CSS`, `NONE` | `NONE` |
-| NEGBIN | count | `TMM`, `CSS`, `NONE` | `NONE` | 
-| ZINB | count |`TMM`, `CSS`, `NONE`| `NONE` | 
-
-**NOTE:** generally you will also need to consider what thresholds you have used to filter the data (i.e. the prevalence and abundance threshold) to reduce outliers and false positives. See section [4.3.1 Prevalence and abundance filtering in MaAsLin 2](https://github.com/biobakery/biobakery/wiki/maaslin2#431-prevalence-and-abundance-filtering-in-maaslin2) for some more details on this. 
+* *Formula*: The `formula` parameter should be set to any formula that satisfies the `lme4` specifications: fixed effects, interaction terms, random effects, polynomial terms, and more can all be included. In addition, group and ordered predictors (see below) can be included by including `group(variable_name)` and `ordered(variable_name)` in the formula. When using the 
 
 The following command runs MaAsLin 3 on the HMP2 data, running a multivariable
 regression model to test for the association between microbial species abundance 
 versus IBD diagnosis and [dysbiosis scores](https://www.nature.com/articles/s41586-019-1237-9) 
 (`fixed_effects = c("diagnosis", "dysbiosis")`). For any categorical variable with more than 2 levels, you will also have to specify which variable should be the reference level by using (`reference = c("diagnosis,nonIBD")`). NOTE: adding a space between the variable and level might result in the wrong reference level being used. Output are generated in a folder called `demo_output` under the current working directory (`output = "demo_output"`). In this case, the example input data has been pre-normalized and pre-filtered, so we turn off the default normalization and prevalence filtering as well.
 
-```R
-fit_data = Maaslin2(input_data     = input_data, 
-                    input_metadata = input_metadata, 
-                    min_prevalence = 0,
-                    normalization  = "NONE",
-                    output         = "demo_output", 
-                    fixed_effects  = c("diagnosis", "dysbiosis"),
-                    reference      = c("diagnosis,nonIBD"))
+```{R}
+param_list <- list(input_data = taxa_table, 
+                   input_metadata = metadata, 
+                   output = 'output', 
+                   normalization = 'TSS', 
+                   transform = 'LOG', 
+                   formula = '~ diagnosis + dysbiosis_state + antibiotics + age + reads',
+                   save_models = FALSE, 
+                   plot_summary_plot = TRUE, 
+                   max_significance = 0.1, 
+                   augment = TRUE, 
+                   median_comparison_abundance = TRUE, 
+                   median_comparison_prevalence = FALSE, 
+                   cores=1)
+
+fit_out <- maaslin3(param_list)
 ```
 
 #### Providing data frames as input

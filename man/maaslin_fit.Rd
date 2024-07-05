@@ -73,13 +73,11 @@ The \code{results} tables contain the following columns for each association (ro
   # Read features table 
   taxa_table_name <- system.file("extdata", "HMP2_taxonomy.tsv", package = "maaslin3")
   taxa_table <- read.csv(taxa_table_name, sep = '\t')
-  rownames(taxa_table) <- taxa_table$ID; taxa_table$ID <- NULL
-  
+
   # Read metadata table
   metadata_name <- system.file("extdata", "HMP2_metadata.tsv", package = "maaslin3")
   metadata <- read.csv(metadata_name, sep = '\t')
-  rownames(metadata) <- metadata$ID; metadata$ID <- NULL
-  
+
   metadata$diagnosis <- 
     factor(metadata$diagnosis, levels = c('nonIBD', 'UC', 'CD'))
   metadata$dysbiosis_state <- 

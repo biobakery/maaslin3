@@ -9,7 +9,7 @@ author:
    email: smaharjan@hsph.harvard.edu
 output: html_document
 vignette: >
-    %\VignetteIndexEntry{Maaslin3}
+    %\VignetteIndexEntry{Manual}
     %\VignetteEngine{knitr::rmarkdown}
     %\VignetteEncoding{UTF-8}
 ---

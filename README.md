@@ -2,7 +2,7 @@
 
 [MaAsLin3](http://huttenhower.sph.harvard.edu/maaslin3)  is the next generation of MaAsLin (Microbiome Multivariable Association with Linear Models). This repository contains the MaAsLin 3 code as an early shell of a Bioconductor package.
 
-If you use the MaAsLin2 software, please cite our manuscript: 
+If you use the MaAsLin3 software, please cite our manuscript: 
 
 William A. Nickols, Jacob T. Nearing, Kelsey N. Thompson, Curtis Huttenhower MaAsLin 3: Refining and extending generalized multivariate linear models for meta-omic association discovery. (In progress)
 

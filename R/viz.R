@@ -242,7 +242,7 @@ maaslin3_summary_plot <-
 
     # Bin coefficients into categories
     coefficient_thresh <- round(max(abs(quantile(merged_results_sig$coef, c(0.1, 0.9)))) / 10, 1) * 5
-    coef_breaks <- c(-Inf, -coefficient_thresh, -coefficient_thresh / 2, coefficient_thresh / 2, coefficient_thresh, Inf)
+    coef_breaks <- c(-coefficient_thresh, -coefficient_thresh / 2, 0, coefficient_thresh / 2, coefficient_thresh, Inf)
     threshold_set <- c(paste0("(-Inf,", -1 * coefficient_thresh, "]"),
                        paste0("(", -1 * coefficient_thresh, ",", -1/2 * coefficient_thresh,"]"),
                        paste0("(", -1/2 * coefficient_thresh, ",0]"),

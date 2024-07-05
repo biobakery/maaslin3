@@ -106,12 +106,85 @@ args$reference <- NULL
 
 options <-
     optparse::OptionParser(usage = paste(
-        "%prog [options]",
-        " <data.tsv> ",
-        "<metadata.tsv> ",
-        "<output_folder>" 
+        "%prog",
+        "<data.tsv>",
+        "<metadata.tsv>",
+        "<output_folder>",
+        "[options]"
         )
     )
+options <-
+  optparse::add_option(
+    options,
+    c("--formula"),
+    type = "character",
+    dest = "formula",
+    default = args$formula,
+    help = paste("The formula for the model,",
+                 "[ Default: all variables fixed ]"
+    )
+  )
+options <-
+  optparse::add_option(
+    options,
+    c("-f", "--fixed_effects"),
+    type = "character",
+    dest = "fixed_effects",
+    default = args$fixed_effects,
+    help = paste("The fixed effects for the model,",
+                 "comma-delimited for multiple effects",
+                 "[ Default: all ]"
+    )
+  )
+options <-
+  optparse::add_option(
+    options,
+    c("-d", "--reference"),
+    type = "character",
+    dest = "reference",
+    default = args$reference,
+    help = paste("The factor to use as a reference for",
+                 "a variable with more than two levels",
+                 "provided as a string of 'variable,reference'",
+                 "semi-colon delimited for multiple variables [ Default: NA ]"
+    )
+  )
+options <-
+  optparse::add_option(
+    options,
+    c("-r", "--random_effects"),
+    type = "character",
+    dest = "random_effects",
+    default = args$random_effects,
+    help = paste("The random effects for the model, ",
+                 "comma-delimited for multiple effects",
+                 "[ Default: none ]"
+    )
+  )
+options <-
+  optparse::add_option(
+    options,
+    c("--group_effects"),
+    type = "character",
+    dest = "group_effects",
+    default = args$group_effects,
+    help = paste("The group effects for the model, ",
+                 "comma-delimited for multiple effects",
+                 "[ Default: none ]"
+    )
+  )
+options <-
+  optparse::add_option(
+    options,
+    c("--ordered_effects"),
+    type = "character",
+    dest = "ordered_effects",
+    default = args$ordered_effects,
+    help = paste("The ordered effects for the model, ",
+                 "comma-delimited for multiple effects",
+                 "[ Default: none ]"
+    )
+  )
 options <-
     optparse::add_option(
         options,
@@ -126,6 +199,18 @@ options <-
 options <-
   optparse::add_option(
     options,
+    c("-p", "--min_prevalence"),
+    type = "double",
+    dest = "min_prevalence",
+    default = args$min_prevalence,
+    help = paste0("The minimum percent of samples for which",
+                  "a feature is detected at minimum abundance",
+                  "[ Default: %default ]"
+    )
+  )
+options <-
+  optparse::add_option(
+    options,
     c("--zero-threshold"),
     type = "double",
     dest = "zero_threshold",
@@ -134,18 +219,6 @@ options <-
                   "[ Default: %default ]"
     )
   )
-options <-
-    optparse::add_option(
-        options,
-        c("-p", "--min_prevalence"),
-        type = "double",
-        dest = "min_prevalence",
-        default = args$min_prevalence,
-        help = paste0("The minimum percent of samples for which",
-            "a feature is detected at minimum abundance",
-            "[ Default: %default ]"
-        )
-    )
 options <-
     optparse::add_option(
         options,
@@ -199,65 +272,6 @@ options <-
 options <-
     optparse::add_option(
         options,
-        c("-r", "--random_effects"),
-        type = "character",
-        dest = "random_effects",
-        default = args$random_effects,
-        help = paste("The random effects for the model, ",
-            "comma-delimited for multiple effects",
-            "[ Default: none ]"
-        )
-    )
-options <-
-  optparse::add_option(
-    options,
-    c("-f", "--fixed_effects"),
-    type = "character",
-    dest = "fixed_effects",
-    default = args$fixed_effects,
-    help = paste("The fixed effects for the model,",
-                 "comma-delimited for multiple effects",
-                 "[ Default: all ]"
-    )
-  )
-options <-
-  optparse::add_option(
-    options,
-    c("--group_effects"),
-    type = "character",
-    dest = "group_effects",
-    default = args$group_effects,
-    help = paste("The group effects for the model, ",
-                 "comma-delimited for multiple effects",
-                 "[ Default: none ]"
-    )
-  )
-options <-
-  optparse::add_option(
-    options,
-    c("--ordered_effects"),
-    type = "character",
-    dest = "ordered_effects",
-    default = args$ordered_effects,
-    help = paste("The ordered effects for the model, ",
-                 "comma-delimited for multiple effects",
-                 "[ Default: none ]"
-    )
-  )
-options <-
-    optparse::add_option(
-        options,
-        c("--formula"),
-        type = "character",
-        dest = "formula",
-        default = args$formula,
-        help = paste("The formula for the model,",
-                     "[ Default: all variables fixed ]"
-      )
-  )
-options <-
-    optparse::add_option(
-        options,
         c("-c", "--correction"),
         type = "character",
         dest = "correction",
@@ -277,6 +291,19 @@ options <-
             "the same scale [ Default: %default ]"
         )
     )
+options <-
+  optparse::add_option(
+    options,
+    c("--unscaled_abundance"),
+    type = "character",
+    dest = "unscaled_abundance",
+    default = args$unscaled_abundance,
+    help = paste("The table to use as an unscaled",
+                 "abundance reference (the single column",
+                 "name must be the same as one of the",
+                 "features or 'total')"
+    )
+  )
 options <-
   optparse::add_option(
     options,
@@ -421,32 +448,6 @@ options <-
         default = args$save_models,
         help = paste("Return the full model outputs ",
                      "and save to an RData file [ Default: %default ]"
-        )
-    )
-options <-
-  optparse::add_option(
-    options,
-    c("--unscaled_abundance"),
-    type = "character",
-    dest = "unscaled_abundance",
-    default = args$unscaled_abundance,
-    help = paste("The table to use as an unscaled",
-                 "abundance reference (the single column",
-                 "name must be the same as one of the",
-                 "features or 'total')"
-    )
-  )
-options <-
-    optparse::add_option(
-        options,
-        c("-d", "--reference"),
-        type = "character",
-        dest = "reference",
-        default = args$reference,
-        help = paste("The factor to use as a reference for",
-            "a variable with more than two levels",
-            "provided as a string of 'variable,reference'",
-            "semi-colon delimited for multiple variables [ Default: NA ]"
         )
     )
 
@@ -1805,7 +1806,7 @@ if (identical(environment(), globalenv()) &&
   
   # call maaslin with the command line options
   fit_data <-
-    Maaslin3(list(
+    maaslin3(list(
       input_data = positional_args[1],
       input_metadata = positional_args[2],
       output = positional_args[3],

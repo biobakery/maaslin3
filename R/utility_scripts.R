@@ -537,7 +537,7 @@ write_results <- function(params_data_formula_fit) {
     fit_data,
     file = results_file,
     sep = "\t",
-    quote = FALSE,,
+    quote = TRUE,
     row.names = FALSE
   )
   
@@ -561,7 +561,7 @@ write_results <- function(params_data_formula_fit) {
     significant_results,
     file = significant_results_file,
     sep = "\t",
-    quote = FALSE,,
+    quote = TRUE,
     row.names = FALSE
   )
 }

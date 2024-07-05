@@ -4,7 +4,7 @@
 Parse a MaAsLin 3 parameter list.
 }
 \description{
-Parse the input parameters, perform some simple checking (though see \code{maaslin_check_arguments}), and fill in any missing parameters with the defaults.
+Parse the input parameters, perform some simple checking (though see \code{"\link{maaslin_check_arguments}"}), and fill in any missing parameters with the defaults.
 }
 \usage{
 maaslin_parse_param_list(param_list)

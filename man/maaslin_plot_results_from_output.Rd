@@ -11,7 +11,7 @@ maaslin_plot_results_from_output(param_list)
 }
 \arguments{
     \item{param_list}{
-    The \code{param_list} that was used to fit the MaAsLin 3 model originally (see \code{maaslin_parse_param_list}). The relevant plotting variables can be changed from their original settings: \code{plot_summary_plot}, \code{summary_plot_first_n}, \code{heatmap_vars}, \code{plot_associations}, \code{coef_plot_vars}, \code{max_pngs}. The function will automatically look for the \code{all_results.tsv} and \code{filtered_data_norm_transformed.tsv} files in the \code{output} directory.
+    The \code{param_list} that was used to fit the MaAsLin 3 model originally (see \code{"\link{maaslin_parse_param_list}"}). The relevant plotting variables can be changed from their original settings: \code{plot_summary_plot}, \code{summary_plot_first_n}, \code{heatmap_vars}, \code{plot_associations}, \code{coef_plot_vars}, \code{max_pngs}. The function will automatically look for the \code{all_results.tsv} and \code{filtered_data_norm_transformed.tsv} files in the \code{output} directory.
   }
 }
 \value{

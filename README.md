@@ -37,7 +37,6 @@ install_github("biobakery/MaAsLin3")
 library("maaslin3")
 ```
 
-
 ## How to Run ##
 #### Run MaAsLin 3 on HMP2 example data:
 

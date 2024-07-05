@@ -79,8 +79,8 @@ maaslin3(param_list)
       \item{(5)}{\code{unfiltered_metadata}: A dataframe of metadata with the retained samples for fitting.}
       \item{(6)}{\code{metadata}: A dataframe of metadata after scaling (if selected).}
       \item{(7)}{\code{formula}: A checked or constructed formula specifying the model to be fit.}
-      \item{(8)}{\code{fit_data_abundance}: The results from the fit abundance models (see \code{maaslin_fit}).}
-      \item{(9)}{\code{fit_data_prevalence}: The results from the fit prevalence models (see \code{maaslin_fit}).}
+      \item{(8)}{\code{fit_data_abundance}: The results from the fit abundance models (see \code{"\link{maaslin_fit}"}).}
+      \item{(9)}{\code{fit_data_prevalence}: The results from the fit prevalence models (see \code{"\link{maaslin_fit}"}).}
     }
 }
 \author{

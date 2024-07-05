@@ -26,7 +26,7 @@ maaslin_plot_results(params_data_formula_fit)
   }
 }
 \value{
-Results will be written to the \code{figures} folder within the folder \code{output}. No value is returned.
+Results will be written to the \code{figures} folder within the folder \code{output}. The list of individual association plots is returned if \code{plot_associations=TRUE}.
 }
 \author{
     William Nickols<willnickols@g.harvard.edu>,\cr

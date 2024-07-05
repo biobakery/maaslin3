@@ -68,12 +68,18 @@ maaslin3_summary_plot <-
     merged_results,
     summary_plot_file,
     figures_folder,
-    first_n = 25,
+    first_n = 30,
     max_significance = 0.1,
     coef_plot_vars = NULL,
     heatmap_vars = NULL,
     median_comparison_abundance = FALSE,
     median_comparison_prevalence = FALSE) {
+    
+    if (first_n > 200) {
+      logging::logerror(
+        paste("At most 200 features can be plotted in the heatmap. Please choose a smaller first_n."))
+      return()
+    }
     
     # Preprocessing
     merged_results <- merged_results[is.na(merged_results$error),]
@@ -147,6 +153,9 @@ maaslin3_summary_plot <-
       heatmap_vars <- setdiff(heatmap_vars, coef_plot_vars)
     }
     
+    coef_plot_vars <- factor(coef_plot_vars, levels = unique(coef_plot_vars))
+    heatmap_vars <- factor(heatmap_vars, levels = unique(heatmap_vars))
+    
     if (length(coef_plot_vars) > 0 & 
         sum(merged_results_sig$full_metadata_name %in% coef_plot_vars) >= 1) {
       coef_plot_data <- merged_results_sig[merged_results_sig$full_metadata_name %in% coef_plot_vars,]
@@ -162,22 +171,53 @@ maaslin3_summary_plot <-
       coef_plot_data <- coef_plot_data[coef_plot_data$qval_individual < max_significance | 
                                          (coef_plot_data$coef > quantile_df[coef_plot_data$full_metadata_name, 'lower_q'] & 
                                             coef_plot_data$coef < quantile_df[coef_plot_data$full_metadata_name, 'upper_q']),]
-
-      p1 <- ggplot2::ggplot(coef_plot_data, ggplot2::aes(x=.data$coef, y=.data$feature)) +
+      
+      # Create plot
+      p1 <- ggplot2::ggplot(coef_plot_data, ggplot2::aes(x=.data$coef, y=.data$feature))
+      
+      if (median_comparison_prevalence | median_comparison_abundance) {
+        p1 <- p1 + 
+          ggplot2::guides(
+            linetype = ggplot2::guide_legend(title = 'Association median', order = 1),
+          ) + 
+          ggplot2::geom_vline(data = median_df[median_df$full_metadata_name %in% coef_plot_vars,], 
+                              ggplot2::aes(xintercept = .data$median_val, linetype = .data$model), color = "darkgray") +
+          ggplot2::scale_linetype_manual(values = c("Prevalence" = "dashed", "Abundance" = "solid"))
+      } else {
+        p1 <- p1 + 
+          ggplot2::geom_vline(ggplot2::aes(xintercept = 0), color = "darkgray", linetype = 'dashed')
+      }
+      
+      p1 <- p1 +
         ggplot2::geom_errorbar(ggplot2::aes(xmin = .data$coef - .data$stderr, xmax = .data$coef + .data$stderr), width = 0.2) + 
-        ggplot2::geom_point(ggplot2::aes(shape = .data$model, fill = .data$qval_individual), size = 4.5, color = "black")+
+        ggplot2::geom_point(data = coef_plot_data[coef_plot_data$model == 'Prevalence',], 
+                            ggplot2::aes(shape = .data$model, fill = .data$qval_individual), size = 4.5, color = "black")+
+        ggplot2::scale_fill_gradient(low="darkgreen", high="white",
+                              limits = c(10^floor(log10(min(coef_plot_data$qval_individual))), 1),
+                              breaks = c(10^floor(log10(min(coef_plot_data$qval_individual))), max_significance, 1),
+                              labels = c(paste0("1e", floor(log10(min(coef_plot_data$qval_individual)))), 
+                                         paste0("1e", floor(log10(max_significance))),
+                                         "1"),
+                              transform = scales::pseudo_log_trans(sigma = 0.001),
+                              name = bquote("Prevalence" ~ P["FDR"])) +
+        ggnewscale::new_scale_fill() + 
+        ggplot2::geom_point(data = coef_plot_data[coef_plot_data$model == 'Abundance',], 
+                            ggplot2::aes(shape = .data$model, fill = .data$qval_individual), size = 4.5, color = "black")+
+        ggplot2::scale_fill_gradient(low="purple4", high="white",
+                            limits = c(10^floor(log10(min(coef_plot_data$qval_individual))), 1),
+                            breaks = c(10^floor(log10(min(coef_plot_data$qval_individual))), max_significance, 1),
+                            labels = c(paste0("1e", floor(log10(min(coef_plot_data$qval_individual)))), 
+                                       paste0("1e", floor(log10(max_significance))),
+                                       "1"),
+                            transform = scales::pseudo_log_trans(sigma = 0.001),
+                            name = bquote("Abundance" ~ P["FDR"])) +
         ggplot2::scale_x_continuous(breaks = scales::breaks_extended(n = 5), 
                            limits = c(min(coef_plot_data$coef) - quantile(coef_plot_data$stderr, 0.8), 
                                       max(coef_plot_data$coef) + quantile(coef_plot_data$stderr, 0.8))) +
         ggplot2::scale_shape_manual(name = "Association", values=c(21, 24))+
-        viridis::scale_fill_viridis(option = "viridis", 
-                           limits=c(10^floor(log10(min(coef_plot_data$qval_individual))), 1), 
-                           breaks=c(10^floor(log10(min(coef_plot_data$qval_individual))), max_significance, 1), 
-                           labels = c(paste0("1e", floor(log10(min(coef_plot_data$qval_individual)))), 
-                                      paste0("1e", floor(log10(max_significance))),
-                                      "1"),
-                           transform = scales::pseudo_log_trans(sigma = 0.001),
-                           name = expression(P["FDR"]), direction = -1) +
+        ggplot2::guides(
+          shape = ggplot2::guide_legend(order = 2),
+        ) + 
         ggplot2::labs(x =expression(paste(beta, " coefficient")),  y = "Feature") +
         ggplot2::theme_bw() + 
         ggplot2::theme(axis.title = ggplot2::element_text(size = 16),
@@ -192,23 +232,6 @@ maaslin3_summary_plot <-
               strip.text = ggplot2::element_text(size=14),
               strip.background = ggplot2::element_rect(fill = "transparent")) + 
         ggplot2::facet_wrap(~ full_metadata_name, scales = 'free_x', ncol = length(coef_plot_vars))
-      
-      if (median_comparison_prevalence | median_comparison_abundance) {
-        p1 <- p1 + 
-          ggplot2::guides(
-            shape = ggplot2::guide_legend(override.aes = list(color = "black")),
-            linetype = ggplot2::guide_legend(title = 'Association median'),
-          ) + 
-          ggplot2::geom_vline(data = median_df[median_df$full_metadata_name %in% coef_plot_vars,], 
-                     ggplot2::aes(xintercept = .data$median_val, linetype = .data$model), color = "black") +
-          ggplot2::scale_linetype_manual(values = c("Prevalence" = "dashed", "Abundance" = "solid"))
-      } else {
-        p1 <- p1 + 
-          ggplot2::guides(
-            shape = ggplot2::guide_legend(override.aes = list(color = "black")),
-          ) + 
-          ggplot2::geom_vline(ggplot2::aes(xintercept = 0), color = "black", linetype = 'dashed')
-      }
       
     } else {
       p1 <- NULL
@@ -292,50 +315,16 @@ maaslin3_summary_plot <-
       final_plot <- NULL
     }
     
-    return(final_plot)
-}
-
-save_summary_plot <-
-    function(
-        merged_results,
-        summary_plot_file,
-        figures_folder,
-        first_n = 30,
-        max_significance = 0.1,
-        coef_plot_vars = NULL,
-        heatmap_vars = NULL,
-        median_comparison_abundance = FALSE,
-        median_comparison_prevalence = FALSE) {
+    if (!is.null(final_plot)) {
+      height_out <- 8 + max(first_n / 5 - 5, 0) + max(nchar(c(as.character(coef_plot_vars), as.character(heatmap_vars)))) / 10
+      width_out <-  5 + max(nchar(merged_results$feature)) / 12 + 
+        length(coef_plot_vars) * 2.5 + 
+        length(heatmap_vars) * 0.25
       
-      if (first_n > 200) {
-        logging::logerror(
-          paste("At most 200 features can be plotted in the heatmap. Please choose a smaller first_n."))
-        return()
-      }
-
-      # generate a heatmap and save it to a pdf and as a png
-      summary_plot <-
-          maaslin3_summary_plot(
-            merged_results,
-            summary_plot_file,
-            figures_folder,
-            first_n,
-            max_significance,
-            coef_plot_vars,
-            heatmap_vars,
-            median_comparison_abundance,
-            median_comparison_prevalence)
-
-      if (!is.null(summary_plot)) {
-        height_out <- 8 + max(first_n / 5 - 5, 0)
-        width_out <-  4 + max(nchar(merged_results$feature)) / 10 + 
-          ifelse(is.null(coef_plot_vars), 3, length(coef_plot_vars) * 2.5) + 
-          ifelse(is.null(heatmap_vars), 1.5, length(heatmap_vars) * 0.2)
-        
-        ggplot2::ggsave(summary_plot_file, plot = summary_plot, height = height_out, width = width_out)
-        png_file <- file.path(figures_folder, "summary_plot.png")
-        ggplot2::ggsave(png_file, plot = summary_plot, height = height_out, width = width_out)
-      }
+      ggplot2::ggsave(summary_plot_file, plot = final_plot, height = height_out, width = width_out)
+      png_file <- file.path(figures_folder, "summary_plot.png")
+      ggplot2::ggsave(png_file, plot = final_plot, height = height_out, width = width_out)
+    }
 }
 
 maaslin3_association_plots <-
@@ -345,7 +334,17 @@ maaslin3_association_plots <-
       features,
       max_significance = 0.1,
       figures_folder,
-      max_pngs = 10) {
+      max_pngs = 10,
+      normalization,
+      transform) {
+      
+      new_name_normalization <- c('Total sum scaling', 'Center log ratio', 'Cumulative sum scaling', 'None', 'Trimmed means of M values')
+      names(new_name_normalization) <- c("TSS", "CLR", "CSS", "NONE", "TMM")
+      normalization <- new_name_normalization[normalization]
+      
+      new_name_transformation <- c('Log base 2', 'Logit', 'Arcsin square root', 'None')
+      names(new_name_transformation) <- c("LOG", "LOGIT", "AST", "NONE")
+      transformation <- new_name_transformation[transform]
       
       merged_results <- merged_results[is.na(merged_results$error) & 
                                          !is.na(merged_results$qval_individual) & 
@@ -365,7 +364,7 @@ maaslin3_association_plots <-
       
       saved_plots <- list()
       
-      features_by_metadata <- unique(merged_results[,c('feature', 'metadata')])
+      features_by_metadata <- unique(merged_results[,c('feature', 'metadata', 'model')])
       
       for (row_num in 1:min(nrow(features_by_metadata), max_pngs)) {
         feature_name <- features_by_metadata[row_num, 'feature']
@@ -377,10 +376,13 @@ maaslin3_association_plots <-
                                metadata = metadata[,metadata_name])
         joined_features_metadata <- dplyr::inner_join(feature_abun, metadata_sub, by = c('sample'))
         
-        this_signif_association <- merged_results[merged_results$feature == feature_name & 
-                                                    merged_results$metadata == metadata_name,]
+        model_name = features_by_metadata[row_num, 'model']
         
-        if ('LM' %in% this_signif_association$model) {
+        this_signif_association <- merged_results[merged_results$feature == feature_name & 
+                                                    merged_results$metadata == metadata_name &
+                                                    merged_results$model == model_name,]
+        
+        if ('LM' == model_name) {
           coef_val <- this_signif_association[this_signif_association$model == 'LM',]$coef
           qval <- this_signif_association[this_signif_association$model == 'LM',]$qval_individual
           N_nonzero <- this_signif_association[this_signif_association$model == 'LM',]$N.not.zero
@@ -425,8 +427,9 @@ maaslin3_association_plots <-
               ggplot2::guides(alpha = 'none') + 
               ggplot2::labs("") +
               ggplot2::xlab(metadata_name) + 
-              ggplot2::ylab(feature_name) + 
-              nature_theme(joined_features_metadata_abun['metadata'], feature_name) + 
+              ggplot2::ylab(paste0(feature_name, '\n(Normalization: ', normalization, ', Transformation: ', transformation, ')')) + 
+              nature_theme(joined_features_metadata_abun['metadata'], 
+                           paste0(feature_name, '\n(Normalization: ', normalization, ', Transformation: ', transformation, ')')) + 
             ggplot2::annotate(
               geom = "text",
               x = Inf,
@@ -435,8 +438,8 @@ maaslin3_association_plots <-
               vjust = 1,
               label = sprintf(
                 "FDR: %s\nCoefficient (in full model): %s\nN: %s\nN (not zero): %s",
-                formatC(qval, format = "e", digits = 3),
-                formatC(coef_val, format = "e", digits = 2),
+                formatC(qval, format = "e", digits = 1),
+                formatC(coef_val, format = "e", digits = 1),
                 formatC(N_total, format = 'f', digits = 0),
                 formatC(N_nonzero, format = 'f', digits = 0)
               ) ,
@@ -446,6 +449,14 @@ maaslin3_association_plots <-
             )
           } else {
             x_axis_label_names <- unique(joined_features_metadata_abun$metadata)
+            
+            sorted_fixed_order <- order(match(results_value, levels(x_axis_label_names)))
+            coef_val <- coef_val[sorted_fixed_order]
+            qval <- qval[sorted_fixed_order]
+            N_nonzero <- N_nonzero[sorted_fixed_order]
+            N_total <- N_total[sorted_fixed_order]
+            results_value <- results_value[sorted_fixed_order]
+            
             renamed_levels <- as.character(levels(metadata[,metadata_name]))
             if (length(renamed_levels) == 0) {
               renamed_levels <- x_axis_label_names
@@ -486,7 +497,8 @@ maaslin3_association_plots <-
               ggplot2::scale_y_continuous(expand = ggplot2::expansion(mult = c(0, 0.2)))
             
             temp_plot <- temp_plot + 
-              nature_theme(metadata_name, joined_features_metadata_abun['feature_abun']) +
+              nature_theme(metadata_name, 
+                           paste0(feature_name, '\n(Normalization: ', normalization, ', Transformation: ', transformation, ')')) +
               ggplot2::theme(
                 panel.grid.major = ggplot2::element_blank(),
                 panel.grid.minor = ggplot2::element_blank(),
@@ -494,7 +506,7 @@ maaslin3_association_plots <-
                 axis.line = ggplot2::element_line(colour = "black")
               ) +
               ggplot2::xlab(metadata_name) +
-              ggplot2::ylab(feature_name) +
+              ggplot2::ylab(paste0(feature_name, '\n(Normalization: ', normalization, ', Transformation: ', transformation, ')')) +
               ggplot2::theme(legend.position = "none") +
               ggplot2::annotate(
                 geom = "text",
@@ -503,10 +515,10 @@ maaslin3_association_plots <-
                 hjust = 1,
                 vjust = 1,
                 label = sprintf(
-                  "FDR: %s\nCoefficient (in full model): %s\nValue: %s",
-                  paste0(formatC(qval, format = "e", digits = 3), collapse = ', '),
-                  paste0(formatC(coef_val, format = "e", digits = 2), collapse = ', '),
-                  paste0(results_value, collapse = ', ')
+                  "Value: %s\nFDR: %s\nCoefficient (in full model): %s",
+                  paste0(results_value, collapse = ', '),
+                  paste0(formatC(qval, format = "e", digits = 1), collapse = ', '),
+                  paste0(formatC(coef_val, format = "e", digits = 1), collapse = ', ')
                 ) ,
                 color = "black",
                 size = 2,
@@ -515,7 +527,7 @@ maaslin3_association_plots <-
           }
         }
         
-        if ('logistic' %in% this_signif_association$model) {
+        if ('logistic' == model_name) {
           coef_val <- this_signif_association[this_signif_association$model == 'logistic',]$coef
           qval <- this_signif_association[this_signif_association$model == 'logistic',]$qval_individual
           N_nonzero <- this_signif_association[this_signif_association$model == 'logistic',]$N.not.zero
@@ -577,8 +589,8 @@ maaslin3_association_plots <-
                 vjust = 1,
                 label = sprintf(
                   "FDR: %s\nCoefficient (in full model): %s\nN: %s\nN (not zero): %s",
-                  formatC(qval, format = "e", digits = 3),
-                  formatC(coef_val, format = "e", digits = 2),
+                  formatC(qval, format = "e", digits = 1),
+                  formatC(coef_val, format = "e", digits = 1),
                   formatC(N_total, format = 'f', digits = 0),
                   formatC(N_nonzero, format = 'f', digits = 0)
                 ) ,
@@ -593,6 +605,14 @@ maaslin3_association_plots <-
               factor(joined_features_metadata_prev$feature_abun, levels = c('Absent', 'Present'))
             
             x_axis_label_names <- unique(joined_features_metadata_prev$metadata)
+            
+            sorted_fixed_order <- order(match(results_value, levels(x_axis_label_names)))
+            coef_val <- coef_val[sorted_fixed_order]
+            qval <- qval[sorted_fixed_order]
+            N_nonzero <- N_nonzero[sorted_fixed_order]
+            N_total <- N_total[sorted_fixed_order]
+            results_value <- results_value[sorted_fixed_order]
+            
             renamed_levels <- as.character(levels(metadata[,metadata_name]))
             if (length(renamed_levels) == 0) {
               renamed_levels <- x_axis_label_names
@@ -600,7 +620,7 @@ maaslin3_association_plots <-
             for (name in x_axis_label_names) {
               mean_abun <- mean(joined_features_metadata_prev$feature_abun[
                 joined_features_metadata_prev$metadata == name] == 'Present')
-              new_n <- paste(name, " (p=", round(mean_abun, 2), ")", sep="")
+              new_n <- paste(name, " (p = ", round(mean_abun, 2)*100, "%)", sep="")
               levels(joined_features_metadata_prev[,'metadata'])[
                 levels(joined_features_metadata_prev[,'metadata']) == name] <- new_n
               renamed_levels <- replace(renamed_levels, renamed_levels == name, new_n)
@@ -628,12 +648,12 @@ maaslin3_association_plots <-
               ggplot2::geom_tile(ggplot2::aes(fill = .data$count), color = "white",
                         lwd = 1.5,
                         linetype = 1) +
+              ggplot2::geom_text(ggplot2::aes(label = .data$count), color = "black", size = 32 / nrow(table_df)) + 
               ggplot2::coord_fixed(ratio = 0.5)+
-              ggplot2::geom_text(ggplot2::aes(label = .data$count), color = "black", size = 4) + 
               ggplot2::scale_fill_gradient2(low = "#075AFF",
                                    mid = "#FFFFCC",
                                    high = "#FF0000") +
-              ggplot2::scale_y_discrete(expand = ggplot2::expansion(mult = c(0, 1.7))) + 
+              ggplot2::scale_y_discrete(expand = ggplot2::expansion(mult = c(0, 1 + nrow(table_df) / 6))) + 
               ggplot2::theme(panel.background = ggplot2::element_blank(),
                     legend.position = "none")
               
@@ -655,10 +675,10 @@ maaslin3_association_plots <-
                 hjust = 1,
                 vjust = 1,
                 label = sprintf(
-                  "FDR: %s\nCoefficient (in full model): %s\nValue: %s",
-                  paste0(formatC(qval, format = "e", digits = 3), collapse = ', '),
-                  paste0(formatC(coef_val, format = "e", digits = 2), collapse = ', '),
-                  paste0(results_value, collapse = ', ')
+                  "Value: %s\nFDR: %s\nCoefficient (in full model): %s",
+                  paste0(results_value, collapse = ', '),
+                  paste0(formatC(qval, format = "e", digits = 1), collapse = ', '),
+                  paste0(formatC(coef_val, format = "e", digits = 1), collapse = ', ')
                 ) ,
                 color = "black",
                 size = 2,
@@ -667,7 +687,7 @@ maaslin3_association_plots <-
           }
         }
         
-        saved_plots[[metadata_name]][[feature_name]] <- temp_plot
+        saved_plots[[metadata_name]][[feature_name]][[model_name]] <- temp_plot
       }
       
       association_plots_folder <- file.path(figures_folder, 'association_plots')
@@ -677,12 +697,14 @@ maaslin3_association_plots <-
       
       for (metadata_variable in names(saved_plots)) {
         for (feature in names(saved_plots[[metadata_variable]])) {
-          this_plot <- saved_plots[[metadata_variable]][[feature]]
-          
-          png_file <- file.path(association_plots_folder,
-                                paste0(metadata_variable, '_', feature, ".png"))
-          height <- max(960, 15 * nchar(feature))
-          ggplot2::ggsave(filename = png_file, plot = this_plot, dpi = 300, width = 960/300, height = height/300)
+          for (model_name in names(saved_plots[[metadata_variable]][[feature]])) {
+            this_plot <- saved_plots[[metadata_variable]][[feature]][[model_name]]
+
+            png_file <- file.path(association_plots_folder,
+                                  paste0(metadata_variable, '_', feature, "_", model_name, ".png"))
+            height <- max(960, 15 * max(nchar(unlist(strsplit(this_plot$labels$y, '\n')))))
+            ggplot2::ggsave(filename = png_file, plot = this_plot, dpi = 300, width = 960/300, height = height/300)
+          }
         }
       }
       

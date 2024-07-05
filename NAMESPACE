@@ -13,6 +13,7 @@ export(maaslin_fit)
 export(maaslin_write_results)
 export(maaslin_write_results_lefse_format)
 export(maaslin_plot_results)
+export(maaslin_plot_results_from_output)
 
 import("optparse")
 importFrom("grDevices", "colorRampPalette", "dev.off", "pdf", "jpeg","png")

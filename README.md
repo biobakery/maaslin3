@@ -41,7 +41,7 @@ library("maaslin3")
 ## How to Run ##
 #### Run MaAsLin 3 on HMP2 example data:
 
-Note that we include `reads_filtered` as a fixed effect since variable read depth over the samples is likely to create prevalence effects. Because these data are compositional, setting `median_comparison_abundance = TRUE` is recommended so that the abundance coefficients are tested against the median coefficient. By contrast, we can set `median_comparison_prevalence = FALSE` since we do not the typical bug to have no prevalence association with the included variables.
+Note that we include `reads_filtered` as a fixed effect since variable read depth over the samples is likely to create prevalence effects. Because these data are compositional, setting `median_comparison_abundance = TRUE` is recommended so that the abundance coefficients are tested against the median coefficient. By contrast, we can set `median_comparison_prevalence = FALSE` since we do not expect the typical bug to have no prevalence association with the included variables.
 
 ```
 #Read features table 

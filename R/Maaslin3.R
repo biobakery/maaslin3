@@ -597,7 +597,7 @@ maaslin_log_arguments <- function(param_list) {
   
   # create an output folder
   if (!file.exists(output)) {
-    print("Creating output folder")
+    logging::loginfo("Creating output folder")
     dir.create(output)
   }
   
@@ -607,7 +607,7 @@ maaslin_log_arguments <- function(param_list) {
   
   # remove log file if already exists (to avoid append)
   if (file.exists(log_file)) {
-    print(paste("Warning: Deleting existing log file:", log_file))
+    logging::logwarn(paste("Warning: Deleting existing log file:", log_file))
     unlink(log_file)
   }
   
@@ -1282,7 +1282,7 @@ maaslin_filter_and_standardize <- function(params_and_data_and_formula) {
   output <- param_list[["output"]]
   features_folder <- file.path(output, "features")
   if (!file.exists(features_folder)) {
-    print("Creating output feature tables folder")
+    logging::loginfo("Creating output feature tables folder")
     dir.create(features_folder, recursive = T)
   }
   
@@ -1341,7 +1341,7 @@ maaslin_normalize = function(params_and_data_and_formula) {
   output <- param_list[["output"]]
   features_folder <- file.path(output, "features")
   if (!file.exists(features_folder)) {
-    print("Creating output feature tables folder")
+    logging::loginfo("Creating output feature tables folder")
     dir.create(features_folder, recursive = T)
   }
   
@@ -1382,7 +1382,7 @@ maaslin_transform = function(params_and_data_and_formula) {
   output <- param_list[["output"]]
   features_folder <- file.path(output, "features")
   if (!file.exists(features_folder)) {
-    print("Creating output feature tables folder")
+    logging::loginfo("Creating output feature tables folder")
     dir.create(features_folder, recursive = T)
   }
   
@@ -1544,7 +1544,7 @@ maaslin_write_results <- function(params_data_formula_fit) {
   
   # create an output folder if it does not exist
   if (!file.exists(output)) {
-    print("Creating output folder")
+    logging::loginfo("Creating output folder")
     dir.create(output)
   }
   
@@ -1558,7 +1558,7 @@ maaslin_write_results_lefse_format <- function(params_data_formula_fit) {
   
   # create an output folder if it does not exist
   if (!file.exists(output)) {
-    print("Creating output folder")
+    logging::loginfo("Creating output folder")
     dir.create(output)
   }
   
@@ -1578,7 +1578,7 @@ maaslin_plot_results <- function(params_data_formula_fit) {
   
   # create an output folder and figures folder if it does not exist
   if (!file.exists(output)) {
-    print("Creating output folder")
+    logging::loginfo("Creating output folder")
     dir.create(output)
   }
   if (param_list[["plot_summary_plot"]] || param_list[["plot_associations"]]) {
@@ -1608,7 +1608,7 @@ maaslin_plot_results <- function(params_data_formula_fit) {
       heatmap_vars <- trimws(unlist(strsplit(heatmap_vars, ',')))
     }
     
-    save_summary_plot(merged_results, 
+    maaslin3_summary_plot(merged_results, 
                  summary_plot_file, 
                  figures_folder,
                  first_n = param_list[["summary_plot_first_n"]],
@@ -1633,8 +1633,112 @@ maaslin_plot_results <- function(params_data_formula_fit) {
       features = params_data_formula_fit[["filtered_data_norm_transformed"]],
       max_significance = param_list[['max_significance']],
       figures_folder = figures_folder,
-      max_pngs = param_list[["max_pngs"]]))
+      max_pngs = param_list[["max_pngs"]],
+      normalization = param_list[["normalization"]],
+      transform = param_list[["transform"]]))
   }
+}
+
+maaslin_plot_results_from_output <- function(param_list) {
+  params_tmp <- maaslin_log_arguments(param_list) %>%
+    maaslin_read_data() %>%
+    maaslin_reorder_data()
+  
+  if (is.null(params_tmp[['param_list']][['formula']])) {
+    params_tmp_2 <- params_tmp %>%
+      maaslin_compute_formula()
+  } else {
+    params_tmp_2 <- params_tmp %>%
+      maaslin_check_formula()
+  }
+  
+  params_and_data_and_formula <- params_tmp_2 %>%
+    maaslin_filter_and_standardize()
+  
+  param_list <- params_and_data_and_formula[['param_list']]
+  
+  output <- param_list[["output"]]
+  
+  # create an output folder and figures folder if it does not exist
+  if (!file.exists(output)) {
+    logging::loginfo("Creating output folder")
+    dir.create(output)
+  }
+  if (param_list[["plot_summary_plot"]] || param_list[["plot_associations"]]) {
+    figures_folder <- file.path(output, "figures")
+    if (!file.exists(figures_folder)) {
+      logging::loginfo("Creating output figures folder")
+      dir.create(figures_folder)
+    }
+  }
+  
+  all_results_file <- paste0(gsub('/$', '', output), '/', 'all_results.tsv')
+  if (!file.exists(all_results_file)) {
+    stop(paste0('Please generate the results file first: ', all_results_file))
+  }
+  merged_results <- utils::read.csv(all_results_file, sep = '\t')
+  merged_results$model[merged_results$model == 'abundance'] = 'LM'
+  merged_results$model[merged_results$model == 'prevalence'] = 'logistic'
+  
+  if (param_list[["plot_summary_plot"]]) {
+    summary_plot_file <- file.path(figures_folder, "summary_plot.pdf")
+    logging::loginfo(
+      "Writing summary plot of significant results to file: %s",
+      summary_plot_file)
+    
+    coef_plot_vars = param_list[["coef_plot_vars"]]
+    heatmap_vars = param_list[["heatmap_vars"]]
+    
+    if (!is.null(coef_plot_vars) & length(coef_plot_vars) == 1) {
+      coef_plot_vars <- trimws(unlist(strsplit(coef_plot_vars, ',')))
+    }
+    if (!is.null(heatmap_vars) & length(heatmap_vars) == 1) {
+      heatmap_vars <- trimws(unlist(strsplit(heatmap_vars, ',')))
+    }
+    
+    maaslin3_summary_plot(merged_results, 
+                      summary_plot_file, 
+                      figures_folder,
+                      first_n = param_list[["summary_plot_first_n"]],
+                      max_significance = param_list[["max_significance"]],
+                      coef_plot_vars = coef_plot_vars,
+                      heatmap_vars = heatmap_vars,
+                      median_comparison_abundance = param_list[["median_comparison_abundance"]],
+                      median_comparison_prevalence = param_list[["median_comparison_prevalence"]])
+  }
+  
+  if (param_list[["plot_associations"]]) {
+    features_file <- paste0(gsub('/$', '', output), '/', 'features/filtered_data_norm_transformed.tsv')
+    if (!file.exists(features_file)) {
+      stop(paste0('Please generate the results file first: ', features_file))
+    }
+    filtered_data_norm_transformed <- utils::read.csv(features_file, sep = '\t', row.names = 1)
+    
+    logging::loginfo(
+      paste("Writing association plots",
+            "(one for each significant association)",
+            "to output folder: %s"),
+      figures_folder
+    )
+    
+    plots_out <- maaslin3_association_plots(
+      merged_results = merged_results,
+      metadata = params_and_data_and_formula[["unfiltered_metadata"]],
+      features = filtered_data_norm_transformed,
+      max_significance = param_list[['max_significance']],
+      figures_folder = figures_folder,
+      max_pngs = param_list[["max_pngs"]],
+      normalization = param_list[["normalization"]],
+      transform = param_list[["transform"]])
+  } else {
+    plots_out <- NULL
+  }
+  
+  if ('logging::writeToFile' %in% names(logging::getLogger()[['handlers']])) {
+    logging::removeHandler('logging::writeToFile')
+  }
+  
+  return(plots_out)
 }
 
 #######################################################

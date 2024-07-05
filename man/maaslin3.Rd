@@ -59,7 +59,7 @@ maaslin3(param_list)
        \item \code{summary_plot_first_n} (default \code{25}): Include the top \code{summary_plot_first_n} features with significant associations.
        \item \code{coef_plot_vars}: Vector of variable names to be used in the coefficient plot section of the summary plot. Continuous variables should match the metadata column name, and categorical variables should be of the form \code{"[variable] [level]"}.
        \item \code{heatmap_vars}: Vector of variable names to be used in the heatmap section of the summary plot. Continuous variables should match the metadata column name, and categorical variables should be of the form \code{"[variable] [level]"}.
-       \item \code{plot_associations} (default \code{TRUE}): Whether to generate plots for significance associations.
+       \item \code{plot_associations} (default \code{TRUE}): Whether to generate plots for significant associations.
        \item \code{max_pngs} (default \code{30}): The top \code{max_pngs} associations will be plotted.
     }
     The parameter list can also include the following technical parameters:
@@ -79,8 +79,8 @@ maaslin3(param_list)
       \item{(5)}{\code{unfiltered_metadata}: A dataframe of metadata with the retained samples for fitting.}
       \item{(6)}{\code{metadata}: A dataframe of metadata after scaling (if selected).}
       \item{(7)}{\code{formula}: A checked or constructed formula specifying the model to be fit.}
-      \item{(8)}{\code{fit_data_abundance}: The results from the fit abundance models (see \code{"\link{maaslin_fit}"}).}
-      \item{(9)}{\code{fit_data_prevalence}: The results from the fit prevalence models (see \code{"\link{maaslin_fit}"}).}
+      \item{(8)}{\code{fit_data_abundance}: The results from the fit abundance models (see \code{\link{maaslin_fit}}).}
+      \item{(9)}{\code{fit_data_prevalence}: The results from the fit prevalence models (see \code{\link{maaslin_fit}}).}
     }
 }
 \author{
@@ -99,12 +99,16 @@ maaslin3(param_list)
   metadata <- read.csv(metadata_name, sep = '\t')
   rownames(metadata) <- metadata$ID; metadata$ID <- NULL
   
+  metadata$diagnosis <- factor(metadata$diagnosis, levels = c('nonIBD', 'UC', 'CD'))
+  metadata$dysbiosis_state <- factor(metadata$dysbiosis_state, levels = c('none', 'dysbiosis_UC', 'dysbiosis_CD'))
+  metadata$antibiotics <- factor(metadata$antibiotics, levels = c('No', 'Yes'))
+  
   # Prepare parameter lists 
   param_list <- list(input_data = taxa_table, 
                      input_metadata = metadata, 
                      output = 'output', 
-                     formula = '~ diagnosis + dysbiosisUC + dysbiosisCD + antibiotics + 
-                        age + reads_filtered', 
+                     formula = '~ diagnosis + dysbiosis_state + 
+                        antibiotics + age + reads', 
                      plot_summary_plot = FALSE, 
                      plot_associations = FALSE)
   

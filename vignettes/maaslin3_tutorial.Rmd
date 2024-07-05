@@ -1,0 +1,109 @@
+---
+title: "MaAsLin 3 Tutorial"
+author:
+ - name: William Nickols
+   email: willnickols@g.harvard.edu
+ - name: Jacob Nearing
+   email: nearing@broadinstitute.org
+ - name: Sagun Maharjan
+   email: smaharjan@hsph.harvard.edu
+output: html_document
+vignette: >
+    %\VignetteIndexEntry{Maaslin3}
+    %\VignetteEngine{knitr::rmarkdown}
+    %\VignetteEncoding{UTF-8}
+---
+
+## Introduction ##
+
+**MaAsLin 3** is the next generation of **M**a**A**s**L**in (**M**icrobiome **M**ultivariable **A**ssociation with **L**inear Models).
+
+[**MaAsLin3**](http://huttenhower.sph.harvard.edu/MaAsLin3) is comprehensive R package for efficiently determining multivariable association between clinical metadata and microbial meta-omics features. MaAsLin3 relies on general linear models to accommodate most modern epidemiological study designs, including cross-sectional and longitudinal, along with a variety of filtering, normalization, and transform methods.
+
+If you use the MaAsLin 3 software, please cite our manuscript: 
+
+> William A. Nickols, Jacob T. Nearing, Kelsey N. Thompson, Jiaxian Shen, Curtis Huttenhower 
+MaAsLin 3: Refining and extending generalized multivariate linear models for meta-omic association discovery. (In progress).
+
+### Support ###
+If you have questions, please direct it to: [MaAsLin 3 Forum](https://forum.biobakery.org/c/Downstream-analysis-and-statistics/MaAsLin3)   . 
+
+## Contents
+* [1. Installing R](#1-installing-r)
+* [2. Installing MaAsLin 3](#2-installing-maaslin-3)
+* [3. Microbiome Association Detection with MaAsLin 3](#3-microbiome-association-detection-with-maaslin-3)
+  * [3.1 MaAsLin 3 Input](#31-maaslin-3-input)
+  * [3.2 Running MaAsLin 3](#32-running-maaslin-3)
+  * [3.3 MaAsLin 3 Output](#33-maaslin-3-output)
+* [4. Advanced Topics](#4-advanced-topics)
+  * [4.1 Interactions](#41-interactions)
+  * [4.2 Random Effects](#42-random-effects)
+  * [4.3 Additional Options](#43-additional-options)
+* [5. Command Line Interface](#5-command-line-interface)
+
+## 1. Installing R  
+
+[R](https://www.r-project.org/) is a programming language specializing in 
+statistical computing and graphics. You can use R just the same as any other 
+programming languages, but it is most useful for statistical analyses, with 
+well-established packages for common tasks such as [linear modeling](https://cran.r-project.org/web/packages/lme4/index.html), ['omic 
+data analysis](https://bioconductor.org/), [machine learning](http://topepo.github.io/caret/index.html), and [visualization](https://ggplot2.tidyverse.org/). We have created a short introduction tutorial [here](https://github.com/biobakery/biobakery/wiki/Introduction-to-R#1-lab-setup-and-basics-in-r), but we note there are many other more comprehensive tutorials out there to learn R. 
+
+#### Installing R for the first time
+
+You can download and install the free R software environment 
+[here](https://cloud.r-project.org/). Note that you should download the latest
+release - this will ensure the R version you have is compatible with MaAsLin 3.
+
+#### (Optional) the RStudio IDE
+
+[RStudio](https://rstudio.com/products/rstudio/) is a freely available 
+IDE (integrated development environment) for R. It is a "wrapper" around R with
+some additional functionalities that makes programming in R a bit easier. Feel 
+free to download RStudio and explore its interface - but it is not required 
+for this tutorial.
+
+#### Important: the correct R version
+
+If you already have R installed, then it is possible that the R version you have 
+does not support MaAsLin 3. The easiest way to check this is to launch R/RStudio,
+and in the console ("Console" pane in RStudio), type in the following command 
+(without the `>` symbol):
+
+```{R, eval=F}
+sessionInfo()
+```
+
+The first line of output message should indicate your current R version. For 
+example:
+
+```
+> sessionInfo()
+R version 4.4.1 (2024-06-14)
+```
+
+For MaAsLin 3 to install, you will need R >= 4.3. If your version is older than
+that, please refer to section 
+[Installing R for the first time](#installing-r-for-the-first-time) to download 
+the latest R. Note that
+RStudio users will need to have RStudio "switch" to this later version once it 
+is installed. This should happen automatically for Windows and Mac OS users when
+you relaunch RStudio. For Linux users you might need to bind the correct R 
+executable. For more information refer to [here](https://support.rstudio.com/hc/en-us/articles/200486138-Changing-R-versions-for-RStudio-desktop). Either way, once you have the correct version installed, launch 
+the software and use `sessionInfo()` to make sure that you indeed have R >= 4.3.
+
+## 2. Installing MaAsLin 3
+
+The latest development version of MaAsLin 3 can be installed from GitHub using the `devtools` package.
+
+```{r, eval=FALSE}
+if (!require('devtools', character.only = TRUE)) {
+  install.packages('devtools')
+}
+
+library("devtools")
+install_github("biobakery/MaAsLin3")
+library("maaslin3")
+```
+
+## 3. Microbiome Association Detection with MaAsLin 3

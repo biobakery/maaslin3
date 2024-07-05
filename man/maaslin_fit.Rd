@@ -80,12 +80,16 @@ The \code{results} tables contain the following columns for each association (ro
   metadata <- read.csv(metadata_name, sep = '\t')
   rownames(metadata) <- metadata$ID; metadata$ID <- NULL
   
+  metadata$diagnosis <- factor(metadata$diagnosis, levels = c('nonIBD', 'UC', 'CD'))
+  metadata$dysbiosis_state <- factor(metadata$dysbiosis_state, levels = c('none', 'dysbiosis_UC', 'dysbiosis_CD'))
+  metadata$antibiotics <- factor(metadata$antibiotics, levels = c('No', 'Yes'))
+  
   # Prepare parameter lists 
   param_list <- list(input_data = taxa_table, 
                      input_metadata = metadata, 
                      output = 'output', 
-                     formula = '~ diagnosis + dysbiosisUC + dysbiosisCD + antibiotics + 
-                        age + reads_filtered', 
+                     formula = '~ diagnosis + dysbiosis_state + antibiotics + 
+                        age + reads', 
                      plot_summary_plot = FALSE, 
                      plot_associations = FALSE)
   

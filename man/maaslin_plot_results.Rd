@@ -26,7 +26,7 @@ maaslin_plot_results(params_data_formula_fit)
   }
 }
 \value{
-Results will be written to the \code{figures} folder within the folder \code{output}. The list of individual association plots is returned if \code{plot_associations=TRUE}.
+Results will be written to the \code{figures} folder within the folder \code{output}. The list of individual association plots is returned if \code{plot_associations=TRUE}. In the heatmap of the summary plot, one star corresponds to the user-set \code{max_significance} and two stars corresponds to the user-set \code{max_signifiance} divided by 10.
 }
 \author{
     William Nickols<willnickols@g.harvard.edu>,\cr
@@ -44,12 +44,16 @@ Results will be written to the \code{figures} folder within the folder \code{out
   metadata <- read.csv(metadata_name, sep = '\t')
   rownames(metadata) <- metadata$ID; metadata$ID <- NULL
   
+  metadata$diagnosis <- factor(metadata$diagnosis, levels = c('nonIBD', 'UC', 'CD'))
+  metadata$dysbiosis_state <- factor(metadata$dysbiosis_state, levels = c('none', 'dysbiosis_UC', 'dysbiosis_CD'))
+  metadata$antibiotics <- factor(metadata$antibiotics, levels = c('No', 'Yes'))
+  
   # Prepare parameter lists 
   param_list <- list(input_data = taxa_table, 
                      input_metadata = metadata, 
                      output = 'output', 
-                     formula = '~ diagnosis + dysbiosisUC + dysbiosisCD + antibiotics + 
-                        age + reads_filtered', 
+                     formula = '~ diagnosis + dysbiosis_state + antibiotics + 
+                        age + reads', 
                      plot_summary_plot = FALSE, 
                      plot_associations = FALSE)
   

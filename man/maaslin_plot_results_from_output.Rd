@@ -11,11 +11,11 @@ maaslin_plot_results_from_output(param_list)
 }
 \arguments{
     \item{param_list}{
-    The \code{param_list} that was used to fit the MaAsLin 3 model originally (see \code{"\link{maaslin_parse_param_list}"}). The relevant plotting variables can be changed from their original settings: \code{plot_summary_plot}, \code{summary_plot_first_n}, \code{heatmap_vars}, \code{plot_associations}, \code{coef_plot_vars}, \code{max_pngs}. The function will automatically look for the \code{all_results.tsv} and \code{filtered_data_norm_transformed.tsv} files in the \code{output} directory.
+    The \code{param_list} that was used to fit the MaAsLin 3 model originally (see \code{\link{maaslin_parse_param_list}}). The relevant plotting variables can be changed from their original settings: \code{plot_summary_plot}, \code{summary_plot_first_n}, \code{heatmap_vars}, \code{plot_associations}, \code{coef_plot_vars}, \code{max_pngs}. The function will automatically look for the \code{all_results.tsv} and \code{filtered_data_norm_transformed.tsv} files in the \code{output} directory.
   }
 }
 \value{
-Results will be written to the \code{figures} folder within the folder \code{output}. The list of individual association plots is returned if \code{plot_associations=TRUE}.
+Results will be written to the \code{figures} folder within the folder \code{output}. The list of individual association plots is returned if \code{plot_associations=TRUE}. In the heatmap of the summary plot, one star corresponds to the user-set \code{max_significance} and two stars corresponds to the user-set \code{max_signifiance} divided by 10.
 }
 \author{
     William Nickols<willnickols@g.harvard.edu>,\cr
@@ -33,12 +33,16 @@ Results will be written to the \code{figures} folder within the folder \code{out
   metadata <- read.csv(metadata_name, sep = '\t')
   rownames(metadata) <- metadata$ID; metadata$ID <- NULL
   
+  metadata$diagnosis <- factor(metadata$diagnosis, levels = c('nonIBD', 'UC', 'CD'))
+  metadata$dysbiosis_state <- factor(metadata$dysbiosis_state, levels = c('none', 'dysbiosis_UC', 'dysbiosis_CD'))
+  metadata$antibiotics <- factor(metadata$antibiotics, levels = c('No', 'Yes'))
+  
   # Prepare parameter lists 
   param_list <- list(input_data = taxa_table, 
                      input_metadata = metadata, 
                      output = 'output', 
-                     formula = '~ diagnosis + dysbiosisUC + dysbiosisCD + antibiotics + 
-                        age + reads_filtered', 
+                     formula = '~ diagnosis + dysbiosis_state + antibiotics + 
+                        age + reads', 
                      plot_summary_plot = FALSE, 
                      plot_associations = FALSE)
   

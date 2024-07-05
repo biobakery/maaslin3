@@ -120,14 +120,14 @@ options <-
     type = "character",
     dest = "formula",
     default = args$formula,
-    help = paste("The formula for the model,",
+    help = paste("The formula for the model",
                  "[ Default: all variables fixed ]"
     )
   )
 options <-
   optparse::add_option(
     options,
-    c("-f", "--fixed_effects"),
+    c("--fixed_effects"),
     type = "character",
     dest = "fixed_effects",
     default = args$fixed_effects,
@@ -139,7 +139,7 @@ options <-
 options <-
   optparse::add_option(
     options,
-    c("-d", "--reference"),
+    c("--reference"),
     type = "character",
     dest = "reference",
     default = args$reference,
@@ -152,11 +152,11 @@ options <-
 options <-
   optparse::add_option(
     options,
-    c("-r", "--random_effects"),
+    c("--random_effects"),
     type = "character",
     dest = "random_effects",
     default = args$random_effects,
-    help = paste("The random effects for the model, ",
+    help = paste("The random effects for the model,",
                  "comma-delimited for multiple effects",
                  "[ Default: none ]"
     )
@@ -168,7 +168,7 @@ options <-
     type = "character",
     dest = "group_effects",
     default = args$group_effects,
-    help = paste("The group effects for the model, ",
+    help = paste("The group effects for the model,",
                  "comma-delimited for multiple effects",
                  "[ Default: none ]"
     )
@@ -180,7 +180,7 @@ options <-
     type = "character",
     dest = "ordered_effects",
     default = args$ordered_effects,
-    help = paste("The ordered effects for the model, ",
+    help = paste("The ordered effects for the model,",
                  "comma-delimited for multiple effects",
                  "[ Default: none ]"
     )
@@ -188,22 +188,22 @@ options <-
 options <-
     optparse::add_option(
         options,
-        c("-a", "--min_abundance"),
+        c("--min_abundance"),
         type = "double",
         dest = "min_abundance",
         default = args$min_abundance,
-        help = paste0("The minimum abundance for each feature (before normalization and transformation)",
+        help = paste("The minimum abundance for each feature (before normalization and transformation)",
             "[ Default: %default ]"
         )
     )
 options <-
   optparse::add_option(
     options,
-    c("-p", "--min_prevalence"),
+    c("--min_prevalence"),
     type = "double",
     dest = "min_prevalence",
     default = args$min_prevalence,
-    help = paste0("The minimum percent of samples for which",
+    help = paste("The minimum proportion of samples for which",
                   "a feature is detected at minimum abundance",
                   "[ Default: %default ]"
     )
@@ -215,18 +215,18 @@ options <-
     type = "double",
     dest = "zero_threshold",
     default = args$zero_threshold,
-    help = paste0("The minimum abundance to be considered non-zero",
+    help = paste("The minimum abundance to be considered non-zero",
                   "[ Default: %default ]"
     )
   )
 options <-
     optparse::add_option(
         options,
-        c("-b", "--min_variance"),
+        c("--min_variance"),
         type = "double",
         dest = "min_variance",
         default = args$min_variance,
-        help = paste0("Keep features with variances",
+        help = paste("Keep features with variances",
             "greater than value",
             "[ Default: %default ]"
         )
@@ -234,18 +234,18 @@ options <-
 options <-
     optparse::add_option(
         options,
-        c("-s", "--max_significance"),
+        c("--max_significance"),
         type = "double",
         dest = "max_significance",
         default = args$max_significance,
-        help = paste0("The q-value threshold for significance",
+        help = paste("The q-value threshold for significance",
             "[ Default: %default ]"
         )
     )
 options <-
     optparse::add_option(
         options,
-        c("-n", "--normalization"),
+        c("--normalization"),
         type = "character",
         dest = "normalization",
         default = args$normalization,
@@ -259,7 +259,7 @@ options <-
 options <-
     optparse::add_option(
         options,
-        c("-t", "--transform"),
+        c("--transform"),
         type = "character",
         dest = "transform",
         default = args$transform,
@@ -272,7 +272,7 @@ options <-
 options <-
     optparse::add_option(
         options,
-        c("-c", "--correction"),
+        c("--correction"),
         type = "character",
         dest = "correction",
         default = args$correction,
@@ -283,7 +283,7 @@ options <-
 options <-
     optparse::add_option(
         options,
-        c("-z", "--standardize"),
+        c("--standardize"),
         type = "logical",
         dest = "standardize",
         default = args$standardize,
@@ -357,7 +357,7 @@ options <-
 options <-
     optparse::add_option(
         options,
-        c("-l", "--plot_summary_plot"),
+        c("--plot_summary_plot"),
         type = "logical",
         dest = "plot_summary_plot",
         default = args$plot_summary_plot,
@@ -368,7 +368,7 @@ options <-
 options <-
     optparse::add_option(
         options,
-        c("-i", "--summary_plot_first_n"),
+        c("--summary_plot_first_n"),
         type = "double",
         dest = "summary_plot_first_n",
         default = args$summary_plot_first_n,
@@ -409,7 +409,7 @@ options <-
 options <-
     optparse::add_option(
         options,
-        c("-o", "--plot_associations"),
+        c("--plot_associations"),
         type = "logical",
         dest = "plot_associations",
         default = args$plot_associations,
@@ -420,7 +420,7 @@ options <-
 options <-
     optparse::add_option(
         options,
-        c("-g", "--max_pngs"),
+        c("--max_pngs"),
         type = "double",
         dest = "max_pngs",
         default = args$max_pngs,
@@ -431,22 +431,22 @@ options <-
 options <-
     optparse::add_option(
         options,
-        c("-e", "--cores"),
+        c("--cores"),
         type = "double",
         dest = "cores",
         default = args$cores,
-        help = paste("The number of R processes to ",
+        help = paste("The number of R processes to",
             "run in parallel [ Default: %default ]"
         )
     )
 options <-
     optparse::add_option(
         options,
-        c("-j", "--save_models"),
+        c("--save_models"),
         type = "logical",
         dest = "save_models",
         default = args$save_models,
-        help = paste("Return the full model outputs ",
+        help = paste("Return the full model outputs",
                      "and save to an RData file [ Default: %default ]"
         )
     )
@@ -574,8 +574,8 @@ maaslin_check_arguments <- function(param_list) {
       if (!param_list[["normalization"]] %in% 
           valid_choice_transform_norm[[limited_transform]]) {
         option_not_valid_error(
-          paste0("This transform can only be used",
-                 " with a subset of normalizations. ",
+          paste("This transform can only be used",
+                 "with a subset of normalizations.",
                  "Please select from the following list"
           ),
           toString(

@@ -8,13 +8,17 @@ metadata <- read.table(system.file(package="maaslin3","extdata","HMP2_metadata.t
 rownames(taxa_table) <- taxa_table$ID; taxa_table$ID <- NULL
 rownames(metadata) <- metadata$ID; metadata$ID <- NULL
 
+metadata$diagnosis <- factor(metadata$diagnosis, levels = c('nonIBD', 'UC', 'CD'))
+metadata$dysbiosis_state <- factor(metadata$dysbiosis_state, levels = c('none', 'dysbiosis_UC', 'dysbiosis_CD'))
+metadata$antibiotics <- factor(metadata$antibiotics, levels = c('No', 'Yes'))
+
 #Prepare parameter lists 
 param_list <- list(input_data = taxa_table, 
                    input_metadata = metadata, 
                    output = 'output', 
                    normalization = 'TSS', 
                    transform = 'LOG', 
-                   formula = '~ diagnosis + dysbiosisUC + dysbiosisCD + antibiotics + age + reads_filtered + (1 | subject)', 
+                   formula = '~ diagnosis + dysbiosis_state + antibiotics + age + reads', 
                    save_models = FALSE, 
                    plot_summary_plot = T, 
                    plot_associations = T, 

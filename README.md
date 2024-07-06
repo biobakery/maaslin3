@@ -43,35 +43,40 @@ library("maaslin3")
 Note that we include `reads_filtered` as a fixed effect since variable read depth over the samples is likely to create prevalence effects. Because these data are compositional, setting `median_comparison_abundance = TRUE` is recommended so that the abundance coefficients are tested against the median coefficient. By contrast, we can set `median_comparison_prevalence = FALSE` since we do not expect the typical bug to have no prevalence association with the included variables.
 
 ```
-#Read features table 
+library(maaslin3)
+
+# Read abundance table
 taxa_table_name <- system.file("extdata", "HMP2_taxonomy.tsv", package = "maaslin3")
 taxa_table <- read.csv(taxa_table_name, sep = '\t')
-rownames(taxa_table) <- taxa_table$ID; taxa_table$ID <- NULL
 
-#Read metadata table
+# Read metadata table
 metadata_name <- system.file("extdata", "HMP2_metadata.tsv", package = "maaslin3")
 metadata <- read.csv(metadata_name, sep = '\t')
-rownames(metadata) <- metadata$ID; metadata$ID <- NULL
 
-#Prepare parameter lists 
+metadata$diagnosis <- 
+  factor(metadata$diagnosis, levels = c('nonIBD', 'UC', 'CD'))
+metadata$dysbiosis_state <- 
+  factor(metadata$dysbiosis_state, levels = c('none', 'dysbiosis_UC', 'dysbiosis_CD'))
+metadata$antibiotics <- 
+  factor(metadata$antibiotics, levels = c('No', 'Yes'))
+
+# Prepare parameter lists 
 param_list <- list(input_data = taxa_table, 
                    input_metadata = metadata, 
                    output = 'output', 
                    normalization = 'TSS', 
                    transform = 'LOG', 
-                   formula = '~ diagnosis + dysbiosis_state + antibiotics + age + reads', 
-                   save_scatter = FALSE, 
+                   formula = '~ diagnosis + dysbiosis_state + antibiotics + age + reads',
                    save_models = FALSE, 
-                   plot_summary_plot = FALSE, 
-                   plot_scatter = FALSE, 
+                   plot_summary_plot = TRUE, 
                    max_significance = 0.1, 
                    augment = TRUE, 
                    median_comparison_abundance = TRUE, 
                    median_comparison_prevalence = FALSE, 
                    cores=1)
 
-#Run MaAsLin3
-fit_out <- maaslin3::maaslin3(param_list)
+# Run MaAsLin 3
+fit_out <- maaslin3(param_list)
 ```
 
 The outputs can now be found in the `fit_out` object or in the directory `output`. Particularly for prevalence associations, make sure to check a feature's number of non-zeros since rare microbes can occasionally produce large effect sizes and small p-values in complex models.
@@ -94,13 +99,11 @@ param_list <- list(input_data = abundance,
                    normalization = 'TSS', 
                    transform = 'LOG', 
                    fixed_effects = colnames(metadata)[colnames(metadata) != "ID"], 
-                   save_scatter = FALSE, 
-                   save_models = F, 
-                   plot_summary_plot = F, 
-                   plot_scatter = F, 
+                   save_models = FALSE, 
+                   plot_summary_plot = TRUE, 
                    max_significance = 0.1, 
-                   augment = T, 
-                   median_comparison_abundance = TRUE, 
+                   augment = TRUE, 
+                   median_comparison_abundance = FALSE, 
                    median_comparison_prevalence = FALSE, 
                    unscaled_abundance = scaling_factors)
 

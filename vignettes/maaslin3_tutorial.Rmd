@@ -118,7 +118,7 @@ MaAsLin3 requires two input files.
 1. Feature abundance data frame
     * Formatted with features as columns and samples as rows.
     * The transpose of this format is also okay.
-    * Possible features in this file include taxonomy or genes.
+    * Possible features in this file include taxonomy or genes. These can be relative abundances or counts.
     * This can be a filepath to a tab-delimited file.
 2. Metadata data frame
     * Formatted with variables as columns and samples as rows.
@@ -166,52 +166,34 @@ the fields.
 
 ### 3.2 Running MaAsLin 3
 
-MaAsLin 3 is run by specifying a `param_list` that contains the abundance table (`input_data`), the metadata table (`input_metadata`), the output directory (`output`), and a model specification. The model specification can come from a formula or vectors of terms.
+MaAsLin 3 is run by specifying a `param_list` that contains the abundance table (`input_data`), the metadata table (`input_metadata`), the output directory (`output`), and a model specification. The model specification can come from a formula or vectors of terms. In either case, variable names should not have spaces or unusual characters.
 
-* *Formula*: The `formula` parameter should be set to any formula that satisfies the `lme4` specifications: fixed effects, interaction terms, random effects, polynomial terms, and more can all be included. In addition, group and ordered predictors (see below) can be included by including `group(variable_name)` and `ordered(variable_name)` in the formula. When using the 
+* *Formula*: The `formula` parameter should be set to any formula that satisfies the `lme4` specifications: fixed effects, interaction terms, random effects, polynomial terms, and more can all be included. In addition, group and ordered predictors (see below) can be included by including `group(variable_name)` and `ordered(variable_name)` in the formula.
+* *Vectors*: Alternatively, a vector of variables can be supplied to the parameters `fixed_effects`, `random_effects`, `group_effects`, and `ordered_effects`. Categorical variables should either be ordered as factors beforehand, or `reference` should be provided as a string of 'variable,reference' semi-colon delimited for multiple variables (e.g., `variable_1,reference_1;variable_2,reference_2`). NOTE: adding a space between the variable and level might result in the wrong reference level being used.
 
 The following command runs MaAsLin 3 on the HMP2 data, running a multivariable
-regression model to test for the association between microbial species abundance 
-versus IBD diagnosis and [dysbiosis scores](https://www.nature.com/articles/s41586-019-1237-9) 
-(`fixed_effects = c("diagnosis", "dysbiosis")`). For any categorical variable with more than 2 levels, you will also have to specify which variable should be the reference level by using (`reference = c("diagnosis,nonIBD")`). NOTE: adding a space between the variable and level might result in the wrong reference level being used. Output are generated in a folder called `demo_output` under the current working directory (`output = "demo_output"`). In this case, the example input data has been pre-normalized and pre-filtered, so we turn off the default normalization and prevalence filtering as well.
+regression model to test for the association between microbial species abundance and prevalence
+versus IBD diagnosis and [dysbiosis scores](https://www.nature.com/articles/s41586-019-1237-9) while controlling for antibiotic usage, age, and the sampling depth (reads). Note that because MaAsLin 3 considers prevalence associations, sampling depth (read count) should be included as a covariate if available since deeper sequencing will likely increase feature detection in a way that could spuriously correlate with metadata of interest. Outputs are generated in a folder called `demo_output` under the current working directory (`output = "demo_output"`).
 
-```{R}
+All parameters beyond the first four are the default parameters but are still included for clarity. By default, total sum scaling with a log transformation afterwards will be used. However, other normalizations and transformations are allowed (see `normalization` and `transform` in the manual). Also by default, a data augmentation procedure is used to avoid linear separability in the logistic regressions. This is almost always recommended, though it can be turned off (see `augment` in the manual). A nominal FDR level of 0.1 determines which associations are significant, but this can also be changed (see `max_significance` in the manual). For the abundance coefficients, to account for compositionality in relative abundance data, significance is determined by comparing against the median coefficient for a metadatum across the features (`median_comparison_abundance`). Since prevalence coefficients do not have the same compositional properties, they are instead compared against 0 (`median_comparison_prevalence`). See the manual for a discussion of when to change these parameters. One CPU is used for fitting (`cores = 1`).
+
+```{R, echo = T, results = 'hide', warning = FALSE}
 param_list <- list(input_data = taxa_table, 
                    input_metadata = metadata, 
-                   output = 'output', 
+                   output = 'demo_output', 
+                   formula = '~ diagnosis + dysbiosis_state + antibiotics + age + reads',
                    normalization = 'TSS', 
                    transform = 'LOG', 
-                   formula = '~ diagnosis + dysbiosis_state + antibiotics + age + reads',
-                   save_models = FALSE, 
-                   plot_summary_plot = TRUE, 
-                   max_significance = 0.1, 
                    augment = TRUE, 
+                   max_significance = 0.1, 
                    median_comparison_abundance = TRUE, 
                    median_comparison_prevalence = FALSE, 
-                   cores=1)
+                   cores = 1)
 
 fit_out <- maaslin3(param_list)
 ```
 
-#### Providing data frames as input
-If you are familiar with the data frame class in R, you can also provide data 
-frames for `input_data` and `input_metadata` for MaAsLin 3, instead of 
-file names. One potential benefit of this approach is that it allows you to 
-easily manipulate these input data within the R environment.
 
-```R
-fit_data2 = Maaslin2(input_data     = df_input_data, 
-                     input_metadata = df_input_metadata, 
-                     min_prevalence = 0,
-                     normalization  = "NONE",
-                     output         = "demo_output2", 
-                     fixed_effects  = c("diagnosis", "dysbiosis"),
-                     reference      = c("diagnosis,nonIBD"))
-```
-
-* Question: how would I run the same analysis, but only on CD and nonIBD 
-  subjects?
-  * Hint: try `?dplyr::filter()`
 
 ### 3.3 MaAsLin 3 Output
 

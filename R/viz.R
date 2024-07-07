@@ -110,6 +110,9 @@ maaslin3_summary_plot <-
         logging::loginfo(
           paste0("The following specified variables were not found in the associations: ", 
                 paste0(setdiff(c(coef_plot_vars, heatmap_vars), unique(merged_results$full_metadata_name)), collapse = ', '), collapse = ''))
+        logging::loginfo(
+          paste0("Available associations: ", 
+                 paste0(unique(merged_results$full_metadata_name), collapse = ', '), collapse = ''))
         return(NULL)
       }
       merged_results <- merged_results[merged_results$full_metadata_name %in% 
@@ -153,9 +156,6 @@ maaslin3_summary_plot <-
       heatmap_vars <- setdiff(heatmap_vars, coef_plot_vars)
     }
     
-    coef_plot_vars <- factor(coef_plot_vars, levels = unique(coef_plot_vars))
-    heatmap_vars <- factor(heatmap_vars, levels = unique(heatmap_vars))
-    
     if (length(coef_plot_vars) > 0 & 
         sum(merged_results_sig$full_metadata_name %in% coef_plot_vars) >= 1) {
       coef_plot_data <- merged_results_sig[merged_results_sig$full_metadata_name %in% coef_plot_vars,]
@@ -172,13 +172,30 @@ maaslin3_summary_plot <-
                                          (coef_plot_data$coef > quantile_df[coef_plot_data$full_metadata_name, 'lower_q'] & 
                                             coef_plot_data$coef < quantile_df[coef_plot_data$full_metadata_name, 'upper_q']),]
       
+      custom_break_fun <- function(n) {
+        return(function(x) {
+          extended_breaks <- scales::breaks_extended(n)(x)
+          if (max(x) > 0) {
+            extended_breaks <- extended_breaks[extended_breaks <= max(x) * 0.9]
+          } else {
+            extended_breaks <- extended_breaks[extended_breaks <= max(x) * 1.1]
+          }
+          if (min(x) > 0) {
+            extended_breaks <- extended_breaks[extended_breaks >= min(x) * 1.1]
+          } else {
+            extended_breaks <- extended_breaks[extended_breaks >= min(x) * 0.9]
+          }
+          extended_breaks
+        })
+      }
+      
       # Create plot
       p1 <- ggplot2::ggplot(coef_plot_data, ggplot2::aes(x=.data$coef, y=.data$feature))
       
       if (median_comparison_prevalence | median_comparison_abundance) {
         p1 <- p1 + 
           ggplot2::guides(
-            linetype = ggplot2::guide_legend(title = 'Association median', order = 1),
+            linetype = ggplot2::guide_legend(title = 'Null hypothesis', order = 1),
           ) + 
           ggplot2::geom_vline(data = median_df[median_df$full_metadata_name %in% coef_plot_vars,], 
                               ggplot2::aes(xintercept = .data$median_val, linetype = .data$model), color = "darkgray") +
@@ -211,7 +228,7 @@ maaslin3_summary_plot <-
                                        "1"),
                             transform = scales::pseudo_log_trans(sigma = 0.001),
                             name = bquote("Abundance" ~ P["FDR"])) +
-        ggplot2::scale_x_continuous(breaks = scales::breaks_extended(n = 5), 
+        ggplot2::scale_x_continuous(breaks = custom_break_fun(n = 6), 
                            limits = c(min(coef_plot_data$coef) - quantile(coef_plot_data$stderr, 0.8), 
                                       max(coef_plot_data$coef) + quantile(coef_plot_data$stderr, 0.8))) +
         ggplot2::scale_shape_manual(name = "Association", values=c(21, 24))+
@@ -231,7 +248,7 @@ maaslin3_summary_plot <-
               panel.grid.minor = ggplot2::element_blank(),
               strip.text = ggplot2::element_text(size=14),
               strip.background = ggplot2::element_rect(fill = "transparent")) + 
-        ggplot2::facet_wrap(~ full_metadata_name, scales = 'free_x', ncol = length(coef_plot_vars))
+        ggplot2::facet_wrap(~ factor(full_metadata_name, levels = unique(coef_plot_vars)), scales = 'free_x', ncol = length(coef_plot_vars))
       
     } else {
       p1 <- NULL
@@ -273,7 +290,7 @@ maaslin3_summary_plot <-
       heatmap_data <- merge(grid, heatmap_data, by = c("feature", "full_metadata_name", "model"), all.x = TRUE)
       heatmap_data$coef[is.na(heatmap_data$coef)] <- NA
 
-      p2 <- ggplot2::ggplot(heatmap_data, ggplot2::aes(x = .data$full_metadata_name, y = .data$feature)) +
+      p2 <- ggplot2::ggplot(heatmap_data, ggplot2::aes(x = factor(.data$full_metadata_name, unique(heatmap_vars)), y = .data$feature)) +
         ggplot2::geom_tile(data = heatmap_data, ggplot2::aes(fill = .data$coef_cat), colour="white", linewidth=0.2) +
         ggplot2::scale_fill_manual(name = "Beta coefficient", na.value="#EEEEEE",
                           values = scale_fill_values) + 
@@ -318,7 +335,7 @@ maaslin3_summary_plot <-
     }
     
     if (!is.null(final_plot)) {
-      height_out <- 8 + max(first_n / 5 - 5, 0) + max(nchar(c(as.character(coef_plot_vars), as.character(heatmap_vars)))) / 10
+      height_out <- 8.5 + max(first_n / 5 - 5, 0) + max(nchar(c(as.character(coef_plot_vars), as.character(heatmap_vars)))) / 10
       width_out <-  5 + max(nchar(merged_results$feature)) / 12 + 
         (length(coef_plot_vars) * (max(20, max(nchar(as.character(coef_plot_vars))))) / 20) * 2.5 + 
         length(heatmap_vars) * 0.25

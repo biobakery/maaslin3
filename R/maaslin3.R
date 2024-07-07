@@ -1499,13 +1499,14 @@ maaslin_fit = function(params_and_data_and_formula) {
   fit_data_abundance$results <- results[[1]]
   fit_data_prevalence$results <- results[[2]]
   
-  current_errors_for_likely_issues <- fit_data_prevalence$results$error[!is.na(fit_data_prevalence$results$N.not.zero) & 
-                                                                      (fit_data_prevalence$results$N.not.zero < 50 &
-                                                                         fit_data_prevalence$results$N.not.zero / fit_data_prevalence$results$N < 0.05) &
-                                                                      ((!is.na(fit_data_prevalence$results$coef) & 
-                                                                          abs(fit_data_prevalence$results$coef) > 15) |
-                                                                         (!is.na(fit_data_prevalence$results$pval_individual) & 
-                                                                         fit_data_prevalence$results$pval_individual < 10^-10))]
+  current_errors_for_likely_issues <- 
+    fit_data_prevalence$results$error[!is.na(fit_data_prevalence$results$N.not.zero) & 
+                                        (fit_data_prevalence$results$N.not.zero < 50 &
+                                           fit_data_prevalence$results$N.not.zero / fit_data_prevalence$results$N < 0.05) &
+                                        ((!is.na(fit_data_prevalence$results$coef) & 
+                                            abs(fit_data_prevalence$results$coef) > 15) |
+                                           (!is.na(fit_data_prevalence$results$pval_individual) & 
+                                              fit_data_prevalence$results$pval_individual < 10^-10))]
   fit_data_prevalence$results$error[!is.na(fit_data_prevalence$results$N.not.zero) & 
                                   (fit_data_prevalence$results$N.not.zero < 50 &
                                   fit_data_prevalence$results$N.not.zero / fit_data_prevalence$results$N < 0.05) &
@@ -1516,6 +1517,25 @@ maaslin_fit = function(params_and_data_and_formula) {
     ifelse(!is.na(current_errors_for_likely_issues),
            current_errors_for_likely_issues,
            "A large coefficient (>15 in absolute value) or small p-value (< 10^-10) was obtained from a feature present in <5% of samples. Check this is intended.")
+  
+  current_errors_for_likely_issues <- 
+    fit_data_prevalence$results$error[!is.na(fit_data_prevalence$results$N.not.zero) & 
+                                        (fit_data_prevalence$results$N - fit_data_prevalence$results$N.not.zero < 50 &
+                                           fit_data_prevalence$results$N.not.zero / fit_data_prevalence$results$N > 0.95) &
+                                        ((!is.na(fit_data_prevalence$results$coef) & 
+                                            abs(fit_data_prevalence$results$coef) > 15) |
+                                           (!is.na(fit_data_prevalence$results$pval_individual) & 
+                                              fit_data_prevalence$results$pval_individual < 10^-10))]
+  fit_data_prevalence$results$error[!is.na(fit_data_prevalence$results$N.not.zero) & 
+                                      (fit_data_prevalence$results$N - fit_data_prevalence$results$N.not.zero < 50 &
+                                         fit_data_prevalence$results$N.not.zero / fit_data_prevalence$results$N > 0.95) &
+                                      ((!is.na(fit_data_prevalence$results$coef) & 
+                                          abs(fit_data_prevalence$results$coef) > 15) |
+                                         (!is.na(fit_data_prevalence$results$pval_individual) & 
+                                            fit_data_prevalence$results$pval_individual < 10^-10))] <- 
+    ifelse(!is.na(current_errors_for_likely_issues),
+           current_errors_for_likely_issues,
+           "A large coefficient (>15 in absolute value) or small p-value (< 10^-10) was obtained from a feature present in >95% of samples. Check this is intended.")
   
   fit_data_abundance$results <- fit_data_abundance$results[order(fit_data_abundance$results$qval_joint),]
   fit_data_abundance$results <- fit_data_abundance$results[order(!is.na(fit_data_abundance$results$error)),] # Move all that had errors to the end
@@ -1644,16 +1664,9 @@ maaslin_plot_results_from_output <- function(param_list) {
   params_tmp <- maaslin_log_arguments(param_list) %>%
     maaslin_read_data() %>%
     maaslin_reorder_data()
-  
-  if (is.null(params_tmp[['param_list']][['formula']])) {
-    params_tmp_2 <- params_tmp %>%
-      maaslin_compute_formula()
-  } else {
-    params_tmp_2 <- params_tmp %>%
-      maaslin_check_formula()
-  }
-  
-  params_and_data_and_formula <- params_tmp_2 %>%
+  params_tmp[['formula']] <- list() # Placeholder to avoid problematic renames
+
+  params_and_data_and_formula <- params_tmp %>%
     maaslin_filter_and_standardize()
   
   param_list <- params_and_data_and_formula[['param_list']]
@@ -1713,7 +1726,7 @@ maaslin_plot_results_from_output <- function(param_list) {
     if (!file.exists(features_file)) {
       stop(paste0('Please generate the results file first: ', features_file))
     }
-    filtered_data_norm_transformed <- utils::read.csv(features_file, sep = '\t', row.names = 1)
+    filtered_data_norm_transformed <- utils::read.csv(features_file, sep = '\t', row.names = 1, check.names = F)
     
     logging::loginfo(
       paste("Writing association plots",

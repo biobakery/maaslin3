@@ -274,7 +274,11 @@ MaAsLin 3 generates two types of output files: data and visualization.
     * ``summary_plot.pdf``
         * This file contains a combined coefficient plot and heatmap of the most significant associations. In the heatmap, one star indicates the individual q-value is below the parameter `max_significance`, and two stars indicate the individual q-value is below `max_significance` divided by 10.
 ```{r, out.width='100%', echo=F}
-knitr::include_graphics("demo_output/figures/summary_plot.png")
+# Rename summary plot to avoid knitting issues later
+file.rename('demo_output/figures/summary_plot.png', 
+            'demo_output/figures/summary_plot_first.png')
+
+knitr::include_graphics("demo_output/figures/summary_plot_first.png")
 ```
     * ``association_plots/[metadatum]_[feature]_[association].pdf``
         * A plot is generated for each significant association up to `max_pngs`.
@@ -304,7 +308,7 @@ There are a few common issues to check for in the results:
     
 #### Replotting
 
-Once `maaslin3` has been run once, `maaslin_plot_results_from_output` can be run with the same `param_list` as the original `maaslin3` run to (re-)create the plots. This allows the user to plot the associations even without having the R object returned by `maaslin_fit` or `maaslin3` (e.g., if fitting models through the command line). It is recommended to fit models with simple variables names that are robust to formula plotting and then convert these into proper names for plotting:
+Once `maaslin3` has been run once, `maaslin_plot_results_from_output` can be run with the same `param_list` as the original `maaslin3` run to (re-)create the plots. This allows the user to plot the associations even without having the R object returned by `maaslin_fit` or `maaslin3` (e.g., if fitting models through the command line). It is recommended to fit models with simple variables names that are robust to formula plotting and then convert these into proper names for plotting. Likewise, `heatmap_vars` and `coef_plot_vars` can be specified in the `param_list` at any point, but it is usually easier to see how the names come out at first and then choose which metadata variables will go in the coefficient plot and which will go in the heatmap afterwards with `maaslin_plot_results_from_output`.
 
 ```{R, echo = T, results = 'hide', warning = FALSE}
 # This section is necessary for updating the summary plot and the association plots
@@ -329,7 +333,7 @@ all_results <- all_results %>%
 # Write results
 write.table(all_results, 'demo_output/all_results.tsv', sep='\t')
 
-# Set the new heatmap and coefficient plot variables
+# Set the new heatmap and coefficient plot variables and order them
 param_list$heatmap_vars = c('Dysbiosis UC', 'Diagnosis UC', 'Abx Used', 'Age', 'Read depth')
 param_list$coef_plot_vars = c('Dysbiosis CD', 'Diagnosis CD')
 
@@ -371,18 +375,18 @@ param_list$input_metadata <- param_list$input_metadata %>%
 scatter_plots <- maaslin_plot_results_from_output(param_list)
 ```
 
+In the new summary plot below, we can see that the feature names are cleaned up, the metadata names are cleaned up, the set of metadata variables used in the coefficient plot is different, and the metadata used in the heatmap is reordered.
 ```{r, out.width='100%', echo=F}
 knitr::include_graphics("demo_output/figures/summary_plot.png")
 ```
 
+In the association plots, the taxa and metadata have been renamed to be consistent with the results file from earlier.
 ```{r, echo=FALSE,out.width="49%",out.height="20%",fig.cap="The four types of association plots",fig.show='hold',fig.align='center'}
-knitr::include_graphics(c("demo_output/figures/association_plots/age_Faecalibacterium_prausnitzii_LM.png",
-                          "demo_output/figures/association_plots/dysbiosis_state_Escherichia_coli_LM.png",
-                          "demo_output/figures/association_plots/age_Bifidobacterium_longum_logistic.png",
-                          "demo_output/figures/association_plots/dysbiosis_state_Faecalibacterium_prausnitzii_logistic.png"))
+knitr::include_graphics(c("demo_output/figures/association_plots/Age_Faecalibacterium prausnitzii_LM.png",
+                          "demo_output/figures/association_plots/Dysbiosis_Escherichia coli_LM.png",
+                          "demo_output/figures/association_plots/Age_Bifidobacterium longum_logistic.png",
+                          "demo_output/figures/association_plots/Dysbiosis_Faecalibacterium prausnitzii_logistic.png"))
 ```
-
-Also, the user can change which variables are specified as `coef_plot_vars` and `heatmap_vars` to change which associations are plotted. Finally, a user might fit a model with a simple variable name that will be robust to formula parsing (e.g., `dysbiosis_state`) or full taxa names but want the plots to contain more professional or readable versions of the names. In this case, the user can edit the `all_results.tsv` file to contain the revised names and then rerun only the plotting. When recreating only the summary plot (i.e., `plot_associations = FALSE`), only names in the `all_results.tsv` file need to be edited. However, when recreating the individual association plots (i.e., `plot_associations = TRUE`), names should be consistently edited across the `all_results.tsv` file and the `input_metadata` and `input_data` parameters of the `param_list`.
 
 ## 4. Advanced Topics
 

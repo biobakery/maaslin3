@@ -16,9 +16,9 @@ vignette: >
 
 ## Introduction ##
 
-**MaAsLin 3** is the next generation of **M**a**A**s**L**in (**M**icrobiome **M**ultivariable **A**ssociation with **L**inear Models).
+**MaAsLin 3** is the next generation of **M**a**A**s**L**in (**M**icrobiome **M**ultivariable **A**ssociations with **L**inear Models).
 
-[**MaAsLin3**](http://huttenhower.sph.harvard.edu/MaAsLin3) is comprehensive R package for efficiently determining multivariable associations between clinical metadata and microbial meta-omics features. Relative to MaAsLin 2, MaAsLin 3 introduces the ability to quantify and test for **both abundance and prevalence associations** while **accounting for compositionality**. MaAsLin3 relies on general linear models to accommodate most modern epidemiological study designs, including cross-sectional and longitudinal, along with a variety of filtering, normalization, and transform methods.
+[**MaAsLin3**](http://huttenhower.sph.harvard.edu/MaAsLin3) is a comprehensive R package for efficiently determining multivariable associations between clinical metadata and microbial meta-omics features. Relative to MaAsLin 2, MaAsLin 3 introduces the ability to quantify and test for **both abundance and prevalence associations** while **accounting for compositionality**. MaAsLin3 relies on generalized linear models to accommodate most modern epidemiological study designs, including cross-sectional and longitudinal, along with a variety of filtering, normalization, and transform methods.
 
 If you use the MaAsLin 3 software, please cite our manuscript: 
 
@@ -411,6 +411,9 @@ spike_in_taxa_table <- read.csv(taxa_table_name, sep = '\t')
 # Metadata table
 metadata_name <- system.file("extdata", "metadata_spike_in_ex.tsv", package = "maaslin3")
 spike_in_metadata <- read.csv(metadata_name, sep = '\t')
+for (col in c('Metadata_1', 'Metadata_2', 'Metadata_5')) {
+  spike_in_metadata[,col] <- factor(spike_in_metadata[,col])
+}
 
 # Spike-in table
 unscaled_name <- system.file("extdata", "scaling_factors_spike_in_ex.tsv", package = "maaslin3")
@@ -459,6 +462,9 @@ total_scaling_taxa_table <- read.csv(taxa_table_name, sep = '\t')
 # Metadata table
 metadata_name <- system.file("extdata", "metadata_total_ex.tsv", package = "maaslin3")
 total_scaling_metadata <- read.csv(metadata_name, sep = '\t')
+for (col in c('Metadata_1', 'Metadata_3', 'Metadata_5')) {
+  spike_in_metadata[,col] <- factor(spike_in_metadata[,col])
+}
 
 # Spike-in table
 unscaled_name <- system.file("extdata", "scaling_factors_total_ex.tsv", package = "maaslin3")
@@ -497,7 +503,7 @@ fit_out$fit_data_abundance$results %>%
 
 ### 4.2 Random effects (repeated sampling) {#random-effects}
 
-Certain studies have a natural "grouping" of sample observations, such as by subject in longitudinal designs or by family in family designs. It is  important for statistic analysis to address the non-independence between samples belonging to the same group. MaAsLin 3 provides a simple interface for this with random effects, where the user can specify the grouping variable to run a [mixed effect model](https://cran.r-project.org/web/packages/lme4/index.html) instead. This grouping variable can be provided with the `random_effects` parameter or specified in the model with `(1|grouping_variable)`. This will allow a "random intercept" or a per-group adjustment to the model intercept. More complicated random effects can be specified in the formula in accordance with `lme4` formula parsing. For example, we note that HMP2 is a longitudinal design where the same subject (column `participant_id`) can have multiple samples. We thus ask MaAsLin 3 to use subject as its random effect grouping variable. These models take longer to fit because of their complexity, and the fitting may fail more often because of the extra terms. However, it is important to account for this non-independence, and MaAsLin 3 is still able to fit complex models with thousands of samples and thousands of features in a few hours (and increasing the CPUs used with `cores` can help).
+Certain studies have a natural "grouping" of sample observations, such as by subject in longitudinal designs or by family in family designs. It is  important for statistic analysis to address the non-independence between samples belonging to the same group. MaAsLin 3 provides a simple interface for this with random effects, where the user can specify the grouping variable to run a [mixed effect model](https://cran.r-project.org/web/packages/lme4/index.html) instead. This grouping variable can be provided with the `random_effects` parameter or specified in the model with `(1|grouping_variable)`. This will allow a "random intercept" or a per-group adjustment to the model intercept. More complicated random effects can be specified in the formula in accordance with `lme4` formula parsing. For example, we note that HMP2 is a longitudinal design where the same subject (column `participant_id`) can have multiple samples. We thus ask MaAsLin 3 to use subject as its random effect grouping variable. These models take longer to fit because of their complexity, and the fitting may fail more often because of the extra terms. However, it is important to account for this non-independence, and MaAsLin 3 is still able to fit complex models with thousands of samples and thousands of features in a few hours (and increasing the CPUs used with `cores` can help). **Random intercept models may produce poor model fits with fewer than 5 observations per group. In these scenarios, per-group fixed effects should be used.**
 
 ```{R, echo = T, results = 'hide', warning = FALSE, cache = T}
 param_list <- list(input_data = taxa_table, 

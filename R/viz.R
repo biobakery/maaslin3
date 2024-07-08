@@ -207,27 +207,39 @@ maaslin3_summary_plot <-
           ggplot2::geom_vline(ggplot2::aes(xintercept = 0), color = "darkgray", linetype = 'dashed')
       }
       
+      scale_fill_gradient_limits <- c(min(max_significance, 10^floor(log10(min(coef_plot_data$qval_individual)))), 1)
+      if (min(coef_plot_data$qval_individual) < max_significance) {
+        scale_fill_gradient_breaks <- c(10^floor(log10(min(coef_plot_data$qval_individual))), max_significance, 1)
+      } else {
+        scale_fill_gradient_breaks <- c(max_significance, 1)
+      }
+      if (min(coef_plot_data$qval_individual) < max_significance) {
+        scale_fill_gradient_labels <- c(paste0("1e", floor(log10(min(coef_plot_data$qval_individual)))), 
+                                        paste0("1e", floor(log10(max_significance))),
+                                        "1")
+      } else {
+        scale_fill_gradient_labels <- c(paste0("1e", floor(log10(max_significance))),
+                                        "1")
+      }
+      
+      
       p1 <- p1 +
         ggplot2::geom_errorbar(ggplot2::aes(xmin = .data$coef - .data$stderr, xmax = .data$coef + .data$stderr), width = 0.2) + 
         ggplot2::geom_point(data = coef_plot_data[coef_plot_data$model == 'Prevalence',], 
                             ggplot2::aes(shape = .data$model, fill = .data$qval_individual), size = 4.5, color = "black")+
         ggplot2::scale_fill_gradient(low="darkgreen", high="white",
-                              limits = c(10^floor(log10(min(coef_plot_data$qval_individual))), 1),
-                              breaks = c(10^floor(log10(min(coef_plot_data$qval_individual))), max_significance, 1),
-                              labels = c(paste0("1e", floor(log10(min(coef_plot_data$qval_individual)))), 
-                                         paste0("1e", floor(log10(max_significance))),
-                                         "1"),
+                              limits = scale_fill_gradient_limits,
+                              breaks = scale_fill_gradient_breaks,
+                              labels = scale_fill_gradient_labels,
                               transform = scales::pseudo_log_trans(sigma = 0.001),
                               name = bquote("Prevalence" ~ P["FDR"])) +
         ggnewscale::new_scale_fill() + 
         ggplot2::geom_point(data = coef_plot_data[coef_plot_data$model == 'Abundance',], 
                             ggplot2::aes(shape = .data$model, fill = .data$qval_individual), size = 4.5, color = "black")+
         ggplot2::scale_fill_gradient(low="purple4", high="white",
-                            limits = c(10^floor(log10(min(coef_plot_data$qval_individual))), 1),
-                            breaks = c(10^floor(log10(min(coef_plot_data$qval_individual))), max_significance, 1),
-                            labels = c(paste0("1e", floor(log10(min(coef_plot_data$qval_individual)))), 
-                                       paste0("1e", floor(log10(max_significance))),
-                                       "1"),
+                                     limits = scale_fill_gradient_limits,
+                                     breaks = scale_fill_gradient_breaks,
+                                     labels = scale_fill_gradient_labels,
                             transform = scales::pseudo_log_trans(sigma = 0.001),
                             name = bquote("Abundance" ~ P["FDR"])) +
         ggplot2::scale_x_continuous(breaks = custom_break_fun(n = 6), 
@@ -296,7 +308,11 @@ maaslin3_summary_plot <-
         ggplot2::geom_tile(data = heatmap_data, ggplot2::aes(fill = .data$coef_cat), colour="white", linewidth=0.2) +
         ggplot2::scale_fill_manual(name = "Beta coefficient", na.value="#EEEEEE",
                           values = scale_fill_values) + 
-        ggplot2::geom_text(label = heatmap_data$sig_star, color = "black", size=6, vjust = 0.75, hjust = 0.5) + 
+        geom_text(aes(label = sig_star, color = sig_star), size = 6, vjust = 0.75, hjust = 0.5, key_glyph = draw_key_blank) +
+        scale_color_manual(name = bquote("Covariates" ~ P["FDR"]),
+                           breaks = c("**", "*", ""),
+                           values = c("black", "black", "black"),
+                           labels = c(paste0("** < ", round(max_significance, 5)), paste0("* < ", round(max_significance, 3)), "")) +
         ggplot2::labs(x ='',  y = "Feature", caption = "") +
         ggplot2::theme_bw() + 
         ggplot2::theme(axis.title = ggplot2::element_text(size = 16),
@@ -337,7 +353,7 @@ maaslin3_summary_plot <-
     }
     
     if (!is.null(final_plot)) {
-      height_out <- 8.5 + max(first_n / 5 - 5, 0) + max(nchar(c(as.character(coef_plot_vars), as.character(heatmap_vars)))) / 10
+      height_out <- 9 + max(first_n / 5 - 5, 0) + max(nchar(c(as.character(coef_plot_vars), as.character(heatmap_vars)))) / 10
       width_out <-  5 + max(nchar(merged_results$feature)) / 12 + 
         (length(coef_plot_vars) * (max(20, max(nchar(as.character(coef_plot_vars))))) / 20) * 2.5 + 
         length(heatmap_vars) * 0.25

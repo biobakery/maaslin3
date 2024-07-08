@@ -82,7 +82,9 @@ maaslin3_summary_plot <-
     }
     
     # Preprocessing
-    merged_results <- merged_results[is.na(merged_results$error),]
+    merged_results <- merged_results[is.na(merged_results$error) & 
+                                       !is.na(merged_results$qval_individual) &
+                                       !is.na(merged_results$coef),]
     if (nrow(merged_results) == 0) {
       logging::loginfo(
         paste("No associtions were without errors. No summary plot generated."))

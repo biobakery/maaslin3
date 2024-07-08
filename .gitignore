@@ -8,3 +8,8 @@
 /command_line_output
 /vignettes/output
 /vignettes/demo_output
+/vignettes/hmp2_output
+/vignettes/maaslin3_tutorial_cache
+/vignettes/random_effects_output
+/vignettes/spike_in_demo
+/vignettes/total_scaling_demo

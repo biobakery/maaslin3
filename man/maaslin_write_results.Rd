@@ -26,7 +26,7 @@ maaslin_write_results(params_data_formula_fit)
   }
 }
 \value{
-Results will be written to the \code{all_results.tsv} and \code{significant_results.tsv} files in the folder \code{output}. No value is returned.
+Results will be written to the \code{all_results.tsv} and \code{significant_results.tsv} files in the folder \code{output}. The file \code{all_results.tsv} will contain all results in the \code{fit_data_abundance} and \code{fit_data_prevalence} items of the input list (with 'LM' and 'logistic' replaced by 'abundance' and 'prevalence' in the \code{model} column). The file \code{significant_results.tsv} will contain all results with joint q-values below the `max_significance` parameter and only `NA` in the `error` column of the results (the `error` column is subsequently dropped). No value is returned.
 }
 \author{
     William Nickols<willnickols@g.harvard.edu>,\cr

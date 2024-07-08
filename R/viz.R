@@ -310,9 +310,10 @@ maaslin3_summary_plot <-
                           values = scale_fill_values) + 
         ggplot2::geom_text(aes(label = sig_star, color = sig_star), size = 6, vjust = 0.75, hjust = 0.5, key_glyph = ggplot2::draw_key_blank) +
         ggplot2::scale_color_manual(name = bquote("Covariates" ~ P["FDR"]),
-                           breaks = c("", "*", "**"),
-                           values = c("black", "black", "black"),
-                           labels = c("", paste0("* < ", round(max_significance, 3)), paste0("** < ", round(max_significance / 10, 5)))) +
+                           breaks = c("*", "**"),
+                           values = c("black", "black"),
+                           labels = c(paste0("* < ", round(max_significance, 3)), paste0("** < ", round(max_significance / 10, 5)))) +
+        guides(color = guide_legend(override.aes = list(color = ))) +
         ggplot2::labs(x ='',  y = "Feature", caption = "") +
         ggplot2::theme_bw() + 
         ggplot2::theme(axis.title = ggplot2::element_text(size = 16),

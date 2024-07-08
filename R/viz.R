@@ -313,7 +313,6 @@ maaslin3_summary_plot <-
                            breaks = c("*", "**"),
                            values = c("black", "black"),
                            labels = c(paste0("* < ", round(max_significance, 3)), paste0("** < ", round(max_significance / 10, 5)))) +
-        guides(color = guide_legend(override.aes = list(color = ))) +
         ggplot2::labs(x ='',  y = "Feature", caption = "") +
         ggplot2::theme_bw() + 
         ggplot2::theme(axis.title = ggplot2::element_text(size = 16),

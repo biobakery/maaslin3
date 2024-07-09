@@ -16,34 +16,32 @@ vignette: >
 
 ## Introduction ##
 
-MaAsLin 3 is the next generation of MaAsLin (Microbiome Multivariable Association with Linear Models).
+[**MaAsLin3**](http://huttenhower.sph.harvard.edu/MaAsLin3) is the next generation of **M**a**A**s**L**in (**M**icrobiome **M**ultivariable **A**ssociations with **L**inear Models). This comprehensive R package efficiently determines multivariable associations between clinical metadata and microbial meta-omics features. Relative to MaAsLin 2, MaAsLin 3 introduces the ability to quantify and test for **both abundance and prevalence associations** while **accounting for compositionality**. By incorporating generalized linear models, MaAsLin 3 accomodates most modern epidemiological study designs including cross-sectional and longitudinal studies.
 
-[MaAsLin3](http://huttenhower.sph.harvard.edu/MaAsLin3) is comprehensive R package for efficiently determining multivariable association between clinical metadata and microbial meta-omics features. MaAsLin3 relies on general linear models to accommodate most modern epidemiological study designs, including cross-sectional and longitudinal, along with a variety of filtering, normalization, and transform methods.
+If you use the MaAsLin 3 software, please cite our manuscript: 
 
-If you use the MaAsLin3 software, please cite our manuscript: 
-
-William A. Nickols, Jacob T. Nearing, Kelsey N. Thompson, Jiaxian Shen, Curtis Huttenhower 
+> William A. Nickols, Jacob T. Nearing, Kelsey N. Thompson, Jiaxian Shen, Curtis Huttenhower 
 MaAsLin 3: Refining and extending generalized multivariate linear models for meta-omic association discovery. (In progress).
 
-Check out the [MaAsLin 3 tutorial](https://github.com/biobakery/biobakery/wiki/MaAsLin3) for an overview of analysis options.
+### Support ###
+Check out the [MaAsLin 3 tutorial](https://github.com/biobakery/biobakery/wiki/MaAsLin3) for an overview of analysis options and some example runs.
 
-If you have questions, please direct it to: [MaAsLin 3 Forum](https://forum.biobakery.org/c/Downstream-analysis-and-statistics/MaAsLin). 
+If you have questions, please direct them to the [MaAsLin 3 Forum](https://forum.biobakery.org/c/Downstream-analysis-and-statistics/MaAsLin3)   . 
 
 --------------------------------------------
 
 ## Contents ##
 - [Introduction](#introduction)
+  - [Support](#support)
 - [Contents](#contents)
-- [Description](#description)
 - [Requirements](#requirements)
 - [Installation](#installation)
-- [How to run](#how-to-run)
+- [Running MaAsLin 3](#running-maaslin-3)
   - [Input data](#input-data)
   - [Output files](#output-files)
   - [Run a demo](#run-a-demo)
     - [In R](#in-r)
       - [Plot revisions](#plot-revisions)
-      - [Session info](#session-info)
     - [Command line](#command-line)
   - [Options](#options)
     - [Required parameters](#required-parameters)
@@ -54,10 +52,6 @@ If you have questions, please direct it to: [MaAsLin 3 Forum](https://forum.biob
     - [Technical parameters](#technical-parameters)
 - [Troubleshooting](#troubleshooting)
 
-## Description ##
-
-MaAsLin 3 finds abundance and prevalence associations between microbiome meta-omics features and complex metadata in population-scale epidemiological studies. The software includes multiple analysis methods (including support for multiple covariates, repeated measures, and ordered predictors), filtering, normalization, and transform options to customize analysis for your specific study.
-
 ## Requirements ##
 
 MaAsLin3 is an R package that can be run on the command line or as an R function.
@@ -66,19 +60,28 @@ MaAsLin3 is an R package that can be run on the command line or as an R function
 
 #### Install using GitHub and devtools
 
-```{r, eval=FALSE}
+The latest development version of MaAsLin 3 can be installed from GitHub using the `devtools` package.
+
+```{r, eval=FALSE, cache = F}
+# Install devtools if not present
 if (!require('devtools', character.only = TRUE)) {
   install.packages('devtools')
 }
 
+# Install MaAsLin 3
 library("devtools")
 install_github("biobakery/MaAsLin3")
-library("maaslin3")
 ```
 
-## How to run ##
+```{r, eval=T, cache = F, echo=F}
+for (lib in c('maaslin3', 'dplyr', 'ggplot2', 'knitr', 'kableExtra')) {
+    suppressPackageStartupMessages(require(lib, character.only = TRUE))
+}
+```
 
-MaAsLin3 can be run from the command line or as an R function. Both methods require the same arguments, have the same options, and use the same default settings.
+## Running MaAsLin 3 ##
+
+MaAsLin3 can be run from the command line or as an R function. Both methods require the same arguments, have the same options, and use the same default settings. To run MaAsLin 3, the user must supply a table of per-sample feature abundances (with zeros still included), a table of per-sample metadata, and a model specifying how the metadata should relate to the feature prevalence (how likely the feature is to be present or absent) and abundance (how much of the feature is there if it's there). MaAsLin 3 will return a table of associations including an effect size and p-value for each feature-metadatum association and a folder of visuals including a summary plot and diagnostic plots for significant associations.
 
 ### Input data ###
 
@@ -87,38 +90,41 @@ MaAsLin3 requires two input files.
 1. Feature abundance data frame
     * Formatted with features as columns and samples as rows.
     * The transpose of this format is also okay.
-    * Possible features in this file include taxonomy or genes.
+    * Possible features include taxonomy or genes. These can be relative abundances or counts.
     * This can be a filepath to a tab-delimited file.
 2. Metadata data frame
     * Formatted with variables as columns and samples as rows.
     * The transpose of this format is also okay.
-    * Possible metadata in this file include gender or age.
+    * Possible metadata include gender or age.
     * This can be a filepath to a tab-delimited file.
 
-The data file can contain samples not included in the metadata file
-(along with the reverse case). For both cases, those samples not 
-included in both files will be removed from the analysis. 
-Also the samples do not need to be in the same order in the two files.
+The data file can contain samples not included in the metadata file (along with the reverse case). For both cases, those samples not included in both files will be removed from the analysis. Also, the samples do not need to be in the same order in the two files.
 
-NOTE: If running MaAsLin3 from the command line, the data and metadata inputs can be filepaths.
+To run MaAsLin 3, it is also necessary to specify a model. The model can come from a formula or vectors of terms. In either case, variable names should not have spaces or unusual characters.
+
+* *Formula*: The `formula` parameter should be set to any formula that satisfies the `lme4` specifications: fixed effects, random effects, interaction terms, polynomial terms, and more can all be included. If categorical variables are included as fixed effects, each level will be tested against the first factor level. In addition, ordered predictors and group predictors can be included by including `group(variable_name)` and `ordered(variable_name)` in the formula.
+* *Vectors*: Alternatively, a vector of variable names can be supplied to the parameters `fixed_effects`, `random_effects`, `group_effects`, and `ordered_effects`. Categorical variables should either be ordered as factors beforehand, or `reference` should be provided as a string of 'variable,reference' semi-colon delimited for multiple variables (e.g., `variable_1,reference_1;variable_2,reference_2`). NOTE: adding a space between the variable and level might result in the wrong reference level being used.
+
+**Because MaAsLin 3 identifies prevalence (presence/absence) associations, sample read depth (number of reads) should be included as a covariate if available. Deeper sequencing will likely increase feature detection in a way that could spuriously correlate with metadata of interest when read depth is not included in the model.**
+
 
 ### Output files ###
 
-MaAsLin3 generates two types of output files: data and visualization.
+MaAsLin 3 generates two types of output files explained below: data and visualizations. In addition, the object returned from `maaslin3` contains all the data and results (see `?maaslin_fit`).
 
 1. Data output files
     * ``all_results.tsv``
         * This file contains all results ordered by increasing q-value.
         * Columns 1 and 2 are the feature and metadata names.
         * Columns 3 and 4 are the value of the metadata and variable name from the model.
-        * Columns 5 and 6 are the fit coefficient and standard error from the model.
+        * Columns 5 and 6 are the fit coefficient and standard error from the model. In abundance models, a one-unit change in the metadatum variable corresponds to a $2^{\textrm{coef}}$ fold change in the relative abundance of the feature. In prevalence models, a one-unit change in the metadatum variable corresponds to a $\textrm{coef}$ change in the log-odds of a feature being present.
         * Column 7 is the p-value of the individual association.
         * Column 8 lists any errors from the model fitting.
         * Column 9 is the q-value of the individual association.
-        * Column 10 species whether the association is abundance or prevalence.
+        * Column 10 specifies whether the association is abundance or prevalence.
         * Column 11 is the total number of data points.
         * Column 12 is the total number of non-zero data points.
-        * Columns 13 and 14 are the p-value and q-value of the joint prevalence and abundance association.
+        * Columns 13 and 14 are the p-value and q-value of the joint prevalence and abundance association. The p-value comes from plugging in the minimum of the association's abundance and prevalence p-values into the Beta(1,2) CDF. It is interpreted as the probability that either the abundance or prevalence association would be as extreme as observed if there was neither an abundance nor prevalence association between the feature and metadatum.
     * ``significant_results.tsv``
         * This file is a subset of the results in the first file.
         * It only includes associations with q-values <= to the threshold and no errors.
@@ -127,20 +133,20 @@ MaAsLin3 generates two types of output files: data and visualization.
         * These steps are performed sequentially in the above order.
         * If an option is set such that a step does not change the data, the resulting table will still be output.
     * ``models_LM.rds`` and ``models_logistic.rds``
-        * This file contains a list with every model fit object (`LM` for linear models, `logistic` for logistic models).
+        * These files contain a list with every model fit object (`LM` for linear models, `logistic` for logistic models).
         * It will only be generated if `save_models` is set to TRUE.
     * ``residuals_LM.rds`` and ``residuals_logstic.rds``
-        * This file contains a data frame with residuals for each feature.
+        * These files contain a data frame with residuals for each feature.
     * ``fitted_LM.rds`` and ``fitted_logistic.rds``
-        * This file contains a data frame with fitted values for each feature.
+        * These files contain a data frame with fitted values for each feature.
     * ``ranef_LM.rds`` and ``ranef_logistic.rds``
-        * This file contains a data frame with extracted random effects for each feature (when random effects are specified).
+        * These files contain a data frame with extracted random effects for each feature (when random effects are specified).
     * ``maaslin3.log``
         * This file contains all log information for the run.
         * It includes all settings, warnings, errors, and steps run.
 2. Visualization output files
     * ``summary_plot.pdf``
-        * This file contains a combined coefficient plot and heatmap of the most significant associations.
+        * This file contain a combined coefficient plot and heatmap of the most significant associations. In the heatmap, one star indicates the individual q-value is below the parameter `max_significance`, and two stars indicate the individual q-value is below `max_significance` divided by 10.
     * ``association_plots/[metadatum]_[feature]_[association].pdf``
         * A plot is generated for each significant association up to `max_pngs`.
         * Scatter plots are used for continuous metadata abundance associations.
@@ -149,28 +155,30 @@ MaAsLin3 generates two types of output files: data and visualization.
         * Grids are used for categorical data prevalence associations.
         * Data points plotted are after filtering, normalization, and transformation so that the scale in the plot is the scale that was used in fitting.
 
+At the top right of each association plot is the name of the significant association in the results file, the FDR corrected q-value for the individual association, the number of samples in the dataset, and the number of samples with non-zero abundances for the feature. In the plots with categorical metadata variables, the reference category is on the left, and the significant q-values and coefficients in the top right are in the order of the values specified above. Because the displayed coefficients correspond to the full fit model with (possibly) scaled metadata variables, the marginal association plotted might not match the coefficient displayed. However, the plots are intended to provide an interpretable visual while usually agreeing with the full model.
+
+#### Diagnostics
+
+There are a few common issues to check for in the results:
+
+1. When warnings or errors are thrown during the fitting process, they are recorded in the `error` column of `all_results.tsv`. Often, these indicate model fitting failures or poor fits that should not be trusted, but sometimes the warnings can be benign, and the model fit might still be reasonable. Users should check associations of interest if they produce errors.
+2. Despite the error checking, significant results could still result from poor model fits. These can usually be diagnosed with the visuals in the `association_plots` directory. 
+    * Any significant abundance associations with a categorical variable should usually have **at least 10 observations in each category**.
+    * Significant prevalence associations with categorical variables should also have **at least 10 samples in which the feature was present and at least 10 samples in which it was absent for each significant category**. 
+    * Significant abundance associations with continuous metadata should be checked visually for influential outliers.
+
 ### Run a demo ###
 
-Example input files can be found in the ``inst/extdata`` folder 
-of the MaAsLin 3 source. The files provided were generated from
-the HMP2 data which can be downloaded from https://ibdmdb.org/ .
+Example input files can be found in the ``inst/extdata`` folder of the MaAsLin 3 source. The files provided were generated from the Human Microbiome Project 2 (HMP2) data which can be downloaded from https://ibdmdb.org/.
 
-* ``HMP2_taxonomy.tsv``: is a tab-demilited file with species as columns and samples as rows. It is a subset of the taxonomy file so it just includes some of the species abundances.
-
-* ``HMP2_metadata.tsv``: is a tab-delimited file with samples as rows and metadata as columns. It is a subset of the metadata file so that it just includes some of the fields.
+* ``HMP2_taxonomy.tsv``: a tab-delimited file with samples as rows and species as columns. It is a subset of the full HMP2 taxonomy that includes just some of the the species abundances.
+* ``HMP2_metadata.tsv``: a tab-delimited file with samples as rows and metadata as columns. It is a subset of the full HMP2 metadata that includes just some of the fields.
 
 #### In R ####
 
-The following code identifies associations between patient metadata and sample species in the Human Microbiome Project 2 cohort. There are a few things to highlight:
+The following code identifies associations between patient metadata and microbial species in the HMP2 cohort.
 
-* Because MaAsLin 3 models prevalence associations, the number of reads should be included as a covariate since deeper sequencing will enable better detection of features.
-* We set `median_comparison_abundance = TRUE` but `median_comparison_prevalence = FALSE` since we want to compare the abundance coefficients against their medians to account for compositionality, but we just want to compare the prevalence coefficients against 0. If we instead wanted to see whether a feature's prevalence coefficient was significantly different from the median, we could set `median_comparison_prevalence = TRUE`.
-* When warnings or errors are thrown during the fitting process, they are recorded in the `error` column of the outputs. Often, these indicate model fitting failures or poor fits that should not be trusted, but sometimes the warnings can be benign, and the model fit might still be reasonable. Users should check associations of interest if they produce errors.
-* In the resulting `figures/` folder, it is a good idea to check the association plots for the most significant associations. In particular, significant categorical prevalence associations should have a reasonable number of samples in each grid box (e.g., >10 present and >10 absent for each significant category).
-
-```{r, eval=F}
-library(maaslin3)
-
+```{R, echo = T, results = 'hide', warning = FALSE, cache = F}
 # Read abundance table
 taxa_table_name <- system.file("extdata", "HMP2_taxonomy.tsv", package = "maaslin3")
 taxa_table <- read.csv(taxa_table_name, sep = '\t')
@@ -189,19 +197,18 @@ metadata$antibiotics <-
 # Prepare parameter lists 
 param_list <- list(input_data = taxa_table, 
                    input_metadata = metadata, 
-                   output = 'output', 
+                   output = 'hmp2_output', 
+                   formula = '~ diagnosis + dysbiosis_state + antibiotics + age + reads',
                    normalization = 'TSS', 
                    transform = 'LOG', 
-                   formula = '~ diagnosis + dysbiosis_state + antibiotics + age + reads',
-                   save_models = FALSE, 
-                   plot_summary_plot = TRUE, 
-                   max_significance = 0.1, 
                    augment = TRUE, 
+                   standardize = TRUE,
+                   max_significance = 0.1, 
                    median_comparison_abundance = TRUE, 
                    median_comparison_prevalence = FALSE, 
-                   cores=1)
+                   max_pngs = 100,
+                   cores = 1)
 
-# Run MaAsLin 3
 fit_out <- maaslin3(param_list)
 ```
 
@@ -220,22 +227,94 @@ maaslin_write_results(fit_out)
 invisible(maaslin_plot_results(fit_out)) # invisible to avoid dumping plots into Rmd
 ```
 
-#### Plot revisions ####
+#### Replotting
 
-Once `maaslin3` has been run once, `maaslin_plot_results_from_output` can be run with the same `param_list` as the original `maaslin3` run to (re-)create the plots. This allows the user to plot the associations even without having the R object returned by `maaslin_fit` or `maaslin3` (e.g., if fitting models through the command line). Also, the user can change which variables are specified as `coef_plot_vars` and `heatmap_vars` to change which associations are plotted. Finally, a user might fit a model with a simple variable name that will be robust to formula parsing (e.g., `dysbiosis_state`) or full taxa names but want the plots to contain more professional or readable versions of the names. In this case, the user can edit the `all_results.tsv` file to contain the revised names and then rerun only the plotting. When recreating only the summary plot (i.e., `plot_associations = FALSE`), only names in the `all_results.tsv` file need to be edited. However, when recreating the individual association plots (i.e., `plot_associations = TRUE`), names should be consistently edited across the `all_results.tsv` file and the `input_metadata` and `input_data` parameters of the `param_list`.
+Once `maaslin3` has been run once, `maaslin_plot_results_from_output` can be run with the same `param_list` as the original `maaslin3` run to (re-)create the plots. This allows the user to plot the associations even without having the R object returned by `maaslin_fit` or `maaslin3` (e.g., if fitting models through the command line). It is recommended to fit models with simple variables names that are robust to formula plotting and then convert these into proper names for plotting. Likewise, `heatmap_vars` and `coef_plot_vars` can be specified in the `param_list` at any point, but it is usually easier to see how the names come out first and then choose which metadata variables will go in the coefficient plot and which will go in the heatmap afterwards with `maaslin_plot_results_from_output`.
 
-##### Session info #####
+```{R, echo = T, results = 'hide', warning = FALSE, cache = F}
+# This section is necessary for updating the summary plot and the association plots
 
-Session info from running the demo in R can be displayed with the following command.
+# Rename results file with clean titles
+all_results <- read.csv('hmp2_output/all_results.tsv', sep='\t')
+all_results <- all_results %>%
+  mutate(metadata = case_when(metadata == 'age' ~ 'Age',
+                              metadata == 'antibiotics' ~ 'Abx',
+                              metadata == 'diagnosis' ~ 'Diagnosis',
+                              metadata == 'dysbiosis_state' ~ 'Dysbiosis',
+                              metadata == 'reads' ~ 'Read depth'),
+         value = case_when(value == 'dysbiosis_CD' ~ 'CD',
+                           value == 'dysbiosis_UC' ~ 'UC',
+                           value == 'Yes' ~ 'Used', # Antibiotics
+                           value == 'age' ~ 'Age',
+                           value == 'reads' ~ 'Read depth',
+                           TRUE ~ value),
+         feature = gsub('_', ' ', feature) %>% 
+           gsub(pattern = 'sp ', replacement = 'sp. '))
 
-```{r}
-sessionInfo()
+# Write results
+write.table(all_results, 'hmp2_output/all_results.tsv', sep='\t')
+
+# Set the new heatmap and coefficient plot variables and order them
+param_list$heatmap_vars = c('Dysbiosis UC', 'Diagnosis UC', 'Abx Used', 'Age', 'Read depth')
+param_list$coef_plot_vars = c('Dysbiosis CD', 'Diagnosis CD')
+
+# This section is necessary for updating the association plots
+colnames(param_list$input_data) <- gsub('_', ' ', colnames(param_list$input_data)) %>%
+  gsub(pattern = 'sp ', replacement = 'sp. ')
+
+# Rename the features in the norm transformed data file
+filtered_data_norm_transformed <- 
+  read.csv('hmp2_output/features/filtered_data_norm_transformed.tsv', sep='\t')
+colnames(filtered_data_norm_transformed) <- 
+  gsub('_', ' ', colnames(filtered_data_norm_transformed)) %>%
+  gsub(pattern = 'sp ', replacement = 'sp. ')
+write.table(filtered_data_norm_transformed, 
+            'hmp2_output/features/filtered_data_norm_transformed.tsv', 
+            sep='\t', row.names = F)
+
+# Rename the metadata like in the outputs table
+colnames(param_list$input_metadata) <- 
+  case_when(colnames(param_list$input_metadata) == 'age' ~ 'Age',
+            colnames(param_list$input_metadata) == 'antibiotics' ~ 'Abx',
+            colnames(param_list$input_metadata) == 'diagnosis' ~ 'Diagnosis',
+            colnames(param_list$input_metadata) == 'dysbiosis_state' ~ 'Dysbiosis',
+            colnames(param_list$input_metadata) == 'reads' ~ 'Read depth',
+            TRUE ~ colnames(param_list$input_metadata))
+param_list$input_metadata <- param_list$input_metadata %>%
+  mutate(Dysbiosis = case_when(Dysbiosis == 'dysbiosis_UC' ~ 'UC',
+                               Dysbiosis == 'dysbiosis_CD' ~ 'CD',
+                               Dysbiosis == 'none' ~ 'None') %>%
+           factor(levels = c('None', 'UC', 'CD')),
+         Abx = case_when(Abx == 'Yes' ~ 'Used',
+                         Abx == 'No' ~ 'Not used') %>%
+           factor(levels = c('Not used', 'Used')),
+         Diagnosis = case_when(Diagnosis == 'nonIBD' ~ 'non-IBD',
+                               TRUE ~ Diagnosis) %>%
+           factor(levels = c('non-IBD', 'UC', 'CD')))
+
+# Recreate the plots
+scatter_plots <- maaslin_plot_results_from_output(param_list)
+```
+
+In the new summary plot below, we can see that the feature names are cleaned up, the metadata names are cleaned up, the set of metadata variables used in the coefficient plot is different, and the metadata used in the heatmap is reordered.
+```{r, out.width='100%', echo=F, cache = F}
+knitr::include_graphics("hmp2_output/figures/summary_plot.png")
+```
+
+In the association plots, the taxa and metadata have been renamed to be consistent with the results file from earlier.
+```{r, echo=FALSE,out.width="49%",out.height="20%",fig.cap="The four types of association plots",fig.show='hold',fig.align='center', cache = F}
+knitr::include_graphics(c("hmp2_output/figures/association_plots/Age_Faecalibacterium prausnitzii_LM.png",
+                          "hmp2_output/figures/association_plots/Dysbiosis_Escherichia coli_LM.png",
+                          "hmp2_output/figures/association_plots/Age_Bifidobacterium longum_logistic.png",
+                          "hmp2_output/figures/association_plots/Dysbiosis_Faecalibacterium prausnitzii_logistic.png"))
 ```
 
 #### Command line ####
 
-```{r, engine = 'bash', eval = FALSE}
-./R/maaslin3.R inst/extdata/HMP2_taxonomy.tsv inst/extdata/HMP2_metadata.tsv command_line_output  --formula='~ diagnosis + dysbiosis_state + antibiotics + age + reads' --reference='diagnosis,nonIBD;dysbiosis_state,none;antibiotics,No'
+MaAsLin 3 can also be run with a command line interface. For example, the first HMP2 analysis can be performed with:
+
+```{r, engine = 'bash', eval = FALSE, cache = F}
+./R/maaslin3.R inst/extdata/HMP2_taxonomy.tsv inst/extdata/HMP2_metadata.tsv command_line_output --formula='~ diagnosis + dysbiosis_state + antibiotics + age + reads' --reference='diagnosis,nonIBD;dysbiosis_state,none;antibiotics,No'
 ```
 
 * Make sure to provide the full path to the MaAsLin3 executable (i.e. `./R/maaslin3.R`).
@@ -262,14 +341,18 @@ When running MaAsLin 3 in R, the manual page for each function (e.g., `?maaslin3
 
 * `formula`: A formula in `lme4` format. Random effects, interactions, and functions of the metadata can be included (note that these functions will be applied after standardization if `standardize = TRUE`). Group and ordered variables can be specified as: `group(grouping_variable)` and `ordered(ordered_variable)`. The other variable options below will not be considered if a formula is set.
 * `fixed_effects`: A vector of variable names to be included as fixed effects.
+  * Fixed effects models are fit with `lm` (linear) or `glm` (logistic).
 * `reference`: For a variable with more than two levels supplied with `fixed_effects`, the factor to use as a reference provided as a string of 'variable,reference' semi-colon delimited for multiple variables.
-* `random_effects`: A vector of variable names to be included as random intercepts.
+* `random_effects`: A vector of variable names to be included as random intercepts. **Random intercept models may produce poor model fits when there are fewer than 5 observations per group.** In these scenarios, per-group fixed effects should be used and subsequently filtered out.
+  * Random effects models are fit with `lmer` (linear) and `glmer` (logistic), and the significance tests come from `lmerTest` and `glmer` respectively.
 * `group_effects`: A factored categorical variable to be included for group testing. An ANOVA-style test will be performed to assess whether any of the variable's levels are significant, and no coefficients or individual p-values will be returned.
-* `ordered_effects`: A factored categorical variable to be included. Consecutive levels will be tested for significance against each other, and the resulting associations will correspond to effect sizes, standard errors, and significances of each level versus the previous.
+  * Tests are performed with the `anova` function's `LRT` option (logistic fixed and mixed effects), the `anova` function's F test (linear fixed effects), or `lmerTest::contest` (linear mixed effects).
+* `ordered_effects`: A factored categorical variable to be included. Consecutive levels will be tested for significance against each other with contrast tests, and the resulting associations will correspond to effect sizes, standard errors, and significances of each level versus the previous.
+  * Contrast tests are performed with `multcomp::glht` (fixed effects and logistic mixed effects) and `lmerTest::contest` (linear mixed effects).
 
 #### Analysis options ####
 
-* `min_abundance` (default `0`): Features with abundances of at least `min_abundance` in `min_prevalence` of the samples will be included for analysis. The threshold is applied before normalization and transformation. The options `min_abundance` and `min_prevalence` should usually be 0 since MaAsLin 3 is designed to model sparsity.
+* `min_abundance` (default `0`): Features with abundances of at least `min_abundance` in `min_prevalence` of the samples will be included for analysis. The threshold is applied before normalization and transformation. **The options `min_abundance` and `min_prevalence` should usually be 0 since MaAsLin 3 is designed to model sparsity.**
 * `min_prevalence` (default `0`): See above.
 * `zero_threshold` (default `0`): Abundances less than or equal to `zero_threshold` will be treated as zeros. This is primarily to be used when the abundance table has likely low-abundance false positives.
 * `min_variance` (default `0`): Features with abundance variances less than or equal to `min_variance` will be dropped. This is primarily used for dropping features that are entirely zero.
@@ -281,9 +364,38 @@ When running MaAsLin 3 in R, the manual page for each function (e.g., `?maaslin3
 
 #### Compositionality corrections ####
 
-* `unscaled_abundance`: A data frame with a single column of absolute abundances or a filepath to such a tab-delimited file. The row names should match the names of the samples in `input_data` and `input_metadata`. When using spike-ins, the single column should have the same name as one of the features in `input_data`, and the `unscaled_abundance` should correspond to the absolute quantity of the spike-in. For example, if the same spike-in quantity is used in each sample, the entire column can be set to 1. When using total abundance scaling, the single column should have the name 'total', and the `unscaled_abundance` should correspond to the total abundance of each sample. In both cases, `median_comparison_abundance` should be set to `FALSE` since the spike-in or total abundance normalization accounts for compositionality.
+##### Absolute abundance
 
-  Alternatively, if the `input_data` abundances have already been scaled to be absolute abundances, the user should set `normalization = NONE` and `median_comparison_abundance = FALSE` and not include anything for `unscaled_abundance`. 
+Most microbiome methodologies have historically focused on relative abundances (proportions out of 1). However, some experimental protocols can enable estimation of absolute abundances (cell count/concentration). MaAsLin 3 can be used with two types of absolute abundance estimation: spike-ins and total abundance scaling. In a spike-in procedure, a small, known quantity of a microbe that otherwise would not be present in the sample is added, and the sequencing procedure is carried out as usual. Then, the absolute abundance of a microbe already in the community is estimated as:
+$$\textrm{Absolute abundance other microbe}=\frac{\textrm{Relative abundance other microbe}}{\textrm{Relative abundance spike-in microbe}}\cdot (\textrm{Absolute abundance spike-in microbe})$$
+Alternatively, the total microbial abundance of a sample can be determined (e.g., with qPCR of a marker gene or by cell counting). Then, the absolute abundance of a microbe in the community is estimated as:
+$$\textrm{Absolute abundance microbe}=(\textrm{Total absolute abundance})\cdot(\textrm{Relative abundance microbe})$$
+
+##### Compositionality corrections continued
+
+* `unscaled_abundance`: A data frame with a single column of absolute abundances or a filepath to such a tab-delimited file. The row names should match the names of the samples in `input_data` and `input_metadata`. When using spike-ins, the single column should have the same name as one of the features in `input_data`, and the values should correspond to the absolute quantity of the spike-in. For example, if the same spike-in quantity is used in each sample, the entire column can be set to 1. When using total abundance scaling, the single column should have the name 'total', and the values should correspond to the total abundance of each sample. In both cases, `median_comparison_abundance` should be set to `FALSE` since the spike-in or total abundance normalization accounts for compositionality.
+
+  Alternatively, if the `input_data` abundances have already been scaled to be absolute abundances, the user should set `normalization = NONE` and `median_comparison_abundance = FALSE` and not include anything for `unscaled_abundance`. Then, the absolute abundances will be log transformed, and models will be fit on those values directly.
+  
+##### Median comparisons
+
+When `median_comparison_abundance` or `median_comparison_prevalence` are on, the coefficients for a metadatum will be tested against the median coefficient for that metadatum (median across the features). Otherwise, the coefficients will be tested against 0. For abundance associations, this is designed to account for compositionality, the idea that if only one feature has a positive association with a metadatum on the absolute scale (cell count), the other features will have apparent negative associations with that metadatum on the relative scale (proportion of the community) because relative abundances must sum to 1. More generally, associations on the relative scale are not necessarily the same as the associations on the absolute scale in magnitude or sign, so **testing against zero on the relative scale is not equivalent to testing against zero on the absolute scale**. When testing associations on the relative scale, the coefficients should be tested against 0 (median comparison off). However, since these tests do not correspond to tests for associations on the absolute scale, we instead use a test against the median, which can enable some inference on the absolute scale. There are two interpretations of this test for absolute abundance associations:
+
+1. In linear models, if two features' associations with a particular metadatum on the log *absolute* scale differ by some value $d$, the features' associations with that metadatum on the log *relative* scale (total-sum scaling) will also differ by $d$. That is, the absolute and relative coefficients for a particular feature-metadatum association are different, but **the ordering of the relative coefficients is the same as the ordering of the absolute coefficients for a metadatum, and the difference between two coefficients on the relative scale is the same as the difference between the corresponding coefficients on the absolute scale**. Therefore, the test against the relative coefficient median can always be interpreted as "a test of whether a particular association is significantly different from the typical (median) association on the absolute scale."
+2. Under the assumption that at least half the features are not changing on the absolute scale, the median true absolute coefficient is 0, so this can be interpreted as a test of whether the feature has a non-zero association on the absolute scale.
+
+By contrast, sparsity should be less affected by compositionality since a feature should still be present even if another increases or decreases in abundance. (Note that, because the read depth is finite, this might not always be true in practice.) Therefore, `median_comparison_prevalence` is off by default, but it can be turned on if the user is interested in testing whether a particular prevalence association is significantly different from the typical prevalence association.
+
+In both cases, if the tested coefficient is within `median_comparison_[abundance/prevalence]_threshold` of the median, it will automatically receive a p-value of 1. This is based on the idea that the association might be statistically significantly different but not substantially different from the median and therefore is likely still a result of compositionality.
+
+To conclude:
+
+* `median_comparison_abundance` is `TRUE` by default and should be used to make inference on the absolute scale when using relative abundance data. When `median_comparison_abundance` is `TRUE`, only the p-values and q-values change; the coefficients returned are still the relative abundance coefficients.
+* `median_comparison_abundance` should be `FALSE` when (1) testing for significant relative associations, (2) testing for absolute abundance associations under the assumption that the total absolute abundance is not changing, or (3) testing for significant absolute associations when supplying spike-in or total abundances with `unscaled_abundance`.
+* `median_comparison_prevalence` is `FALSE` by default.
+
+##### Compositionality corrections continued
+  
 * `median_comparison_abundance` (default `TRUE`): Test abundance coefficients against a null value corresponding to the median coefficient for a metadata variable across the features. Otherwise, test against 0. This is recommended for relative abundance data but should not be used for absolute abundance data.
 * `median_comparison_prevalence` (default `FALSE`): Test prevalence coefficients against a null value corresponding to the median coefficient for a metadata variable across the features. Otherwise, test against 0. This is only recommended if the analyst is interested in how feature prevalence associations compare to each other or if there is likely strong compositionality-induced sparsity.
 * `median_comparison_abundance_threshold` (default `0.25`): Coefficients within `median_comparison_abundance_threshold` of the median association will automatically be counted as insignificant (p-value set to 1) since they likely represent compositionality-induced associations. This threshold will be divided by the metadata variable's standard deviation if the metadatum is continuous to ensure the threshold applies to the right scale.
@@ -299,7 +411,7 @@ When running MaAsLin 3 in R, the manual page for each function (e.g., `?maaslin3
   By default, the (up to) two metadata variables with the most significant associations will be plotted in the coefficient plot, and the rest will be plotted in the heatmap. Because predicting the output variable names can be tricky, it is recommended to first run `maaslin3` without setting `coef_plot_vars` or `heatmap_vars`, look at the names of the variables in the summary plot, and then rerun with `maaslin_plot_results_from_output` after updating `coef_plot_vars` and `heatmap_vars` in `param_list` with the desired variables.
 * `heatmap_vars`: Vector of variable names to be used in the heatmap section of the summary plot. Continuous variables should match the metadata column name, and categorical variables should be of the form `"[variable] [level]"`.
 * `plot_associations` (default `TRUE`): Whether to generate plots for significant associations.
-* `max_pngs` (default `30`): The top `max_pngs` associations will be plotted.
+* `max_pngs` (default `30`): The top `max_pngs` significant associations will be plotted.
 
 #### Technical parameters ####
 

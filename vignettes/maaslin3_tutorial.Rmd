@@ -16,9 +16,7 @@ vignette: >
 
 ## Introduction ##
 
-**MaAsLin 3** is the next generation of **M**a**A**s**L**in (**M**icrobiome **M**ultivariable **A**ssociations with **L**inear Models).
-
-[**MaAsLin3**](http://huttenhower.sph.harvard.edu/MaAsLin3) is a comprehensive R package for efficiently determining multivariable associations between clinical metadata and microbial meta-omics features. Relative to MaAsLin 2, MaAsLin 3 introduces the ability to quantify and test for **both abundance and prevalence associations** while **accounting for compositionality**. MaAsLin3 relies on generalized linear models to accommodate most modern epidemiological study designs, including cross-sectional and longitudinal, along with a variety of filtering, normalization, and transform methods.
+[**MaAsLin3**](http://huttenhower.sph.harvard.edu/MaAsLin3) is the next generation of **M**a**A**s**L**in (**M**icrobiome **M**ultivariable **A**ssociations with **L**inear Models). This comprehensive R package efficiently determines multivariable associations between clinical metadata and microbial meta-omics features. Relative to MaAsLin 2, MaAsLin 3 introduces the ability to quantify and test for **both abundance and prevalence associations** while **accounting for compositionality**. By incorporating generalized linear models, MaAsLin 3 accomodates most modern epidemiological study designs including cross-sectional and longitudinal studies.
 
 If you use the MaAsLin 3 software, please cite our manuscript: 
 
@@ -26,7 +24,7 @@ If you use the MaAsLin 3 software, please cite our manuscript:
 MaAsLin 3: Refining and extending generalized multivariate linear models for meta-omic association discovery. (In progress).
 
 ### Support ###
-If you have questions, please direct it to: [MaAsLin 3 Forum](https://forum.biobakery.org/c/Downstream-analysis-and-statistics/MaAsLin3)   . 
+If you have questions, please direct them to the [MaAsLin 3 Forum](https://forum.biobakery.org/c/Downstream-analysis-and-statistics/MaAsLin3)   . 
 
 ## Contents
 * [1. Installing R](#installing-r)
@@ -45,69 +43,49 @@ If you have questions, please direct it to: [MaAsLin 3 Forum](https://forum.biob
 
 ## 1. Installing R {#installing-r}
 
-[R](https://www.r-project.org/) is a programming language specializing in 
-statistical computing and graphics. You can use R just the same as any other 
-programming languages, but it is most useful for statistical analyses, with 
-well-established packages for common tasks such as [linear modeling](https://cran.r-project.org/web/packages/lme4/index.html), ['omic 
-data analysis](https://bioconductor.org/), [machine learning](http://topepo.github.io/caret/index.html), and [visualization](https://ggplot2.tidyverse.org/). We have created a short introduction tutorial [here](https://github.com/biobakery/biobakery/wiki/Introduction-to-R#1-lab-setup-and-basics-in-r), but we note there are many other more comprehensive tutorials out there to learn R. 
+[R](https://www.r-project.org/) is a programming language specializing in statistical computing and graphics. You can use R just the same as any other programming languages, but it is most useful for statistical analyses, with well-established packages for common tasks such as [linear modeling](https://cran.r-project.org/web/packages/lme4/index.html), ['omic data analysis](https://bioconductor.org/), [machine learning](http://topepo.github.io/caret/index.html), and [visualization](https://ggplot2.tidyverse.org/). We have created a short introduction tutorial [here](https://github.com/biobakery/biobakery/wiki/Introduction-to-R#1-lab-setup-and-basics-in-r), but we note there are many other more comprehensive tutorials out there to learn R. 
 
 #### Installing R for the first time
 
-You can download and install the free R software environment 
-[here](https://cloud.r-project.org/). Note that you should download the latest
-release - this will ensure the R version you have is compatible with MaAsLin 3.
+You can download and install the free R software environment [here](https://cloud.r-project.org/). Note that you should download the latest release - this will ensure the R version you have is compatible with MaAsLin 3.
 
 #### (Optional) the RStudio IDE
 
-[RStudio](https://rstudio.com/products/rstudio/) is a freely available 
-IDE (integrated development environment) for R. It is a "wrapper" around R with
-some additional functionalities that makes programming in R a bit easier. Feel 
-free to download RStudio and explore its interface - but it is not required 
-for this tutorial.
+[RStudio](https://rstudio.com/products/rstudio/) is a freely available IDE (integrated development environment) for R. It is a "wrapper" around R with some additional functionalities that make programming in R a bit easier. Feel free to download RStudio and explore its interface - but it is not required for this tutorial.
 
 #### Important: the correct R version
 
-If you already have R installed, then it is possible that the R version you have 
-does not support MaAsLin 3. The easiest way to check this is to launch R/RStudio,
-and in the console ("Console" pane in RStudio), type in the following command 
-(without the `>` symbol):
+If you already have R installed, then it is possible that the R version you have does not support MaAsLin 3. The easiest way to check this is to launch R/RStudio, and in the console ("Console" pane in RStudio), type in the following command (without the `>` symbol):
 
-```{R, eval=F}
+```{R, eval=F, cache = F}
 sessionInfo()
 ```
 
-The first line of output message should indicate your current R version. For 
-example:
+The first line of output message should indicate your current R version. For example:
 
 ```
 > sessionInfo()
 R version 4.4.1 (2024-06-14)
 ```
 
-For MaAsLin 3 to install, you will need R >= 4.3. If your version is older than
-that, please refer to section 
-[Installing R for the first time](#installing-r-for-the-first-time) to download 
-the latest R. Note that
-RStudio users will need to have RStudio "switch" to this later version once it 
-is installed. This should happen automatically for Windows and Mac OS users when
-you relaunch RStudio. For Linux users you might need to bind the correct R 
-executable. For more information refer to [here](https://support.rstudio.com/hc/en-us/articles/200486138-Changing-R-versions-for-RStudio-desktop). Either way, once you have the correct version installed, launch 
-the software and use `sessionInfo()` to make sure that you indeed have R >= 4.3.
+For MaAsLin 3 to install, you will need R >= 4.3. If your version is older than that, please refer to section [Installing R for the first time](#installing-r-for-the-first-time) to download the latest R. Note that RStudio users will need to have RStudio "switch" to this later version once it is installed. This should happen automatically for Windows and Mac OS users when you relaunch RStudio. For Linux users you might need to bind the correct R executable. For more information, look [here](https://support.rstudio.com/hc/en-us/articles/200486138-Changing-R-versions-for-RStudio-desktop). Either way, once you have the correct version installed, launch the software and use `sessionInfo()` to make sure that you indeed have R >= 4.3.
 
 ## 2. Installing MaAsLin 3 {#installing-maaslin-3}
 
 The latest development version of MaAsLin 3 can be installed from GitHub using the `devtools` package.
 
-```{r, eval=FALSE}
+```{r, eval=FALSE, cache = F}
+# Install devtools if not present
 if (!require('devtools', character.only = TRUE)) {
   install.packages('devtools')
 }
 
+# Install MaAsLin 3
 library("devtools")
 install_github("biobakery/MaAsLin3")
 ```
 
-```{r, eval=T}
+```{r, eval=T, cache = F, echo=F}
 for (lib in c('maaslin3', 'dplyr', 'ggplot2', 'knitr', 'kableExtra')) {
     suppressPackageStartupMessages(require(lib, character.only = TRUE))
 }
@@ -115,7 +93,7 @@ for (lib in c('maaslin3', 'dplyr', 'ggplot2', 'knitr', 'kableExtra')) {
 
 ## 3. Microbiome association detection with MaAsLin 3 {#microbiome-association-detection-with-maaslin-3}
 
-To run MaAsLin 3, a user inputs a table of per-sample feature abundances (with zeros still included), a table of per-sample metadata, and a model specifying how the metadata should relate to the feature presence/absence and abundance. MaAsLin 3 will return a table of associations including an effect size and p-value for each feature-metadatum association and a folder of visuals including a summary plot and diagnostic plots for significant associations.
+To run MaAsLin 3, the user must supply a table of per-sample feature abundances (with zeros still included), a table of per-sample metadata, and a model specifying how the metadata should relate to the feature prevalence (how likely the feature is to be present or absent) and abundance (how much of the feature is there if it's there). MaAsLin 3 will return a table of associations including an effect size and p-value for each feature-metadatum association and a folder of visuals including a summary plot and diagnostic plots for significant associations.
 
 ### 3.1 MaAsLin 3 input {#maaslin-3-input}
 
@@ -124,24 +102,22 @@ MaAsLin3 requires two input files.
 1. Feature abundance data frame
     * Formatted with features as columns and samples as rows.
     * The transpose of this format is also okay.
-    * Possible features in this file include taxonomy or genes. These can be relative abundances or counts.
+    * Possible features include taxonomy or genes. These can be relative abundances or counts.
     * This can be a filepath to a tab-delimited file.
 2. Metadata data frame
     * Formatted with variables as columns and samples as rows.
     * The transpose of this format is also okay.
-    * Possible metadata in this file include gender or age.
+    * Possible metadata include gender or age.
     * This can be a filepath to a tab-delimited file.
 
-The data file can contain samples not included in the metadata file
-(along with the reverse case). For both cases, those samples not 
-included in both files will be removed from the analysis. 
-Also the samples do not need to be in the same order in the two files.
+The data file can contain samples not included in the metadata file (along with the reverse case). For both cases, those samples not included in both files will be removed from the analysis. Also, the samples do not need to be in the same order in the two files.
 
-Example input files can be found in the ``inst/extdata`` folder 
-of the MaAsLin 3 source. The files provided were generated from
-the HMP2 data which can be downloaded from https://ibdmdb.org/ .
+Example input files can be found in the ``inst/extdata`` folder of the MaAsLin 3 source. The files provided were generated from the Human Microbiome Project 2 (HMP2) data which can be downloaded from https://ibdmdb.org/.
 
-```{R}   
+* ``HMP2_taxonomy.tsv``: a tab-delimited file with samples as rows and species as columns. It is a subset of the full HMP2 taxonomy that includes just some of the the species abundances.
+* ``HMP2_metadata.tsv``: a tab-delimited file with samples as rows and metadata as columns. It is a subset of the full HMP2 metadata that includes just some of the fields.
+
+```{R, cache = F}   
 # Read abundance table
 taxa_table_name <- system.file("extdata", "HMP2_taxonomy.tsv", package = "maaslin3")
 taxa_table <- read.csv(taxa_table_name, sep = '\t')
@@ -150,7 +126,7 @@ taxa_table <- read.csv(taxa_table_name, sep = '\t')
 metadata_name <- system.file("extdata", "HMP2_metadata.tsv", package = "maaslin3")
 metadata <- read.csv(metadata_name, sep = '\t')
 
-# Factor the categorical variables to test against controls
+# Factor the categorical variables to test IBD against healthy controls
 metadata$diagnosis <- 
   factor(metadata$diagnosis, levels = c('nonIBD', 'UC', 'CD'))
 metadata$dysbiosis_state <- 
@@ -162,34 +138,33 @@ taxa_table[1:5, 1:5]
 metadata[1:5, 1:5]
 ```
 
-``HMP2_taxonomy.tsv``: is a tab-delimited file with samples as rows and 
-species as columns. It is a subset of the taxonomy file that includes just some of the the 
-species abundances.
-
-``HMP2_metadata.tsv``: is a tab-delimited file with samples as rows and metadata 
-as columns. It is a subset of the metadata file that includes just some of 
-the fields.
-
 ### 3.2 Running MaAsLin 3 {#running-maaslin-3}
 
-MaAsLin 3 is run by specifying a `param_list` that contains the abundance table (`input_data`), the metadata table (`input_metadata`), the output directory (`output`), and a model specification. The model specification can come from a formula or vectors of terms. In either case, variable names should not have spaces or unusual characters.
+MaAsLin 3 is run by specifying a `param_list` that contains the abundance table (`input_data`), the metadata table (`input_metadata`), the output directory (`output`), and a model. The model can come from a formula or vectors of terms. In either case, variable names should not have spaces or unusual characters.
 
-* *Formula*: The `formula` parameter should be set to any formula that satisfies the `lme4` specifications: fixed effects, interaction terms, random effects, polynomial terms, and more can all be included. In addition, group and ordered predictors (see below) can be included by including `group(variable_name)` and `ordered(variable_name)` in the formula.
-* *Vectors*: Alternatively, a vector of variables can be supplied to the parameters `fixed_effects`, `random_effects`, `group_effects`, and `ordered_effects`. Categorical variables should either be ordered as factors beforehand, or `reference` should be provided as a string of 'variable,reference' semi-colon delimited for multiple variables (e.g., `variable_1,reference_1;variable_2,reference_2`). NOTE: adding a space between the variable and level might result in the wrong reference level being used.
+* *Formula*: The `formula` parameter should be set to any formula that satisfies the `lme4` specifications: fixed effects, random effects ([section 4.2](#random-effects)), interaction terms ([section 4.3](#interactions)), polynomial terms, and more can all be included. If categorical variables are included as fixed effects, each level will be tested against the first factor level. In addition, ordered predictors ([section 4.4](#level-contrasts)) and group predictors ([section 4.5](#group-wise-differences)) can be included by including `group(variable_name)` and `ordered(variable_name)` in the formula.
+* *Vectors*: Alternatively, a vector of variable names can be supplied to the parameters `fixed_effects`, `random_effects`, `group_effects`, and `ordered_effects`. Categorical variables should either be ordered as factors beforehand, or `reference` should be provided as a string of 'variable,reference' semi-colon delimited for multiple variables (e.g., `variable_1,reference_1;variable_2,reference_2`). NOTE: adding a space between the variable and level might result in the wrong reference level being used.
 
-**Because MaAsLin 3 considers prevalence associations, read depth (number of reads) should be included as a covariate if available since deeper sequencing will likely increase feature detection in a way that could spuriously correlate with metadata of interest.**
+**Because MaAsLin 3 identifies prevalence (presence/absence) associations, sample read depth (number of reads) should be included as a covariate if available. Deeper sequencing will likely increase feature detection in a way that could spuriously correlate with metadata of interest when read depth is not included in the model.**
 
 #### Running MaAsLin 3 on HMP2 data
 
 The following command runs MaAsLin 3 on the HMP2 data, running a multivariable
 regression model to test for the association between microbial species abundance and prevalence
-versus IBD diagnosis and [dysbiosis scores](https://www.nature.com/articles/s41586-019-1237-9) while controlling for antibiotic usage, age, and the sampling depth (reads). Outputs are generated in a folder called `hmp2_output` under the current working directory (`output = "hmp2_output"`).
+versus IBD diagnosis and [dysbiosis scores](https://www.nature.com/articles/s41586-019-1237-9) while controlling for antibiotic usage, age, and the sampling depth (reads). The abundance associations come from fitting multivariate linear models to the log base 2 relative abundances of features in samples in which the feature is present. The prevalence associations come from fitting multivariate logistic models to the presence/absence data for a feature across all samples. Outputs are directed to a folder called `hmp2_output` under the current working directory (`output = "hmp2_output"`).
 
-To show one of each type of plot (see below), the maximum number of significant associations to plot has been increased with `max_pngs=100`. All other parameters beyond the first four are the default parameters but are still included for clarity. By default, total sum scaling with a log transformation afterwards will be used. These are almost always the recommended choices (and all MaAsLin 3 evaluations and interpretations were performed with these options), but other normalizations and transformations are allowed (see `normalization` and `transform` in the manual). Also by default, a data augmentation procedure is used to avoid linear separability in the logistic regressions. This is almost always recommended, though it can be turned off (see `augment` in the manual). A nominal FDR level of 0.1 determines which associations are significant, but this can also be changed (see `max_significance` in the manual). For the abundance coefficients, to account for compositionality in relative abundance data, significance is determined by comparing against the median coefficient for a metadatum across the features (`median_comparison_abundance`). Since prevalence coefficients do not have the same compositional properties, they are instead compared against 0 (`median_comparison_prevalence`). See the manual for a discussion of when to change these parameters. One CPU is used for fitting (`cores = 1`).
+To show one of each type of plot (see below), the maximum number of significant associations to plot has been increased with `max_pngs=100`. All other parameters beyond the first four are the default parameters but are still included for clarity:
 
-The abundnace and prevalence filtering parameters are not included and they are 0 by default. **Different from other differential abundance tools, features should not be filtered for high or low prevalence** since the prevalence modeling in MaAsLin 3 can account for high proportions of zeros.
+* Total sum scaling (`normalization = 'TSS'`) with a log transformation (`'transform = 'LOG'`) afterwards will be used. These are almost always the recommended choices (and all MaAsLin 3 evaluations were performed with these options), but other normalizations and transformations are allowed (see `normalization` and `transform` in `?maaslin3`). 
+* A data augmentation procedure is used to avoid linear separability in the logistic regressions (`augment = TRUE`). This is almost always recommended, though it can be turned off (see `augment` in the manual). 
+* Continuous metadatum variables are z-score standardized (subtract the mean, divide by the standard deviation) with `standardize = TRUE` so that the coefficients will be on the same scale (improving visualization).
+* A nominal FDR level of 0.1 (`max_significance = 0.1`) determines which associations are significant, but this can also be changed (see `max_significance` in the manual). 
+* For the abundance coefficients, to account for compositionality in relative abundance data, significance is determined by comparing against the median coefficient for a metadatum across the features (`median_comparison_abundance`). Since prevalence coefficients do not have the same compositional properties, they are instead compared against 0 (`median_comparison_prevalence`). See below for a discussin of these paremeters.
+* One CPU is used for fitting (`cores = 1`).
 
-```{R, echo = T, results = 'hide', warning = FALSE}
+The abundance, prevalence, and variance filtering parameters are not included, and they are 0 by default. **Different from other differential abundance tools, low prevalence features should not be filtered out** since the prevalence modeling in MaAsLin 3 already accounts for high proportions of zeros.
+
+```{R, echo = T, results = 'hide', warning = FALSE, cache = F}
 param_list <- list(input_data = taxa_table, 
                    input_metadata = metadata, 
                    output = 'hmp2_output', 
@@ -197,6 +172,7 @@ param_list <- list(input_data = taxa_table,
                    normalization = 'TSS', 
                    transform = 'LOG', 
                    augment = TRUE, 
+                   standardize = TRUE,
                    max_significance = 0.1, 
                    median_comparison_abundance = TRUE, 
                    median_comparison_prevalence = FALSE, 
@@ -208,20 +184,11 @@ fit_out <- maaslin3(param_list)
 
 #### Median comparisons
 
-When `median_comparison_abundance` or `median_comparison_prevalence` are on, the coefficients for a metadatum will be tested against the median coefficient for that metadatum (median across the features). Otherwise, the coefficients will be tested against 0. For abundance associations, this is designed to account for compositionality, the idea that if only one feature has a positive association with a metadatum on the absolute scale, the other features will have apparent negative associations with that metadatum on the relative scale because relative abundances must sum to 1. More generally, associations on the relative scale are not necessarily the same as the associations on the absolute scale in magnitude or sign, so testing against zero on the relative scale is not equivalent to testing against zero on absolute scale. However, the median comparison enables some inference on the absolute scale. There are two interpretations of this test for absolute abundance associations:
+When `median_comparison_abundance` or `median_comparison_prevalence` are on, the coefficients for a metadatum will be tested against the median coefficient for that metadatum (median across the features). Otherwise, the coefficients will be tested against 0. For abundance associations, this is designed to account for compositionality, the idea that **testing against zero on the relative scale is not equivalent to testing against zero on the absolute scale**. The user manual contains a more extensive discussion of when to use `median_comparison_abundance` and `median_comparison_prevalence`, but in summary:
 
-1. In linear models, if two features' associations with a particular metadatum on the log absolute scale differ by some value $d$, the features' associations with that metadatum on the log relative scale (total-sum scaling) will also differ by $d$. Therefore, the test against the median can always be interpreted as a test of whether a particular association is significantly different from the typical association on the absolute scale. (Or, equivalently because of the 1-1 relation, this tests whether a particular association is significantly different from the typical association on the relative scale).
-2. Under the assumption that at least half the features are not changing on the absolute scale, the median true absolute coefficient is 0, so this can be interpreted as a test of whether the feature has a non-zero association on the absolute scale
-
-By contrast, sparsity should be less affected by compositionality since a feature should still be present even if another increases or decreases in abundance. (However, because the read depth is finite, this might not perfectly hold.) Therefore, `median_comparison_prevalence` is off by default, but it can be turned on if the user is interested in testing whether a particular prevalence association is significantly different from the typical prevalence association.
-
-In both cases, if the tested coefficient is within `median_comparison_[abundance/prevalence]_threshold` of the median, it will automatically receive a p-value of 1. This is based on the idea that the association might be statistically significantly different but not substantially different from the median and therefore is likely still a compositional effect.
-
-To conclude:
-
-* `median_comparison_abundance` is `TRUE` by default and should be used to make inference on the absolute scale when using relative abundance data.
+* `median_comparison_abundance` is `TRUE` by default and should be used to make inference on the absolute scale when using relative abundance data. When `median_comparison_abundance` is `TRUE`, only the p-values and q-values change; the coefficients returned are still the relative abundance coefficients.
 * `median_comparison_abundance` should be `FALSE` when (1) testing for significant relative associations, (2) testing for absolute abundance associations under the assumption that the total absolute abundance is not changing, or (3) testing for significant absolute associations when supplying spike-in or total abundances with `unscaled_abundance`.
-* `median_comparison_prevalence` is `FALSE` by default since most analysis focuses on whether a prevalence association is non-zero, not whether it is significantly different from the typical prevalence association.
+* `median_comparison_prevalence` is `FALSE` by default.
 
 ### 3.3 MaAsLin 3 output {#maaslin-3-output}
 
@@ -232,14 +199,14 @@ threshold, ordered by increasing joint q-value. The format is:
 
   * Columns 1 and 2 are the feature and metadata names.
   * Columns 3 and 4 are the value of the metadata and variable name from the model.
-  * Columns 5 and 6 are the fit coefficient and standard error from the model.
-  * Columns 7 and 8 are the p-value and FDR corrected q-value of the individual association.
-  * Column 9 species whether the association is abundance or prevalence.
+  * Columns 5 and 6 are the fit coefficient and standard error from the model. In abundance models, a one-unit change in the metadatum variable corresponds to a $2^{\textrm{coef}}$ fold change in the relative abundance of the feature. In prevalence models, a one-unit change in the metadatum variable corresponds to a $\textrm{coef}$ change in the log-odds of a feature being present.
+  * Columns 7 and 8 are the p-value and false discovery rate (FDR) corrected q-value of the individual association.
+  * Column 9 specifies whether the association is abundance or prevalence.
   * Column 10 is the total number of data points.
   * Column 11 is the total number of non-zero data points.
-  * Columns 12 and 13 are the p-value and q-value of the joint prevalence and abundance association.
+  * Columns 12 and 13 are the p-value and q-value of the joint prevalence and abundance association. The p-value comes from plugging in the minimum of the association's abundance and prevalence p-values into the Beta(1,2) CDF. It is interpreted as the probability that either the abundance or prevalence association would be as extreme as observed if there was neither an abundance nor prevalence association between the feature and metadatum.
   
-```{r, echo = F}
+```{r, echo = F, cache = F}
 signif_results <- read.csv('hmp2_output/significant_results.tsv', sep='\t')
 signif_results %>% 
   dplyr::mutate_if(is.numeric, .funs = function(x){(as.character(signif(x, 3)))}) %>%
@@ -250,7 +217,7 @@ signif_results %>%
   
 #### Full output file structure
 
-MaAsLin 3 generates two types of output files explained below: data and visualization. In addition, the object returned from `maaslin3` (`fit_out` above) contains all the data and results (see `?maaslin_fit`).
+MaAsLin 3 generates two types of output files explained below: data and visualizations. In addition, the object returned from `maaslin3` (`fit_out` above) contains all the data and results (see `?maaslin_fit`).
 
 1. Data output files
     * ``significant_results.tsv``
@@ -262,21 +229,21 @@ MaAsLin 3 generates two types of output files explained below: data and visualiz
         * These steps are performed sequentially in the above order.
         * If an option is set such that a step does not change the data, the resulting table will still be output.
     * ``models_LM.rds`` and ``models_logistic.rds``
-        * This file contains a list with every model fit object (`LM` for linear models, `logistic` for logistic models).
+        * These files contain a list with every model fit object (`LM` for linear models, `logistic` for logistic models).
         * It will only be generated if `save_models` is set to TRUE.
     * ``residuals_LM.rds`` and ``residuals_logstic.rds``
-        * This file contains a data frame with residuals for each feature.
+        * These files contain a data frame with residuals for each feature.
     * ``fitted_LM.rds`` and ``fitted_logistic.rds``
-        * This file contains a data frame with fitted values for each feature.
+        * These files contain a data frame with fitted values for each feature.
     * ``ranef_LM.rds`` and ``ranef_logistic.rds``
-        * This file contains a data frame with extracted random effects for each feature (when random effects are specified).
+        * These files contain a data frame with extracted random effects for each feature (when random effects are specified).
     * ``maaslin3.log``
         * This file contains all log information for the run.
         * It includes all settings, warnings, errors, and steps run.
 2. Visualization output files
     * ``summary_plot.pdf``
-        * This file contains a combined coefficient plot and heatmap of the most significant associations. In the heatmap, one star indicates the individual q-value is below the parameter `max_significance`, and two stars indicate the individual q-value is below `max_significance` divided by 10.
-```{r, out.width='100%', echo=F}
+        * This file contain a combined coefficient plot and heatmap of the most significant associations. In the heatmap, one star indicates the individual q-value is below the parameter `max_significance`, and two stars indicate the individual q-value is below `max_significance` divided by 10.
+```{r, out.width='100%', echo=F, cache = F}
 # Rename summary plot to avoid knitting issues later
 quiet_out <- file.rename('hmp2_output/figures/summary_plot.png', 
             'hmp2_output/figures/summary_plot_first.png')
@@ -290,7 +257,7 @@ knitr::include_graphics("hmp2_output/figures/summary_plot_first.png")
         * Box plots are used for continuous data prevalence associations.
         * Grids are used for categorical data prevalence associations.
         * Data points plotted are after filtering, normalization, and transformation so that the scale in the plot is the scale that was used in fitting.
-```{r, echo=FALSE,out.width="49%",out.height="20%",fig.cap="The four types of association plots",fig.show='hold',fig.align='center'}
+```{r, echo=FALSE,out.width="49%",out.height="20%",fig.cap="The four types of association plots",fig.show='hold',fig.align='center', cache = F}
 knitr::include_graphics(c("hmp2_output/figures/association_plots/age_Faecalibacterium_prausnitzii_LM.png",
                           "hmp2_output/figures/association_plots/dysbiosis_state_Escherichia_coli_LM.png",
                           "hmp2_output/figures/association_plots/age_Bifidobacterium_longum_logistic.png",
@@ -306,14 +273,14 @@ There are a few common issues to check for in the results:
 1. When warnings or errors are thrown during the fitting process, they are recorded in the `error` column of `all_results.tsv`. Often, these indicate model fitting failures or poor fits that should not be trusted, but sometimes the warnings can be benign, and the model fit might still be reasonable. Users should check associations of interest if they produce errors.
 2. Despite the error checking, significant results could still result from poor model fits. These can usually be diagnosed with the visuals in the `association_plots` directory. 
     * Any significant abundance associations with a categorical variable should usually have **at least 10 observations in each category**.
-    * Significant categorical prevalence associations should also have **at least 10 samples in which the feature was present and at least 10 samples in which it was absent for each significant category**. 
+    * Significant prevalence associations with categorical variables should also have **at least 10 samples in which the feature was present and at least 10 samples in which it was absent for each significant category**. 
     * Significant abundance associations with continuous metadata should be checked visually for influential outliers.
     
 #### Replotting
 
-Once `maaslin3` has been run once, `maaslin_plot_results_from_output` can be run with the same `param_list` as the original `maaslin3` run to (re-)create the plots. This allows the user to plot the associations even without having the R object returned by `maaslin_fit` or `maaslin3` (e.g., if fitting models through the command line). It is recommended to fit models with simple variables names that are robust to formula plotting and then convert these into proper names for plotting. Likewise, `heatmap_vars` and `coef_plot_vars` can be specified in the `param_list` at any point, but it is usually easier to see how the names come out at first and then choose which metadata variables will go in the coefficient plot and which will go in the heatmap afterwards with `maaslin_plot_results_from_output`.
+Once `maaslin3` has been run once, `maaslin_plot_results_from_output` can be run with the same `param_list` as the original `maaslin3` run to (re-)create the plots. This allows the user to plot the associations even without having the R object returned by `maaslin_fit` or `maaslin3` (e.g., if fitting models through the command line). It is recommended to fit models with simple variables names that are robust to formula plotting and then convert these into proper names for plotting. Likewise, `heatmap_vars` and `coef_plot_vars` can be specified in the `param_list` at any point, but it is usually easier to see how the names come out first and then choose which metadata variables will go in the coefficient plot and which will go in the heatmap afterwards with `maaslin_plot_results_from_output`.
 
-```{R, echo = T, results = 'hide', warning = FALSE}
+```{R, echo = T, results = 'hide', warning = FALSE, cache = F}
 # This section is necessary for updating the summary plot and the association plots
 
 # Rename results file with clean titles
@@ -379,12 +346,12 @@ scatter_plots <- maaslin_plot_results_from_output(param_list)
 ```
 
 In the new summary plot below, we can see that the feature names are cleaned up, the metadata names are cleaned up, the set of metadata variables used in the coefficient plot is different, and the metadata used in the heatmap is reordered.
-```{r, out.width='100%', echo=F}
+```{r, out.width='100%', echo=F, cache = F}
 knitr::include_graphics("hmp2_output/figures/summary_plot.png")
 ```
 
 In the association plots, the taxa and metadata have been renamed to be consistent with the results file from earlier.
-```{r, echo=FALSE,out.width="49%",out.height="20%",fig.cap="The four types of association plots",fig.show='hold',fig.align='center'}
+```{r, echo=FALSE,out.width="49%",out.height="20%",fig.cap="The four types of association plots",fig.show='hold',fig.align='center', cache = F}
 knitr::include_graphics(c("hmp2_output/figures/association_plots/Age_Faecalibacterium prausnitzii_LM.png",
                           "hmp2_output/figures/association_plots/Dysbiosis_Escherichia coli_LM.png",
                           "hmp2_output/figures/association_plots/Age_Bifidobacterium longum_logistic.png",
@@ -395,15 +362,16 @@ knitr::include_graphics(c("hmp2_output/figures/association_plots/Age_Faecalibact
 
 ### 4.1 Absolute abundance {#absolute-abundance}
 
-Most microbiome sequencing has historically focused on relative abundances (proportions out of 1). However, some experimental protocols can allow estimation of absolute abundances (cell count/concentration). MaAsLin 3 allows two types of absolute abundance estimation: spike-ins and total abundance scaling. In a spike-in procedure, a small, known quantity of a microbe that otherwise would not be present in the sample is added, and the sequencing procedure is carried out as usual. Then, the absolute abundance of a microbe already in the community is estimated as:
+Most microbiome methodologies have historically focused on relative abundances (proportions out of 1). However, some experimental protocols can enable estimation of absolute abundances (cell count/concentration). MaAsLin 3 can be used with two types of absolute abundance estimation: spike-ins and total abundance scaling. In a spike-in procedure, a small, known quantity of a microbe that otherwise would not be present in the sample is added, and the sequencing procedure is carried out as usual. Then, the absolute abundance of a microbe already in the community is estimated as:
 $$\textrm{Absolute abundance other microbe}=\frac{\textrm{Relative abundance other microbe}}{\textrm{Relative abundance spike-in microbe}}\cdot (\textrm{Absolute abundance spike-in microbe})$$
 Alternatively, the total microbial abundance of a sample can be determined (e.g., with qPCR of a marker gene or by cell counting). Then, the absolute abundance of a microbe in the community is estimated as:
 $$\textrm{Absolute abundance microbe}=(\textrm{Total absolute abundance})\cdot(\textrm{Relative abundance microbe})$$
+
 #### Spike-in
 
-The files are used in running MaAsLin 3 with the spike-in procedure on simulated data from SparseDOSSA2. The abundance table is like any other abundance table input to MaAsLin 3 (read counts or relative abundances formatted as samples by features or features by samples) except that 'Feature101' is the spike-in (which must be present in every sample). The scaling factor data frame has 'Feature101' as its only column name with the absolute abundance of the spike-in for each sample (rownames). If the same quantity of the spike-in was added to all samples, this column could be entirely 1 (or any other arbitrary value). When using a spike-in procedure, the scaling factor data frame should have a single column named the same as one of the features in the abundance table which will be used as the spike-in.
+The following section shows a synthetic spike-in procedure with simulated data from SparseDOSSA2. The abundance table is like any other abundance table input to MaAsLin 3 except that 'Feature101' is the spike-in (which must be present in every sample). The scaling factor data frame has 'Feature101' as its only column name with the absolute abundance of the spike-in for each sample (rownames). If the same quantity of the spike-in was added to all samples, this column could be entirely 1 (or any other arbitrary value). When using a spike-in procedure, the scaling factor data frame should have a single column named the same as one of the features in the abundance table, which will be used as the spike-in.
 
-```{r}
+```{R, cache = F}
 # Abundance table
 taxa_table_name <- system.file("extdata", "abundance_spike_in_ex.tsv", package = "maaslin3")
 spike_in_taxa_table <- read.csv(taxa_table_name, sep = '\t')
@@ -426,7 +394,7 @@ spike_in_unscaled[1:5, , drop=F]
 
 The following code fits the absolute abundance model. Note that the normalization must be set to `TSS` since the procedure involves scaling the relative abundance ratios. Also, `median_comparison_abundance` is now set to `FALSE` since we want to test the absolute coefficients against zero. The data frame of absolute abundances is included as the `unscaled_abundance` parameter, and the spike-in strategy will automatically be detected based on the column name.
 
-```{R, echo = T, results = 'hide', warning = FALSE}
+```{R, echo = T, results = 'hide', warning = FALSE, cache = F}
 param_list <- list(input_data = spike_in_taxa_table, 
                    input_metadata = spike_in_metadata, 
                    output = 'spike_in_demo', 
@@ -441,7 +409,7 @@ fit_out <- maaslin3(param_list)
 
 The absolute abundance coefficients can be inspected:
 
-```{R}
+```{R, cache = F}
 rownames(fit_out$fit_data_abundance$results) <- NULL
 fit_out$fit_data_abundance$results %>% 
   dplyr::mutate_if(is.numeric, .funs = function(x){(as.character(signif(x, 3)))}) %>%
@@ -452,9 +420,9 @@ fit_out$fit_data_abundance$results %>%
 
 #### Total abundance scaling
 
-The files are used in running MaAsLin 3 with the total abundance scaling procedure on simulated data from SparseDOSSA2. The abundance table is like any other abundance table input to MaAsLin 3 without any extra features. The scaling factor data frame has 'total' as its only column name with the total absolute abundance for each sample (rownames).
+The following section shows a synthetic total abundance scaling procedure with simulated data from SparseDOSSA2. The abundance table is like any other abundance table input to MaAsLin 3 without any extra features. The scaling factor data frame has 'total' as its only column name with the total absolute abundance for each sample (rownames).
 
-```{r}
+```{r, cache = F}
 # Abundance table
 taxa_table_name <- system.file("extdata", "abundance_total_ex.tsv", package = "maaslin3")
 total_scaling_taxa_table <- read.csv(taxa_table_name, sep = '\t')
@@ -466,18 +434,18 @@ for (col in c('Metadata_1', 'Metadata_3', 'Metadata_5')) {
   spike_in_metadata[,col] <- factor(spike_in_metadata[,col])
 }
 
-# Spike-in table
+# Total abundance table
 unscaled_name <- system.file("extdata", "scaling_factors_total_ex.tsv", package = "maaslin3")
 total_scaling_unscaled <- read.csv(unscaled_name, sep = '\t')
 
-total_scaling_taxa_table[c(1:5, 101),1:5]
+total_scaling_taxa_table[1:5, 1:5]
 total_scaling_metadata[1:5,]
 total_scaling_unscaled[1:5, , drop=F]
 ```
 
 The following code fits the absolute abundance model. As before, `TSS` must be set to `TRUE`, `median_comparison_abundance` is set to `FALSE`, and the data frame of absolute abundances is included as the `unscaled_abundance` parameter. The total abundance scaling procedure will be detected based on the column name.
 
-```{R, echo = T, results = 'hide', warning = FALSE}
+```{R, echo = T, results = 'hide', warning = FALSE, cache = F}
 param_list <- list(input_data = total_scaling_taxa_table, 
                    input_metadata = total_scaling_metadata, 
                    output = 'total_scaling_demo', 
@@ -492,7 +460,7 @@ fit_out <- maaslin3(param_list)
 
 The absolute abundance coefficients can be inspected:
 
-```{R}
+```{R, cache = F}
 rownames(fit_out$fit_data_abundance$results) <- NULL
 fit_out$fit_data_abundance$results %>% 
   dplyr::mutate_if(is.numeric, .funs = function(x){(as.character(signif(x, 3)))}) %>%
@@ -501,9 +469,9 @@ fit_out$fit_data_abundance$results %>%
   kableExtra::scroll_box(width = "800px", height = "400px")
 ```
 
-### 4.2 Random effects (repeated sampling) {#random-effects}
+### 4.2 Random effects (clustered samples) {#random-effects}
 
-Certain studies have a natural "grouping" of sample observations, such as by subject in longitudinal designs or by family in family designs. It is  important for statistic analysis to address the non-independence between samples belonging to the same group. MaAsLin 3 provides a simple interface for this with random effects, where the user can specify the grouping variable to run a [mixed effect model](https://cran.r-project.org/web/packages/lme4/index.html) instead. This grouping variable can be provided with the `random_effects` parameter or specified in the model with `(1|grouping_variable)`. This will allow a "random intercept" or a per-group adjustment to the model intercept. More complicated random effects can be specified in the formula in accordance with `lme4` formula parsing. For example, we note that HMP2 is a longitudinal design where the same subject (column `participant_id`) can have multiple samples. We thus ask MaAsLin 3 to use subject as its random effect grouping variable. These models take longer to fit because of their complexity, and the fitting may fail more often because of the extra terms. However, it is important to account for this non-independence, and MaAsLin 3 is still able to fit complex models with thousands of samples and thousands of features in a few hours (and increasing the CPUs used with `cores` can help). **Random intercept models may produce poor model fits with fewer than 5 observations per group. In these scenarios, per-group fixed effects should be used.**
+Certain studies have a natural "grouping" of sample observations, such as by subject in longitudinal designs or by family in family designs. It is  important for statistic analysis to address the non-independence between samples belonging to the same group. MaAsLin 3 provides a simple interface for this with random effects, where the user can specify the grouping variable to run a [mixed effect model](https://cran.r-project.org/web/packages/lme4/index.html). This grouping variable can be provided with the `random_effects` parameter or specified in the model with `(1|grouping_variable)`. This will add in a "random intercept," a per-group adjustment to the model intercept. More complicated random effects can be specified in the formula in accordance with `lme4` formula parsing. For example, HMP2 has a longitudinal design where the same subject (column `participant_id`) can have multiple samples. We thus use `participant_id` as a random effect grouping variable in the model. 
 
 ```{R, echo = T, results = 'hide', warning = FALSE, cache = T}
 param_list <- list(input_data = taxa_table, 
@@ -511,13 +479,12 @@ param_list <- list(input_data = taxa_table,
                    output = 'random_effects_output', 
                    formula = '~ diagnosis + dysbiosis_state + antibiotics + age + reads + (1|participant_id)',
                    plot_summary_plot = F,
-                   plot_associations = F,
-                   cores = 2)
+                   plot_associations = F)
 
 fit_out <- maaslin3(param_list)
 ```
 
-```{r, echo = F}
+```{r, echo = F, cache = F}
 signif_results <- read.csv('random_effects_output/significant_results.tsv', sep='\t')
 signif_results %>% 
   dplyr::mutate_if(is.numeric, .funs = function(x){(as.character(signif(x, 3)))}) %>%
@@ -526,22 +493,24 @@ signif_results %>%
   kableExtra::scroll_box(width = "800px", height = "400px")
 ```
 
-Note that no `participant_id` terms are included in the outputs; the random intercepts are just used to control for grouping. If you are interested in testing the effect of time in a longitudinal study, then the time point variable should be included as a fixed effect during your MaAsLin 3 call.
+Note that no `participant_id` terms are included in the outputs; the random intercepts are just used to control for grouping. If you are interested in testing the effect of time in a longitudinal study, the time point variable should be included as a fixed effect in your MaAsLin 3 formula.
+
+Mixed effects models take longer to fit because of their complexity, and the fitting may fail more often because of the extra terms. However, it is important to account for this non-independence, and MaAsLin 3 is still able to fit complex models with thousands of samples and thousands of features in a few hours (and increasing the CPUs used with `cores` can help). However, random effects are not the solution to every correlated data problem. In particular, **random intercept models may produce poor model fits when there are fewer than 5 observations per group.** In these scenarios, per-group fixed effects should be used. For example, in a before-and-after treatment study with one sample before and one sample after, the participant IDs and a pre/post indicator should be included as fixed effects, but only the pre/post indicator should be retained for analysis afterwards.
 
 ### 4.3 Interactions (differences in differences) {#interactions}
 
-One of the benefits of MaAsLin 3's formula mode is the ability to include interaction terms. Mathematically, an interaction term corresponds to the product of two terms in the design matrix. When a continuous variable is interacted with a categorical term, the interaction term corresponds to the change in the continuous variable's slope between the categories. For two categorical variables interacted, see below; it is better explained through an example. In the formula, interactions can be specified with the `:` symbol to include only the interaction term(s) or the `*` symbol to include both the interaction term and the non-interacted terms.
+One of the benefits of MaAsLin 3's formula mode is the ability to include interaction terms. Mathematically, an interaction term corresponds to the product of two columns in the design matrix. When a continuous variable is interacted with a categorical term, the interaction term corresponds to the change in the continuous variable's slope between the categories. For two categorical variables interacted, see below; it is better explained through an example. In the formula, interactions can be specified with the `:` symbol to include only the interaction term(s) or the `*` symbol to include both the interaction term and the non-interacted terms (i.e., `a*b` adds the terms `a`, `b`, and `a:b`).
 
-```{R, echo = T, results = 'hide', warning = FALSE}
+```{R, echo = T, results = 'hide', warning = FALSE, cache = F}
 param_list <- list(input_data = taxa_table, 
                    input_metadata = metadata, 
                    output = 'interaction_output', 
-                   formula = '~ sex:diagnosis + antibiotics + age + reads')
+                   formula = '~ sex*diagnosis + antibiotics + age + reads')
 
 fit_out <- maaslin3(param_list)
 ```
 
-```{R}
+```{R, cache = F}
 full_results <- rbind(fit_out$fit_data_abundance$results, 
       fit_out$fit_data_prevalence$results)
 full_results <- full_results %>%
@@ -560,13 +529,13 @@ In the model above, we have specified an interaction between `sex` and `diagnosi
 * `diagnosisUC` is the difference between female UC and female non-IBD
 * `sexMale` is the difference between male non-IBD and female non-IBD
 * `sexMale:diagnosisCD` (the interaction of `male` and `diagnosisCD`) is the difference-in-differences between CD versus non-IBD in males versus females, a measure of whether CD affects males differently from females. That is, given the difference between non-IBD and CD in males and the difference between non-IBD and CD in females, the `sexMale:diagnosisCD` coefficient is the difference between the two differences.
-* `sexMale:diagnosisUC` (the interaction of `male` and diagnosisUC`) is the difference-in-differences between UC versus non-IBD in males versus females, a measure of whether UC affects males differently from females.
+* `sexMale:diagnosisUC` (the interaction of `male` and `diagnosisUC`) is the difference-in-differences between UC versus non-IBD in males versus females, a measure of whether UC affects males differently from females.
 
 ### 4.4 Level contrasts {#level-contrasts}
 
-Another feature of MaAsLin 3 is the ability to test for level-versus-level differences in ordered predictors. Ordered predictors can include metadata like cancer stage, consumption frequency of a dietary factor, or dosage group. Here, we assess how microbial abundances and prevalences are associated with eating red meat by including `ordered(red_meat)` in the formula. This will perform a contrast test of whether there is a difference between each pair of subsequent levels (e.g., "Yesterday, 3 or more times" versus "Yesterday, 1 to 2 times") rather than whether there are differences between the levels and the baseline (e.g., "Yesterday, 3 or more times" versus "Not in the last 7 days").
+Another feature of MaAsLin 3 is the ability to test for level-versus-level differences in ordered predictors with contrast tests. Ordered predictors are categorical variables with a natural ordering such as cancer stage, consumption frequency of a dietary factor, or dosage group. Here, we assess how microbial abundances and prevalences are associated with eating red meat by including `ordered(red_meat)` in the formula. This will perform a contrast test for whether there is a difference between each pair of subsequent levels (e.g., "Yesterday, 3 or more times" versus "Yesterday, 1 to 2 times") rather than whether there are differences between the levels and the baseline (e.g., "Yesterday, 3 or more times" versus "Not in the last 7 days").
 
-```{R, echo = T, results = 'hide', warning = FALSE}
+```{R, echo = T, results = 'hide', warning = FALSE, cache = F}
 # Put the red meat consumption responses in order
 metadata <- metadata %>%
   mutate(red_meat = ifelse(red_meat == 'No, I did not consume these products in the last 7 days',
@@ -595,13 +564,13 @@ param_list <- list(input_data = taxa_table,
 fit_out <- maaslin3(param_list)
 ```
 
-```{r, out.width='100%', echo=F}
+```{r, out.width='100%', echo=F, cache = F}
 knitr::include_graphics("ordered_outputs/figures/summary_plot.png")
 ```
 
 If we look at the resulting heatmap, we can identify the *Alistipes shahii* prevalence association as potentially interesting since it increases in prevalence with more meat consumption in all but one level-versus-level comparison.
 
-```{r, echo = F}
+```{r, echo = F, cache = F}
 full_results <- rbind(fit_out$fit_data_abundance$results, 
       fit_out$fit_data_prevalence$results)
 full_results <- full_results %>%
@@ -624,9 +593,9 @@ full_results %>%
 
 ### 4.5 Group-wise differences {#group-wise-differences}
 
-The last feature of MaAsLin 3 highlighted here is the ability to test for group-wise differences in categorical predictors. Group-wise predictors can include metadata like race, country, or consumption frequency of a dietary factor. Here, we test whether there are differences in microbial abundances and prevalences across people with different levels of red meat consumption by including `group(red_meat)`.
+The last feature of MaAsLin 3 highlighted here is the ability to test for group-wise differences in categorical predictors using an ANOVA or ANOVA-like procedure. Group-wise predictors are categorical variables with or without an ordering such as race, country, or consumption frequency of a dietary factor. When performing a group-wise difference test, we are not comparing any two particular levels; rather, we are investigating whether abundances and prevalences are the same for all levels. Therefore, no coefficient is returned, only a p-value. Here, we test whether there are differences in microbial abundances and prevalences across people with different levels of red meat consumption by including `group(red_meat)`.
 
-```{R, echo = T, results = 'hide', warning = FALSE}
+```{R, echo = T, results = 'hide', warning = FALSE, cache = F}
 param_list <- list(input_data = taxa_table, 
                    input_metadata = metadata[metadata$diagnosis == 'nonIBD',],
                    output = 'group_outputs', 
@@ -644,7 +613,7 @@ fit_out <- maaslin3(param_list)
 
 If we look at the same *Alistipes shahii* association from before, we see that no coefficient or standard error is returned for a group predictor, but the q-value is very low. This corroborates the observation earlier that there are differences in *Alistipes shahii* prevalence with red meat consumption.
 
-```{r, echo = F}
+```{r, echo = F, cache = F}
 full_results <- rbind(fit_out$fit_data_abundance$results, 
       fit_out$fit_data_prevalence$results)
 full_results <- full_results %>%
@@ -669,8 +638,8 @@ full_results %>%
 
 MaAsLin 3 can also be run with a command line interface. For example, the first HMP2 analysis can be performed with:
 
-```{r, engine = 'bash', eval = FALSE}
-./R/maaslin3.R inst/extdata/HMP2_taxonomy.tsv inst/extdata/HMP2_metadata.tsv command_line_output  --formula='~ diagnosis + dysbiosis_state + antibiotics + age + reads' --reference='diagnosis,nonIBD;dysbiosis_state,none;antibiotics,No'
+```{r, engine = 'bash', eval = FALSE, cache = F}
+./R/maaslin3.R inst/extdata/HMP2_taxonomy.tsv inst/extdata/HMP2_metadata.tsv command_line_output --formula='~ diagnosis + dysbiosis_state + antibiotics + age + reads' --reference='diagnosis,nonIBD;dysbiosis_state,none;antibiotics,No'
 ```
 
 * Make sure to provide the full path to the MaAsLin3 executable (i.e. `./R/maaslin3.R`).

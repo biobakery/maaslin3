@@ -308,7 +308,7 @@ maaslin3_summary_plot <-
         ggplot2::geom_tile(data = heatmap_data, ggplot2::aes(fill = .data$coef_cat), colour="white", linewidth=0.2) +
         ggplot2::scale_fill_manual(name = "Beta coefficient", na.value="#EEEEEE",
                           values = scale_fill_values) + 
-        ggplot2::geom_text(aes(label = sig_star, color = sig_star), size = 6, vjust = 0.75, hjust = 0.5, key_glyph = ggplot2::draw_key_blank) +
+        ggplot2::geom_text(ggplot2::aes(label = .data$sig_star, color = .data$sig_star), size = 6, vjust = 0.75, hjust = 0.5, key_glyph = ggplot2::draw_key_blank) +
         ggplot2::scale_color_manual(name = bquote("Covariates" ~ P["FDR"]),
                            breaks = c("*", "**", ""),
                            values = c("black", "black", "black"),

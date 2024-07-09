@@ -60,7 +60,7 @@ maaslin3(param_list)
        \item \code{coef_plot_vars}: Vector of variable names to be used in the coefficient plot section of the summary plot. Continuous variables should match the metadata column name, and categorical variables should be of the form \code{"[variable] [level]"}.
        \item \code{heatmap_vars}: Vector of variable names to be used in the heatmap section of the summary plot. Continuous variables should match the metadata column name, and categorical variables should be of the form \code{"[variable] [level]"}.
        \item \code{plot_associations} (default \code{TRUE}): Whether to generate plots for significant associations.
-       \item \code{max_pngs} (default \code{30}): The top \code{max_pngs} associations will be plotted.
+       \item \code{max_pngs} (default \code{30}): The top \code{max_pngs} significant associations will be plotted.
     }
     The parameter list can also include the following technical parameters:
     \itemize{

@@ -1424,7 +1424,9 @@ maaslin_filter_and_standardize <- function(params_and_data_and_formula) {
   
   # Filter by abundance using zero as value for NAs
   data_zeros <- unfiltered_data
-  data_zeros[is.na(data_zeros)] <- 0
+  for (row_index in 1:nrow(data_zeros)) {
+    data_zeros[,row_index][is.na(data_zeros[,row_index])] <- 0
+  }
   
   ##################################################################################
   # Apply the non-zero abundance threshold to split the data into 0s and non-zeros #

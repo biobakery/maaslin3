@@ -32,7 +32,7 @@ TSSnorm = function(features) {
   
   # Convert back to data frame
   features_TSS <- as.data.frame(x)
-  
+
   # Rename the True Positive Features - Same Format as Before
   colnames(features_TSS) <- dd
   
@@ -685,17 +685,10 @@ preprocess_dna_mtx <- function(dna_table, rna_table) {
             "They will be removed. ", paste(extra_rna_samples, collapse = ","))
     )
   
-  # Bypass this if possible
-  if (ncol(dna_table) != ncol(rna_table)) {
-    print("Reordering DNA/RNA to use same feature ordering... This can take a while")
-    dna_table <- dna_table[, intersect_features, drop = FALSE]
-    rna_table <- rna_table[, intersect_features, drop = FALSE]
-  } else if (any(colnames(dna_table) != colnames(rna_table))) {
-    print("Reordering DNA/RNA to use same feature ordering... This can take a while")
-    dna_table <- dna_table[, intersect_features, drop = FALSE]
-    rna_table <- rna_table[, intersect_features, drop = FALSE]
-  }
-  
+  print("Reordering DNA/RNA to use same feature ordering")
+  dna_table <- dna_table[, intersect_features, drop = FALSE]
+  rna_table <- rna_table[, intersect_features, drop = FALSE]
+
   if (!all(colnames(dna_table) == colnames(rna_table)) | 
       !all(rownames(dna_table) == rownames(rna_table))) {
     stop("Something went wrong in preprocessing")
@@ -704,10 +697,17 @@ preprocess_dna_mtx <- function(dna_table, rna_table) {
   # At this point, DNA and RNA tables are samples x features with same features and samples
   
   dna_table <- TSSnorm(dna_table)
-  dna_table[is.na(dna_table)] <- 0
+  for (row_index in 1:nrow(dna_table)) {
+    dna_table[,row_index][is.na(dna_table[,row_index])] <- 0
+  }
+
   rna_table <- TSSnorm(rna_table)
-  rna_table[is.na(rna_table)] <- 0
+  for (row_index in 1:nrow(rna_table)) {
+    rna_table[,row_index][is.na(rna_table[,row_index])] <- 0
+  }
   
+  # Transforming DNA table
+  print("Transforming DNA table...this can take a while")
   for (row_name in rownames(dna_table)) {
     dna_table[row_name,] <- 
       ifelse(dna_table[row_name,] > 0,

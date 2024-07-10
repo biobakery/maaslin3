@@ -661,13 +661,13 @@ preprocess_dna_mtx <- function(dna_table, rna_table) {
   dna_table <- dna_table[intersect_samples, , drop = FALSE]
   rna_table <- rna_table[intersect_samples, , drop = FALSE]
 
-  intersect_samples <- intersect(colnames(dna_table), colnames(rna_table))
-  print(paste0("A total of ", length(intersect_samples), 
+  intersect_features <- intersect(colnames(dna_table), colnames(rna_table))
+  print(paste0("A total of ", length(intersect_features), 
                " features were found in both the data and metadata"))
   
   # check for features without RNA abundances
   extra_dna_samples <-
-    setdiff(colnames(dna_table), intersect_samples)
+    setdiff(colnames(dna_table), intersect_features)
   if (length(extra_dna_samples) > 0)
     print(
       paste("The following samples were found",
@@ -677,7 +677,7 @@ preprocess_dna_mtx <- function(dna_table, rna_table) {
   
   # check for features without DNA abundances
   extra_rna_samples <-
-    setdiff(colnames(rna_table), intersect_samples)
+    setdiff(colnames(rna_table), intersect_features)
   if (length(extra_rna_samples) > 0)
     print(
       paste("The following samples were found",
@@ -685,9 +685,11 @@ preprocess_dna_mtx <- function(dna_table, rna_table) {
             "They will be removed. ", paste(extra_rna_samples, collapse = ","))
     )
   
-  print("Reordering DNA/RNA to use same feature ordering")
-  dna_table <- dna_table[, intersect_samples, drop = FALSE]
-  rna_table <- rna_table[, intersect_samples, drop = FALSE]
+  if (colnames(dna_table) != colnames(rna_table)) {
+    print("Reordering DNA/RNA to use same feature ordering... This can take a while")
+    dna_table <- dna_table[, intersect_features, drop = FALSE]
+    rna_table <- rna_table[, intersect_features, drop = FALSE]
+  }
   
   if (!all(colnames(dna_table) == colnames(rna_table)) | 
       !all(rownames(dna_table) == rownames(rna_table))) {

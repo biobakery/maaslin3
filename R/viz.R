@@ -690,7 +690,7 @@ maaslin3_association_plots <-
             }
             for (name in x_axis_label_names) {
               mean_abun <- mean(joined_features_metadata_prev$feature_abun[
-                joined_features_metadata_prev$metadata == name] == 'Present')
+                joined_features_metadata_prev$metadata == name] == 'Present', na.rm=T)
               new_n <- paste(name, " (p = ", round(mean_abun, 2)*100, "%)", sep="")
               levels(joined_features_metadata_prev[,'metadata'])[
                 levels(joined_features_metadata_prev[,'metadata']) == name] <- new_n

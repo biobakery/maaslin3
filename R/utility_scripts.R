@@ -685,7 +685,12 @@ preprocess_dna_mtx <- function(dna_table, rna_table) {
             "They will be removed. ", paste(extra_rna_samples, collapse = ","))
     )
   
-  if (colnames(dna_table) != colnames(rna_table)) {
+  # Bypass this if possible
+  if (ncol(dna_table) != ncol(rna_table)) {
+    print("Reordering DNA/RNA to use same feature ordering... This can take a while")
+    dna_table <- dna_table[, intersect_features, drop = FALSE]
+    rna_table <- rna_table[, intersect_features, drop = FALSE]
+  } else if (any(colnames(dna_table) != colnames(rna_table))) {
     print("Reordering DNA/RNA to use same feature ordering... This can take a while")
     dna_table <- dna_table[, intersect_features, drop = FALSE]
     rna_table <- rna_table[, intersect_features, drop = FALSE]

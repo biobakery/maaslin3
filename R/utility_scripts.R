@@ -698,12 +698,12 @@ preprocess_dna_mtx <- function(dna_table, rna_table) {
   
   dna_table <- TSSnorm(dna_table)
   for (row_index in 1:nrow(dna_table)) {
-    dna_table[,row_index][is.na(dna_table[,row_index])] <- 0
+    dna_table[row_index,][is.na(dna_table[row_index,])] <- 0
   }
 
   rna_table <- TSSnorm(rna_table)
   for (row_index in 1:nrow(rna_table)) {
-    rna_table[,row_index][is.na(rna_table[,row_index])] <- 0
+    rna_table[row_index,][is.na(rna_table[row_index,])] <- 0
   }
   
   # Transforming DNA table

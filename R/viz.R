@@ -377,7 +377,10 @@ maaslin3_association_plots <-
       figures_folder,
       max_pngs = 10,
       normalization,
-      transform) {
+      transform,
+      feature_specific_covariate = NULL,
+      feature_specific_covariate_name = NULL,
+      feature_specific_covariate_record = NULL) {
       
       new_name_normalization <- c('Total sum scaling', 'Center log ratio', 'Cumulative sum scaling', 'None', 'Trimmed means of M values')
       names(new_name_normalization) <- c("TSS", "CLR", "CSS", "NONE", "TMM")
@@ -413,8 +416,18 @@ maaslin3_association_plots <-
                                    feature_abun = features[,feature_name])
         
         metadata_name <- features_by_metadata[row_num, 'metadata']
-        metadata_sub <- data.frame(sample = rownames(metadata),
-                               metadata = metadata[,metadata_name])
+        if (!is.null(feature_specific_covariate_name)) {
+          if (metadata_name == feature_specific_covariate_name) {
+            metadata_sub <- data.frame(sample = rownames(feature_specific_covariate),
+                                       metadata = feature_specific_covariate[,feature_name])
+          } else {
+            metadata_sub <- data.frame(sample = rownames(metadata),
+                                       metadata = metadata[,metadata_name])
+          }
+        } else {
+          metadata_sub <- data.frame(sample = rownames(metadata),
+                                     metadata = metadata[,metadata_name])
+        }
         joined_features_metadata <- dplyr::inner_join(feature_abun, metadata_sub, by = c('sample'))
         
         model_name = features_by_metadata[row_num, 'model']
@@ -498,7 +511,15 @@ maaslin3_association_plots <-
             N_total <- N_total[sorted_fixed_order]
             results_value <- results_value[sorted_fixed_order]
             
-            renamed_levels <- as.character(levels(metadata[,metadata_name]))
+            if (!is.null(feature_specific_covariate_name)) {
+              if (metadata_name == feature_specific_covariate_name) {
+                renamed_levels <- as.character(levels(feature_specific_covariate[,feature_name]))
+              } else {
+                renamed_levels <- as.character(levels(metadata[,metadata_name]))
+              }
+              renamed_levels <- as.character(levels(metadata[,metadata_name]))
+            }
+            
             if (length(renamed_levels) == 0) {
               renamed_levels <- x_axis_label_names
             }
@@ -654,7 +675,16 @@ maaslin3_association_plots <-
             N_total <- N_total[sorted_fixed_order]
             results_value <- results_value[sorted_fixed_order]
             
-            renamed_levels <- as.character(levels(metadata[,metadata_name]))
+            if (!is.null(feature_specific_covariate_name)) {
+              if (metadata_name == feature_specific_covariate_name) {
+                renamed_levels <- as.character(levels(feature_specific_covariate[,feature_name]))
+              } else {
+                renamed_levels <- as.character(levels(metadata[,metadata_name]))
+              }
+            } else {
+              renamed_levels <- as.character(levels(metadata[,metadata_name]))
+            }
+            
             if (length(renamed_levels) == 0) {
               renamed_levels <- x_axis_label_names
             }

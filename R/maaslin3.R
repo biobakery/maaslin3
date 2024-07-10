@@ -78,11 +78,14 @@ args$max_significance <- 0.1
 args$normalization <- normalization_choices[1]
 args$transform <- transform_choices[1]
 args$correction <- correction_choices[1]
+args$formula <- NULL
 args$random_effects <- NULL
 args$group_effects <- NULL
 args$ordered_effects <- NULL
 args$fixed_effects <- NULL
-args$formula <- NULL
+args$feature_specific_covariate <- NULL
+args$feature_specific_covariate_name <- NULL
+args$feature_specific_covariate_record <- NULL
 args$standardize <- TRUE
 args$median_comparison_abundance <- TRUE
 args$median_comparison_prevalence <- FALSE
@@ -184,6 +187,36 @@ options <-
                  "comma-delimited for multiple effects",
                  "[ Default: none ]"
     )
+  )
+options <-
+  optparse::add_option(
+    options,
+    c("--feature_specific_covariate"),
+    type = "character",
+    dest = "feature_specific_covariate",
+    default = args$feature_specific_covariate,
+    help = paste("The table to use for feature-specific",
+                 "covariates. Row and column names should",
+                 "match the data input."
+    )
+  )
+options <-
+  optparse::add_option(
+    options,
+    c("--feature_specific_covariate_name"),
+    type = "character",
+    dest = "feature_specific_covariate_name",
+    default = args$feature_specific_covariate,
+    help = paste("The name of the feature-specific covariate")
+  )
+options <-
+  optparse::add_option(
+    options,
+    c("--feature_specific_covariate_record"),
+    type = "character",
+    dest = "feature_specific_covariate_record",
+    default = args$feature_specific_covariate_record,
+    help = paste("Whether to include the feature-specific covariate in the outputs")
   )
 options <-
     optparse::add_option(
@@ -477,6 +510,9 @@ maaslin_parse_param_list <- function(param_list) {
                         fixed_effects = args$fixed_effects,
                         group_effects = args$group_effects,
                         ordered_effects = args$ordered_effects,
+                        feature_specific_covariate = args$feature_specific_covariate,
+                        feature_specific_covariate_name = args$feature_specific_covariate_name,
+                        feature_specific_covariate_record = args$feature_specific_covariate_record,
                         formula = args$formula,
                         correction = args$correction,
                         standardize = args$standardize,
@@ -516,6 +552,13 @@ maaslin_parse_param_list <- function(param_list) {
          Set `median_comparison_abundance` to TRUE in the parameters to bypass this error.")
   }
   
+  if (!((is.null(param_list[['feature_specific_covariate']]) + 
+      is.null(param_list[['feature_specific_covariate_name']]) + 
+      is.null(param_list[['feature_specific_covariate_record']])) %in% c(0,3))) {
+    stop("`feature_specific_covariate`, `feature_specific_covariate_name`, and `feature_specific_covariate_record`
+         should all be null or all be non-null")
+  }
+
   # Allow for lower case variables
   param_list[["normalization"]] <- toupper(param_list[["normalization"]])
   param_list[["transform"]] <- toupper(param_list[["transform"]])
@@ -585,6 +628,11 @@ maaslin_check_arguments <- function(param_list) {
     }
   }
   
+  # If formula is a formula object, convert it back to a string
+  if (class(param_list[['formula']]) == 'formula') {
+    param_list[['formula']] <- paste0(trimws(deparse(param_list[['formula']])), collapse = " ")
+  }
+  
   return(param_list)
 }
 
@@ -648,6 +696,21 @@ maaslin_log_arguments <- function(param_list) {
   if (is.character(param_list[["unscaled_abundance"]])) {
     logging::logdebug("Unscaled abundance: %s", param_list[["unscaled_abundance"]])
   }
+  if (!is.null(param_list[["feature_specific_covariate"]])) {
+    if (is.character(param_list[["feature_specific_covariate"]])) {
+      logging::logdebug("Feature specific covariate: %s", param_list[["feature_specific_covariate"]])
+    }
+  }
+  if (!is.null(param_list[["feature_specific_covariate_name"]])) {
+    if (is.character(param_list[["feature_specific_covariate_name"]])) {
+      logging::logdebug("Feature specific covariate name: %s", param_list[["feature_specific_covariate_name"]])
+    }
+  }
+  if (!is.null(param_list[["feature_specific_covariate_record"]])) {
+    if (is.character(param_list[["feature_specific_covariate_record"]])) {
+      logging::logdebug("Feature specific covariate include: %s", param_list[["feature_specific_covariate_record"]])
+    }
+  }
   
   maaslin_check_arguments(param_list)
   
@@ -663,6 +726,7 @@ maaslin_read_data <- function(param_list) {
   input_data <- param_list[["input_data"]]
   input_metadata <- param_list[["input_metadata"]]
   unscaled_abundance <- param_list[["unscaled_abundance"]]
+  feature_specific_covariate <- param_list[["feature_specific_covariate"]]
   
   # if a character string then this is a file name, else it 
   # is a data frame
@@ -720,7 +784,25 @@ maaslin_read_data <- function(param_list) {
     stop("unscaled_abundance is not a file or data frame!")
   }
   
-  param_list[["unscaled_abundance"]] <- unscaled_abundance
+  if (is.character(feature_specific_covariate) && file.exists(feature_specific_covariate)) {
+    feature_specific_covariate <-
+      data.frame(data.table::fread(
+        feature_specific_covariate, header = TRUE, sep = "\t"),
+        row.names = 1)
+  } else if (is.data.frame(feature_specific_covariate)) {
+    if (!tibble::has_rownames(feature_specific_covariate)) {
+      stop("If supplying feature_specific_covariate as a data frame, it must have appropriate rownames!")
+    }
+    feature_specific_covariate <- as.data.frame(feature_specific_covariate) # in case it's a tibble or something
+  } else if (!is.null(feature_specific_covariate)) {
+    stop("feature_specific_covariate is not a file or data frame!")
+  }
+  
+  if (!is.null(unscaled_abundance)) {
+    param_list[["unscaled_abundance"]] <- unscaled_abundance
+  }
+  
+  param_list[["feature_specific_covariate"]] <- feature_specific_covariate
   
   return(list("param_list" = param_list, 
               "data" = data, 
@@ -736,6 +818,7 @@ maaslin_reorder_data <- function(params_and_data) {
   data <- params_and_data[["data"]]
   metadata <- params_and_data[["metadata"]]
   unscaled_abundance <- param_list[["unscaled_abundance"]]
+  feature_specific_covariate <- param_list[["feature_specific_covariate"]]
   
   logging::loginfo("Determining format of input files")
   samples_row_row <- intersect(rownames(data), rownames(metadata))
@@ -818,33 +901,120 @@ maaslin_reorder_data <- function(params_and_data) {
     }
   }
   
+  if (!is.null(feature_specific_covariate)) {
+    samples_row_row <- intersect(rownames(data), rownames(feature_specific_covariate))
+    samples_col_col <- intersect(colnames(data), colnames(feature_specific_covariate))
+    if (length(samples_row_row) > 0 & length(samples_col_col) > 0) {
+      # this is the expected formatting so do not modify data frames
+      logging::loginfo(
+        paste(
+          "Input format is data samples",
+          "as rows and feature_specific_covariate samples as rows"))
+    } else {
+      samples_column_row <- intersect(colnames(data), rownames(feature_specific_covariate))
+      samples_row_column <- intersect(rownames(data), colnames(feature_specific_covariate))
+      
+      if (length(samples_column_row) == 0 | length(samples_row_column) == 0) {
+        # modify possibly included special chars in sample names in metadata
+        rownames(feature_specific_covariate) <- make.names(rownames(feature_specific_covariate))
+        rownames(data) <- make.names(rownames(data))
+        
+        samples_column_row <- intersect(colnames(data), rownames(feature_specific_covariate))
+        samples_row_column <- intersect(rownames(data), colnames(feature_specific_covariate))
+      }
+      
+      if (length(samples_column_row) > 0 & length(samples_row_column) > 0) {
+        logging::loginfo(
+          paste(
+            "Input format is feature_specific_covariate samples",
+            "as columns"))
+        # transpose data frame so samples are rows
+        feature_specific_covariate <- as.data.frame(t(feature_specific_covariate))
+        logging::logdebug("Transformed feature_specific_covariate so samples are rows")
+      } else {
+        logging::logerror(
+          paste("Unable to find samples in feature_specific_covariate.",
+                "Rows/columns do not match."))
+        logging::logdebug(
+          "Data rows: %s", 
+          paste(rownames(data), collapse = ","))
+        logging::logdebug(
+          "Data columns: %s", 
+          paste(colnames(data), collapse = ","))
+        logging::logdebug(
+          "Feature specific covariate rows: %s", 
+          paste(rownames(feature_specific_covariate), collapse = ","))
+        logging::logdebug(
+          "Feature specific covariate columns: %s",
+          paste(colnames(feature_specific_covariate), collapse = ","))
+        stop()
+      }
+    }
+    
+  }
+  
   # replace unexpected characters in feature names
   colnames(data) <- make.names(colnames(data))
   if (!is.null(unscaled_abundance)) {
     colnames(unscaled_abundance) <- make.names(colnames(unscaled_abundance))
   }
+  if (!is.null(feature_specific_covariate)) {
+    colnames(feature_specific_covariate) <- make.names(colnames(feature_specific_covariate))
+  }
 
+  # get a set of the samples with both metadata and features
+  intersect_samples <- intersect(rownames(data), rownames(metadata))
+  logging::logdebug(
+    "A total of %s samples were found in both the data and metadata",
+    length(intersect_samples)
+  )
+  
+  if (!is.null(feature_specific_covariate)) {
+    intersect_samples <- intersect(intersect_samples, rownames(feature_specific_covariate))
+    logging::logdebug(
+      "A total of %s samples were found in the data, metadata, and feature specific covariates",
+      length(intersect_samples)
+    )
+  }
+  
   # check for samples without metadata
   extra_feature_samples <-
-    setdiff(rownames(data), rownames(metadata))
+    setdiff(rownames(data), intersect_samples)
   if (length(extra_feature_samples) > 0)
-    logging::logdebug(
+    logging::loginfo(
       paste("The following samples were found",
-            "to have features but no metadata.",
+            "to have features but no metadata",
+            "(or feature specific covariates if",
+            "applicable).",
             "They will be removed. %s"),
       paste(extra_feature_samples, collapse = ",")
     )
   
   # check for metadata samples without features
   extra_metadata_samples <-
-    setdiff(rownames(metadata), rownames(data))
+    setdiff(rownames(metadata), intersect_samples)
   if (length(extra_metadata_samples) > 0)
-    logging::logdebug(
+    logging::loginfo(
       paste("The following samples were found",
-            "to have metadata but no features.",
+            "to have metadata but no features",
+            "(or feature specific covariates if",
+            "applicable).",
             "They will be removed. %s"),
       paste(extra_metadata_samples, collapse = ",")
     )
+  
+  if (!is.null(feature_specific_covariate)) {
+    extra_feature_specific_covariate_samples <-
+      setdiff(rownames(feature_specific_covariate), intersect_samples)
+    if (length(extra_feature_specific_covariate_samples) > 0)
+      logging::loginfo(
+        paste("The following samples were found",
+              "to have feature specific covariates",
+              "but no features or no metadata.",
+              "They will be removed. %s"),
+        paste(extra_feature_specific_covariate_samples, collapse = ",")
+      )
+  }
   
   if (!is.null(unscaled_abundance)) {
     extra_unscaled_abundance_samples <-
@@ -857,13 +1027,6 @@ maaslin_reorder_data <- function(params_and_data) {
         paste(extra_unscaled_abundance_samples, collapse = ",")
       )
   }
-  
-  # get a set of the samples with both metadata and features
-  intersect_samples <- intersect(rownames(data), rownames(metadata))
-  logging::logdebug(
-    "A total of %s samples were found in both the data and metadata",
-    length(intersect_samples)
-  )
   
   if (!is.null(unscaled_abundance))  {
     if (!all(rownames(data) %in% rownames(unscaled_abundance))) {
@@ -888,10 +1051,16 @@ maaslin_reorder_data <- function(params_and_data) {
     "Reordering data/metadata to use same sample ordering")
   data <- data[intersect_samples, , drop = FALSE]
   metadata <- metadata[intersect_samples, , drop = FALSE]
+  
   if (!is.null(unscaled_abundance)) {
     unscaled_abundance <- unscaled_abundance[intersect_samples, , drop = FALSE]
+    param_list[["unscaled_abundance"]] <- unscaled_abundance
   }
-  param_list[["unscaled_abundance"]] <- unscaled_abundance
+  
+  if (!is.null(feature_specific_covariate)) {
+    feature_specific_covariate <- feature_specific_covariate[intersect_samples, , drop = FALSE]
+    param_list[["feature_specific_covariate"]] <- feature_specific_covariate
+  }
   
   return(list("param_list" = param_list, 
               "data" = data, 
@@ -911,6 +1080,7 @@ maaslin_compute_formula <- function(params_and_data) {
   group_effects <- param_list[["group_effects"]]
   ordered_effects <- param_list[["ordered_effects"]]
   random_effects <- param_list[["random_effects"]]
+  feature_specific_covariate_name <- param_list[['feature_specific_covariate_name']]
   
   if (!is.null(param_list[["formula"]])) {
     if (!is.null(param_list[["fixed_effects"]]) | 
@@ -936,14 +1106,14 @@ maaslin_compute_formula <- function(params_and_data) {
     fixed_effects <- unlist(strsplit(fixed_effects, ",", fixed = TRUE))
     # remove any fixed effects not found in metadata names
     to_remove <- setdiff(fixed_effects, colnames(metadata))
-    if (length(to_remove) > 0)
-      logging::logwarn(
+    if (length(to_remove) > 0) {
+      logging::logerror(
         paste("Feature name not found in metadata",
               "so not applied to formula as fixed effect: %s"),
         paste(to_remove, collapse = " , ")
       )
-    
-    fixed_effects <- setdiff(fixed_effects, to_remove)
+      stop()
+    }
   }
   
   if (!is.null(random_effects)) {
@@ -962,12 +1132,12 @@ maaslin_compute_formula <- function(params_and_data) {
     # remove any random effects not found in metadata
     to_remove <- setdiff(random_effects, colnames(metadata))
     if (length(to_remove) > 0) {
-      logging::logwarn(
+      logging::logerror(
         paste("Feature name not found in metadata",
               "so not applied to formula as random effect: %s"),
         paste(to_remove, collapse = " , ")
       )
-      random_effects <- setdiff(random_effects, to_remove)
+      stop()
     }
     
     # create formula
@@ -1026,8 +1196,8 @@ maaslin_compute_formula <- function(params_and_data) {
     }
   }
   
-  if (length(fixed_effects) == 0 & length(group_effects) == 0 & length(ordered_effects) == 0) {
-    logging::logerror("No fixed/group/ordered effects provided.")
+  if (length(fixed_effects) == 0 & length(group_effects) == 0 & length(ordered_effects) == 0 & is.null(feature_specific_covariate_name)) {
+    logging::logerror("No fixed/group/ordered/feature-specific effects provided.")
     stop()
   }
   
@@ -1042,6 +1212,9 @@ maaslin_compute_formula <- function(params_and_data) {
   }
   if (length(ordered_effects) > 0) {
     formula_effects <- union(formula_effects, paste0("ordered(", ordered_effects, ")"))
+  }
+  if (!is.null(feature_specific_covariate_name)) {
+    formula_effects <- union(formula_effects, feature_specific_covariate_name)
   }
   
   formula_text <-
@@ -1070,7 +1243,6 @@ maaslin_compute_formula <- function(params_and_data) {
     formula <- update(random_effects_formula, formula)
   }
   
-  
   return(list("param_list" = param_list, 
               "data" = data, 
               "metadata" = metadata, 
@@ -1088,6 +1260,7 @@ maaslin_check_formula <- function(params_and_data) {
   metadata <- params_and_data[["metadata"]]
   
   input_formula <- param_list[["formula"]]
+  feature_specific_covariate_name <- param_list[["feature_specific_covariate_name"]]
   
   random_effects_formula <- NULL
   # use all metadata if no fixed effects are provided
@@ -1109,7 +1282,16 @@ maaslin_check_formula <- function(params_and_data) {
   
   # Remove anything before the tilde if necessary
   input_formula <- sub(".*~\\s*", "", input_formula)
-  input_formula <- paste0("expr ~ ", input_formula)
+  
+  if (!is.null(feature_specific_covariate_name)) {
+    if (!grepl(feature_specific_covariate_name, input_formula)) {
+      input_formula <- paste0("expr ~ ", feature_specific_covariate_name, ' + ', input_formula)
+    } else {
+      input_formula <- paste0("expr ~ ", input_formula)
+    }
+  } else {
+    input_formula <- paste0("expr ~ ", input_formula)
+  }
   
   formula <-
     tryCatch(
@@ -1124,7 +1306,7 @@ maaslin_check_formula <- function(params_and_data) {
     )
   
   formula_terms <- all.vars(formula)
-  formula_terms <- formula_terms[formula_terms != "expr"]
+  formula_terms <- formula_terms[!formula_terms %in% c("expr", feature_specific_covariate_name)]
   
   to_remove <- setdiff(formula_terms, colnames(metadata))
   if (length(to_remove) > 0) {
@@ -1137,7 +1319,7 @@ maaslin_check_formula <- function(params_and_data) {
   
   term_labels <- attr(terms(formula), "term.labels")
   
-  if (sum(!grepl("\\|", term_labels)) == 0) {
+  if (sum(!grepl("\\|", term_labels)) == 0 & is.null(feature_specific_covariate_name)) {
     logging::logerror("No fixed, group, or ordered effects included in formula.")
     stop()
   }
@@ -1415,7 +1597,20 @@ maaslin_fit = function(params_and_data_and_formula) {
 
   logging::loginfo("Running the linear model (LM) component")
   
-  prevalence_mask <- ifelse(params_and_data_and_formula[["filtered_data"]] > 0, 1, 0)
+  prevalence_mask <- ifelse(params_and_data_and_formula[["filtered_data"]] > 
+                              param_list[["zero_threshold"]], 1, 0)
+  
+  if (!is.null(param_list[["feature_specific_covariate"]])) {
+    tryCatch({
+      param_list[["feature_specific_covariate"]] <- 
+        param_list[["feature_specific_covariate"]][
+          rownames(params_and_data_and_formula[["filtered_data"]]),
+          colnames(params_and_data_and_formula[["filtered_data"]]) ]
+    }, error = function(e) {
+      stop(paste("feature_specific_covariate does not contain the features and samples of the filtered data."))
+    })
+    
+  }
   
   #######################
   # For non-zero models #
@@ -1433,7 +1628,10 @@ maaslin_fit = function(params_and_data_and_formula) {
       augment = param_list[["augment"]],
       cores = param_list[["cores"]],
       median_comparison = param_list[["median_comparison_abundance"]],
-      median_comparison_threshold = param_list[["median_comparison_abundance_threshold"]]
+      median_comparison_threshold = param_list[["median_comparison_abundance_threshold"]],
+      feature_specific_covariate = param_list[["feature_specific_covariate"]],
+      feature_specific_covariate_name = param_list[["feature_specific_covariate_name"]],
+      feature_specific_covariate_record = param_list[["feature_specific_covariate_record"]]
     )
   
   #################################################################
@@ -1475,7 +1673,10 @@ maaslin_fit = function(params_and_data_and_formula) {
       augment = param_list[["augment"]],
       cores = param_list[["cores"]],
       median_comparison = param_list[["median_comparison_prevalence"]],
-      median_comparison_threshold = param_list[["median_comparison_prevalence_threshold"]]
+      median_comparison_threshold = param_list[["median_comparison_prevalence_threshold"]],
+      feature_specific_covariate = param_list[["feature_specific_covariate"]],
+      feature_specific_covariate_name = param_list[["feature_specific_covariate_name"]],
+      feature_specific_covariate_record = param_list[["feature_specific_covariate_record"]]
     )
 
   logging::loginfo("Counting total values for each feature")
@@ -1543,7 +1744,7 @@ maaslin_fit = function(params_and_data_and_formula) {
   fit_data_prevalence$results <- fit_data_prevalence$results[order(fit_data_prevalence$results$qval_joint),]
   fit_data_prevalence$results <- fit_data_prevalence$results[order(!is.na(fit_data_prevalence$results$error)),] # Move all that had errors to the end
   
-  return(list("param_list" = params_and_data_and_formula[["param_list"]], 
+  return(list("param_list" = param_list, 
               "data" = params_and_data_and_formula[["data"]], 
               "filtered_data" = params_and_data_and_formula[["filtered_data"]], 
               "filtered_data_norm_transformed" = params_and_data_and_formula[["filtered_data_norm_transformed"]],
@@ -1656,7 +1857,11 @@ maaslin_plot_results <- function(params_data_formula_fit) {
       figures_folder = figures_folder,
       max_pngs = param_list[["max_pngs"]],
       normalization = param_list[["normalization"]],
-      transform = param_list[["transform"]]))
+      transform = param_list[["transform"]],
+      feature_specific_covariate = param_list[["feature_specific_covariate"]],
+      feature_specific_covariate_name = param_list[["feature_specific_covariate_name"]],
+      feature_specific_covariate_record = param_list[["feature_specific_covariate_record"]])
+      )
   }
 }
 
@@ -1735,6 +1940,18 @@ maaslin_plot_results_from_output <- function(param_list) {
       figures_folder
     )
     
+    # Need to redo this if not fitting the model
+    if (!is.null(param_list[["feature_specific_covariate"]])) {
+      tryCatch({
+        param_list[["feature_specific_covariate"]] <- 
+          param_list[["feature_specific_covariate"]][
+            rownames(params_and_data_and_formula[["filtered_data"]]),
+            colnames(params_and_data_and_formula[["filtered_data"]]) ]
+      }, error = function(e) {
+        stop(paste("feature_specific_covariate does not contain the features and samples of the filtered data."))
+      })
+    }
+    
     plots_out <- maaslin3_association_plots(
       merged_results = merged_results,
       metadata = params_and_data_and_formula[["unfiltered_metadata"]],
@@ -1743,7 +1960,10 @@ maaslin_plot_results_from_output <- function(param_list) {
       figures_folder = figures_folder,
       max_pngs = param_list[["max_pngs"]],
       normalization = param_list[["normalization"]],
-      transform = param_list[["transform"]])
+      transform = param_list[["transform"]],
+      feature_specific_covariate = param_list[["feature_specific_covariate"]],
+      feature_specific_covariate_name = param_list[["feature_specific_covariate_name"]],
+      feature_specific_covariate_record = param_list[["feature_specific_covariate_record"]])
   } else {
     plots_out <- NULL
   }
@@ -1834,6 +2054,9 @@ if (identical(environment(), globalenv()) &&
       fixed_effects = current_args$fixed_effects,
       group_effects = current_args$group_effects,
       ordered_effects = current_args$ordered_effects,
+      feature_specific_covariate = current_args$feature_specific_covariate,
+      feature_specific_covariate_name = current_args$feature_specific_covariate_name,
+      feature_specific_covariate_record = current_args$feature_specific_covariate_record,
       median_comparison_abundance = current_args$median_comparison_abundance,
       median_comparison_prevalence = current_args$median_comparison_prevalence,
       median_comparison_abundance_threshold = current_args$median_comparison_abundance_threshold,

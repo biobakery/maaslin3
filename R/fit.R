@@ -163,8 +163,12 @@ fit.model <- function(
     augment = FALSE,
     cores = 1,
     median_comparison = FALSE,
-    median_comparison_threshold = 0.25) {
-  function_vec <- c("augment_data", "safe_deparse", "extract_special_predictor", "get_fixed_effects", "get_character_cols", 
+    median_comparison_threshold = 0.1,
+    feature_specific_covariate = NULL,
+    feature_specific_covariate_name = NULL,
+    feature_specific_covariate_record = NULL) {
+  function_vec <- c("augment_data", "safe_deparse", "extract_special_predictor", 
+                    "get_fixed_effects", "get_character_cols", 
                     "add_joint_signif", "append_joint")
       
   # Check formulas are valid
@@ -194,7 +198,8 @@ fit.model <- function(
   #############################################################
   
   optimizers <- c('nloptwrap', 'nlminbwrap', 'bobyqa', 'Nelder_Mead')
-  optCtrlList <- list(list(maxeval = 100000), list(maxit = 1500), list(maxfun = 100000), list(maxfun = 100000))
+  optCtrlList <- list(list(maxeval = 100000), list(maxit = 1500), 
+                      list(maxfun = 100000), list(maxfun = 100000))
   
   ################
   # Linear Model #
@@ -464,8 +469,19 @@ fit.model <- function(
         colnames(features)[x])
     
     # Make fitting matrix of features and metadata
-    dat_sub <- data.frame(expr = as.numeric(featuresVector), metadata)
-    
+    if (!is.null(feature_specific_covariate)) {
+      covariateVector <- feature_specific_covariate[, x]
+      
+      dat_sub <- data.frame(expr = as.numeric(featuresVector), 
+                            feature_specific_covariate = covariateVector,
+                            metadata)
+      
+      colnames(dat_sub)[colnames(dat_sub) == 'feature_specific_covariate'] <- 
+        feature_specific_covariate_name
+    } else {
+      dat_sub <- data.frame(expr = as.numeric(featuresVector), metadata)
+    }
+
     # 0 or 1 observations
     if (length(unique(dat_sub$expr)) < 2) {
       output <- list()
@@ -1165,17 +1181,14 @@ fit.model <- function(
     row.names(ranef) <- colnames(features) 
   }
     
-  ################################
-  # Apply correction to p-values #
-  ################################
-  
-  paras$qval <- as.numeric(p.adjust(paras$pval, method = correction))
-  
   #####################################################
   # Determine the metadata names from the model names #
   #####################################################
   
   metadata_names <- colnames(metadata)
+  if (!is.null(feature_specific_covariate)) {
+    metadata_names <- union(metadata_names, feature_specific_covariate_name)
+  }
   # order the metadata names by decreasing length
   metadata_names_ordered <-
       metadata_names[order(
@@ -1205,6 +1218,18 @@ fit.model <- function(
           else
               gsub("^\\:", "", sub(x, "", y))
       }, paras$metadata, paras$name)
+  
+  if (!is.null(feature_specific_covariate_record)) {
+    if (!feature_specific_covariate_record) {
+      paras <- paras[!grepl(feature_specific_covariate_name, paras$name),]
+    }
+  }
+  
+  ################################
+  # Apply correction to p-values #
+  ################################
+  
+  paras$qval <- as.numeric(p.adjust(paras$pval, method = correction))
   
   ##############################
   # Sort by decreasing q-value #

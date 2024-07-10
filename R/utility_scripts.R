@@ -592,3 +592,135 @@ write_results_in_lefse_format <- function(results, output_file_name) {
   writeLines(sort(lines_vec), con = output_file_name)
 }
 
+##############################
+# DNA pre-processing for MTX #
+##############################
+
+# rna_table must be samples (rows) by features (cols)
+preprocess_dna_mtx <- function(dna_table, rna_table) {
+  samples_row_row <- intersect(rownames(dna_table), rownames(rna_table))
+  if (length(samples_row_row) == 0) {
+    samples_column_row <- intersect(colnames(dna_table), rownames(rna_table))
+    
+    if (length(samples_column_row) == 0) {
+      # modify possibly included special chars in sample names in metadata
+      rownames(rna_table) <- make.names(rownames(rna_table))
+      
+      samples_column_row <- intersect(colnames(dna_table), rownames(rna_table))
+    }
+    
+    if (length(samples_column_row) > 0) {
+      dna_table <- as.data.frame(t(dna_table))
+      print("Transformed data so samples are rows")
+    } else {
+          print("Rows/columns do not match.")
+          print(
+            paste0("DNA rows: ", 
+            paste(rownames(dna_table), collapse = ",")))
+          print(
+            paste0("DNA columns: ", 
+            paste(colnames(dna_table), collapse = ",")))
+          print(
+            paste0("RNA rows: ", 
+            paste(rownames(rna_table), collapse = ",")))
+          print(
+            paste0("RNA columns: ",
+            paste(colnames(rna_table), collapse = ",")))
+          stop()
+    }
+  }
+  
+  # replace unexpected characters in feature names
+  colnames(dna_table) <- make.names(colnames(dna_table))
+
+  intersect_samples <- intersect(rownames(dna_table), rownames(rna_table))
+  print(paste0("A total of ", length(intersect_samples), 
+               " samples were found in both the data and metadata"))
+  
+  # check for samples without RNA abundances
+  extra_dna_samples <-
+    setdiff(rownames(dna_table), intersect_samples)
+  if (length(extra_dna_samples) > 0)
+    print(
+      paste("The following samples were found",
+            "to have DNA but no RNA",
+            "They will be removed. ", paste(extra_dna_samples, collapse = ","))
+    )
+  
+  # check for samples without DNA abundances
+  extra_rna_samples <-
+    setdiff(rownames(rna_table), intersect_samples)
+  if (length(extra_rna_samples) > 0)
+    print(
+      paste("The following samples were found",
+            "to have RNA but no DNA.",
+            "They will be removed. ", paste(extra_rna_samples, collapse = ","))
+    )
+  
+  print("Reordering DNA/RNA to use same sample ordering")
+  dna_table <- dna_table[intersect_samples, , drop = FALSE]
+  rna_table <- rna_table[intersect_samples, , drop = FALSE]
+
+  intersect_samples <- intersect(colnames(dna_table), colnames(rna_table))
+  print(paste0("A total of ", length(intersect_samples), 
+               " features were found in both the data and metadata"))
+  
+  # check for features without RNA abundances
+  extra_dna_samples <-
+    setdiff(colnames(dna_table), intersect_samples)
+  if (length(extra_dna_samples) > 0)
+    print(
+      paste("The following samples were found",
+            "to have DNA but no RNA",
+            "They will be removed. ", paste(extra_dna_samples, collapse = ","))
+    )
+  
+  # check for features without DNA abundances
+  extra_rna_samples <-
+    setdiff(colnames(rna_table), intersect_samples)
+  if (length(extra_rna_samples) > 0)
+    print(
+      paste("The following samples were found",
+            "to have RNA but no DNA.",
+            "They will be removed. ", paste(extra_rna_samples, collapse = ","))
+    )
+  
+  print("Reordering DNA/RNA to use same feature ordering")
+  dna_table <- dna_table[, intersect_samples, drop = FALSE]
+  rna_table <- rna_table[, intersect_samples, drop = FALSE]
+  
+  if (!all(colnames(dna_table) == colnames(rna_table)) | 
+      !all(rownames(dna_table) == rownames(rna_table))) {
+    stop("Something went wrong in preprocessing")
+  }
+  
+  # At this point, DNA and RNA tables are samples x features with same features and samples
+  
+  dna_table <- TSSnorm(dna_table)
+  dna_table[is.na(dna_table)] <- 0
+  rna_table <- TSSnorm(rna_table)
+  rna_table[is.na(rna_table)] <- 0
+  
+  for (row_name in rownames(dna_table)) {
+    dna_table[row_name,] <- 
+      ifelse(dna_table[row_name,] > 0,
+             log2(dna_table[row_name,]), # If present, just log2 transform it
+             ifelse(rna_table[row_name,] > 0, # Otherwise, if RNA is present, use pseudocount
+                    log2(min(dna_table[row_name,][dna_table[row_name,] > 0]) / 2), # sample minimum / 2
+                    NA) # If both are missing, set NA to exclude in analysis
+            )
+  }
+
+  return(list("dna_table" = dna_table, 
+              "rna_table" = rna_table))
+}
+
+
+
+
+
+
+
+
+
+

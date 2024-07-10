@@ -1,6 +1,6 @@
 # MaAsLin 3 #
 
-[**MaAsLin3**](http://huttenhower.sph.harvard.edu/MaAsLin3) is the next generation of **M**a**A**s**L**in (**M**icrobiome **M**ultivariable **A**ssociations with **L**inear Models). This comprehensive R package efficiently determines multivariable associations between clinical metadata and microbial meta-omics features. Relative to MaAsLin 2, MaAsLin 3 introduces the ability to quantify and test for **both abundance and prevalence associations** while **accounting for compositionality**. By incorporating generalized linear models, MaAsLin 3 accomodates most modern epidemiological study designs including cross-sectional and longitudinal studies.
+[**MaAsLin 3**](http://huttenhower.sph.harvard.edu/MaAsLin3) is the next generation of **M**a**A**s**L**in (**M**icrobiome **M**ultivariable **A**ssociations with **L**inear Models). This comprehensive R package efficiently determines multivariable associations between clinical metadata and microbial meta-omics features. Relative to MaAsLin 2, MaAsLin 3 introduces the ability to quantify and test for **both abundance and prevalence associations** while **accounting for compositionality**. By incorporating generalized linear models, MaAsLin 3 accomodates most modern epidemiological study designs including cross-sectional and longitudinal studies.
 
 If you use the MaAsLin 3 software, please cite our manuscript: 
 

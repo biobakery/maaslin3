@@ -697,13 +697,13 @@ preprocess_dna_mtx <- function(dna_table, rna_table) {
   # At this point, DNA and RNA tables are samples x features with same features and samples
   
   dna_table <- TSSnorm(dna_table)
-  for (row_index in 1:nrow(dna_table)) {
-    dna_table[row_index,][is.na(dna_table[row_index,])] <- 0
+  for (col_index in 1:ncol(dna_table)) {
+    dna_table[,col_index][is.na(dna_table[,col_index])] <- 0
   }
 
   rna_table <- TSSnorm(rna_table)
-  for (row_index in 1:nrow(rna_table)) {
-    rna_table[row_index,][is.na(rna_table[row_index,])] <- 0
+  for (col_index in 1:ncol(rna_table)) {
+    rna_table[,col_index][is.na(rna_table[,col_index])] <- 0
   }
   
   # Transforming DNA table

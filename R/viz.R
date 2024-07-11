@@ -345,7 +345,7 @@ maaslin3_summary_plot <-
     
     if (!is.null(p1) & !is.null(p2)) {
       final_plot <- patchwork::wrap_plots(p1, p2, ncol = 3, 
-                                          widths = c(max(0, length(coef_plot_vars) * (max(20, max(nchar(as.character(coef_plot_vars))))) / 20 - 2) + 2,
+                                          widths = c(max(0, length(coef_plot_vars) * (max(15, max(nchar(as.character(coef_plot_vars))))) / 15 - 2) + 2,
                                                      max(0, length(heatmap_vars) / 4 - 2) + 2, 
                                                      0.5), guides = 'collect')
     } else if (is.null(p1) & !is.null(p2)) {

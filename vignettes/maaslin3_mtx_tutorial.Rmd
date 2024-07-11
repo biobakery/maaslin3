@@ -18,11 +18,16 @@ vignette: >
     %\VignetteEncoding{UTF-8}
 ---
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+```
+
 # MTX Model 3.0 Tutorial #
 
-The MTX model 3.0 is an extension of [MaAsLin 3](http://huttenhower.sph.harvard.edu/maaslin3) (Microbiome Multivariable Association with Linear Models) built for metatranscriptomics (MTX) differential gene expression analysis. It integrates feature-specific covariates to determine multivariable associations between metadata and microbial MTX features. RNA expression changes within a microbial community are highly affected by the underlying differences in metagenomic abundances (i.e. gene copy number or the abundance of a given microbe). This package can adjust for the community DNA abundance as a continuous covariate for a given feature in the model, allowing for robust differential expression analysis in microbial communities. 
+[MaAsLin 3](http://huttenhower.sph.harvard.edu/maaslin3) (Microbiome Multivariable Association with Linear Models) now directly incorporates [the MTX model](https://github.com/biobakery/MTX_model) built for metatranscriptomics (MTX) differential gene expression analysis. It integrates feature-specific covariates to determine multivariable associations between metadata and microbial MTX features since RNA expression changes within a microbial community are highly affected by the underlying differences in metagenomic abundances (i.e. gene copy number or the abundance of a given microbe). MaAsLin 3 can adjust for the feature DNA abundance as a continuous covariate for a given RNA feature in the model, allowing for robust differential expression analysis in microbial communities.
 
-If you use the MTX model package, please cite our manuscripts:
+If you use the MTX model, please cite our manuscripts:
+
 > William A. Nickols, Jacob T. Nearing, Kelsey N. Thompson, Jiaxian Shen, Curtis Huttenhower 
 MaAsLin 3: Refining and extending generalized multivariate linear models for meta-omic association discovery. (In progress).
 
@@ -32,31 +37,25 @@ MaAsLin 3: Refining and extending generalized multivariate linear models for met
 
 ## Contents ##
 * [1. Description](#1-description)
-* [2. Install the library](#2-install-the-library)
-    * [2.1 Requirements](#21-requirements)
-    * [2.2 Installation](#22-installation)
+* [2. Installation](#2-installation)
 * [3. Running the MTX model](#3-running-the-mtx-model)
     * [3.1 Input Files](#31-input-files)
          * [3.1.1 Required inputs](#311-required-inputs)
          * [3.1.2 Examples of input files](#312-examples-of-input-files)
     * [3.2 Output files](#32-output-files)
-    * [3.3 Setting up environment](#33-setting-up-environment)
-    * [3.4 Running models in R](#34-running-models-in-R)
-    	* [3.4.1 Raw RNA Abundances with MaAsLin 3](#341-raw-rna-abundances-with-maaslin-3)
-    	* [3.4.2 RNA/DNA Ratios with MaAsLin 3](#342-rna-dna-ratios-with-maaslin-3)
-    	* [3.4.3 RNA abundance adjusted by DNA abundance with MTXmodel](#343-rna-abundance-adjusted-by-dna-abundance-with-mtxmodel)
-    * [3.5 Compare output](#35-compare-output)
-* [4. Running on command line](#4-running-on-command-line)
+    * [3.3 Running models in R](#33-running-models-in-R)
+    	* [3.3.1 Raw RNA Abundances with MaAsLin 3](#331-raw-rna-abundances-with-maaslin-3)
+    	* [3.3.2 RNA/DNA Ratios with MaAsLin 3](#332-rna-dna-ratios-with-maaslin-3)
+    	* [3.3.3 RNA abundance adjusted by DNA abundance with MaAsLin 3](#333-rna-abundance-adjusted-by-dna-abundance-with-mtxmodel)
+    * [3.4 Compare output](#34-compare-output)
 
-## 1. Description
+## 1. Description {#1-description}
 
-In this tutorial, we will walk through most of the steps from [the MTX model manuscript](https://academic.oup.com/bioinformatics/article/37/Supplement_1/i34/6319701). We will compare the output of unadjusted MaAsLin 3 runs of MTX data with ratio-adjusted MTX data using DNA copy number or MTX abundance data adjusted with DNA abundances. 
+In this tutorial, we will walk through most of the steps from [the MTX model manuscript](https://academic.oup.com/bioinformatics/article/37/Supplement_1/i34/6319701). We will compare the output of unadjusted MaAsLin 3 runs on MTX data with ratio-adjusted MTX data using DNA copy number and MTX abundance data adjusted with DNA abundances. 
 
 <img src="https://github.com/biobakery/biobakery/blob/master/images/Figure_MTXmodel.png" width="70%" />
 
-# 2. Install the library 
-
-## 2.1 Requirements
+# 2. Installation {#1-installation}
 
 The latest development version of MaAsLin 3 can be installed from GitHub using the `devtools` package. For MaAsLin 3 to install, you will need R >= 4.3. If your version is older than that, please refer to section [Installing R for the first time](https://github.com/biobakery/biobakery/wiki/maaslin3#1-installing-r) from the MaAsLin 3 tutorial to download the latest R.
 
@@ -77,14 +76,14 @@ for (lib in c('maaslin3', 'dplyr', 'ggplot2', 'knitr', 'kableExtra')) {
 }
 ```
 
-# 3. Running the MTX model
+# 3. Running the MTX model {#3-running-the-mtx-model}
 
-The MTX model can be run from the command line or as an R function. Both methods require the same arguments, have the same options, and use the same default settings.
+The MTX model in MaAsLin 3 can be run from the command line or as an R function. Both methods require the same arguments, have the same options, and use the same default settings.
 
-## 3.1 Input Files
+## 3.1 Input Files {#31-input-files}
 
-### 3.1.1 Required inputs
-The MTX model requires three input files:
+### 3.1.1 Required inputs {#311-required-inputs}
+The MTX model in MaAsLin 3 requires three input files:
 
 1. A feature table of RNA abundances - we generated this with [HUMAnN 2](https://huttenhower.sph.harvard.edu/humann2/)
     * Formatted with features as columns and samples as rows.
@@ -102,25 +101,21 @@ The MTX model requires three input files:
     * Possible metadata in this file include pH, disease status, or age.
     * This can be a filepath to a tab-delimited file.
 
-The data file can contain samples not included in the metadata file (as true for the reverse case of more samples in the metadata). For both cases, those samples that are not included in both files will be removed prior to model construction. Additionally, The sample order within the files does not need to match as MaAsLin 3 will double check this for us.
+The data file can contain samples not included in the metadata file (as is true for the reverse case of more samples in the metadata). For both cases, those samples that are not included in both files will be removed prior to model construction. Additionally, The sample order within the files does not need to match as MaAsLin 3 will double check this.
 
-### 3.1.2 Examples of input files
+### 3.1.2 Examples of input files {#312-examples-of-input-files}
 
 Example input files can be found in the ``inst/extdata`` folder of the MaAsLin 3 source. The files provided were generated from the HMP2 data which can be downloaded from https://ibdmdb.org/.
 
-``HMP2_pwyRNA.tsv``: is a tab-delimited file with pathways as columns and samples as rows. It is a subset of the pathway file so it just includes the pathway RNA abundances for all samples.
+* ``HMP2_pwyRNA.tsv``: a tab-delimited file with pathways as columns and samples as rows. It is a subset of the pathway file so it just includes the pathway RNA abundances for all samples.
+* ``HMP2_pwyDNA.tsv``: a tab-delimited file with pathways as columns and samples as rows. It is a subset of the pathway file so it just includes the pathway DNA abundances for all samples.
+* ``HMP2_pwy.RNA_DNA_ratio.tsv``: a tab-delimited file with pathways as columns and samples as rows. It is a subset of the pathway file so it just includes the pathway RNA abundances for all samples and it has been normalized as a ratio of the underlying (matched) DNA abundances. 
+* ``HMP2_metadata.tsv``: a tab-delimited file with samples as rows and metadata as columns. It is a subset of the metadata file that just includes some of the fields.
 
-``HMP2_pwyDNA.tsv``: is a tab-delimited file with pathways as columns and samples as rows. It is a subset of the pathway file so it just includes the pathway DNA abundances for all samples.
-
-``HMP2_pwy.RNA_DNA_ratio.tsv``: is a tab-delimited file with pathways as columns and samples as rows. It is a subset of the pathway file so it just includes the pathway RNA abundances for all samples and it has been normalized as a ratio of the underlying (matched) DNA abundances. 
-
-``HMP2_metadata.tsv``: is a tab-delimited file with samples as rows and metadata as columns. It is a subset of the metadata file that just includes some of the fields.
-
-```{R}
+```{R, cache=T}
 ### RNA abundances
 input_data <- system.file(
   'extdata','HMP2_pwyRNA.tsv', package="maaslin3")
-
 df_input_data = read.table(file = input_data,
                            header = TRUE,
                            sep = "\t", 
@@ -146,6 +141,14 @@ df_input_metadata = read.table(file             = input_metadata,
                                sep              = "\t", 
                                row.names        = 1,
                                stringsAsFactors = FALSE)
+df_input_metadata$diagnosis <- 
+  factor(df_input_metadata$diagnosis, levels = c('nonIBD', 'UC', 'CD'))
+df_input_metadata$dysbiosis_state <- 
+  factor(df_input_metadata$dysbiosis_state, levels = c('none', 'dysbiosis_UC', 'dysbiosis_CD'))
+df_input_metadata$antibiotics <- 
+  factor(df_input_metadata$antibiotics, levels = c('No', 'Yes'))
+
+
 df_input_metadata[1:5, 1:5]
 
 # DNA data 
@@ -159,163 +162,165 @@ df_input_dnadata = read.table(file             = input_dnadata,
 df_input_dnadata[1:5, 1:5]
 ```
 
-## 3.2 Output files
+## 3.2 Output files {#32-output-files}
 
-The MTX model generates the same types of output files with MaAsLin 3: data and visualization. See more details in the [MaAsLin 3 manual](https://github.com/biobakery/Maaslin3?tab=readme-ov-file#output-files). For this tutorial, we also will run two models using `maaslin3` instead of the wrapper. 
+Running the MTX model in MaAsLin 3 generates the same output files as usual. See more details in the [MaAsLin 3 manual](https://github.com/biobakery/Maaslin3?tab=readme-ov-file#output-files).
 
-## 3.3 Setting up the environment
+## 3.3 Running models in R {#33-running-models-in-R}
 
 Next, we are going to run the model in three different ways: 
-  1. The raw RNA abundances from HUMAnN with MaAsLin 2
-  2. The RNA/DNA ratios - which were created using a helper script from HUMAnN on paired MGX/MTX data with MaAsLin 2
-  3. Using the MTXmodel library to further adjust the raw RNA abundance by the underlying DNA abundances
 
-## 3.4 Running models in R
-### 3.4.1 Raw RNA Abundances with MaAsLin 2
+  1. Run MaAsLin 3 on the raw RNA abundances from HUMAnN
+  2. Run MaAsLin 3 on the RNA/DNA ratios, which were created using a helper script from HUMAnN on paired MGX/MTX data
+  3. Run the MTX model in MaAsLin 3 to adjust the raw RNA abundance by the underlying DNA abundances
 
-In this first example run on MTX data, we will run MaAsLin 2 on the RNA pathway abundances as characterized by HUMAnN 2 but not normalized by the matched DNA of these samples.  
+### 3.3.1 Raw RNA Abundances with MaAsLin 3 {#331-raw-rna-abundances-with-maaslin-3}
 
-```r
-library(Maaslin2)
-fit_rna <- Maaslin2(
-  df_input_data, df_input_metadata, 'demo_output_rna', transform = "LOG",
-  fixed_effects = c('diagnosis', 'dysbiosisnonIBD','dysbiosisUC','dysbiosisCD', 'antibiotics', 'age'),
-  random_effects = c('site', 'subject'),
-  reference = "diagnosis,nonIBD",
-  normalization = 'NONE',
-  standardize = FALSE
-)
+In this first example run on MTX data, we will run MaAsLin 3 on the RNA pathway abundances as characterized by HUMAnN 2 but not normalized by the matched DNA of these samples. When running MTX data, **it is recommended to set `median_comparison_abundance_threshold = 0.0`** in order to detect the typically-smaller MTX effects.
+
+```{R, echo = T, results = 'hide', warning = FALSE, cache = T}
+# Set median_comparison_abundance_threshold = 0.0 since effect sizes are small
+param_list <- list(input_data = df_input_data, 
+                   input_metadata = df_input_metadata, 
+                   output = 'demo_output_rna',
+                   fixed_effects = c('diagnosis', 'dysbiosis_state', 'antibiotics', 'age'),
+                   random_effects = c('participant_id'),
+                   median_comparison_abundance_threshold = 0.0,
+                   coef_plot_vars = c('dysbiosis_state dysbiosis_CD', 'diagnosis CD'),
+                   heatmap_vars = c('dysbiosis_state dysbiosis_UC', 'diagnosis UC', 'age', 'antibiotics Yes'))
+
+fit_maaslin_rna <- maaslin3(param_list)
 ```
-<img src="https://github.com/biobakery/biobakery/blob/master/images/heatmap_rawRNA.png" width="60%" />
 
-
-### 3.4.2 RNA/DNA Ratios with MaAsLin 2 
-Next, we will run the same model changing the input to the RNA/DNA ratio `data.frame`. 
-
-```r
-fit_rna_ratio <- Maaslin2(
-  df_input_dataratio, df_input_metadata, 'demo_output_rna_ratio', transform = "LOG",
-  fixed_effects = c('diagnosis', 'dysbiosisnonIBD','dysbiosisUC','dysbiosisCD', 'antibiotics', 'age'),
-  random_effects = c('site', 'subject'),
-  reference = "diagnosis,nonIBD",
-  normalization = 'NONE',
-  standardize = FALSE
-)
+```{r, out.width='100%', echo=F, cache = T}
+knitr::include_graphics("demo_output_rna/figures/summary_plot.png")
 ```
-<img src="https://github.com/biobakery/biobakery/blob/master/images/heatmap_rna_ratio.png" width="60%" />
 
-Finally, we run the MTXmodel. Here we will switch the `input_data` back to the raw RNA abundance file (CPM normalized), and add a flag for the DNA abundance file, `input_dnadata = input_dnadata`, which will add the covariate of the DNA abundance to the linear model as it runs within MaAsLin 2. The other MTXmodel specific flag is `--rna_dna_flt=lenient` which applies different levels of filtering for the zeros in the data. This flag can be tuned depending on how zero-inflated your data is,  the default is lenient which filters out any features that are absent in either the DNA or the RNA (must have at least one sample with some abundance in the RNA and DNA).  
+### 3.3.2 RNA/DNA Ratios with MaAsLin 3 {#332-rna-dna-ratios-with-maaslin-3}
+Next, we will run the same model changing the input to the RNA/DNA ratio data frame. Note that we now set `normalization = 'NONE'` so that MaAsLin 3 does not total-sum scale the ratios. As before, we set `median_comparison_abundance_threshold = 0.0` in order to detect the typically-smaller MTX effects.
 
-### 3.4.3 RNA abundance adjusted by DNA abundance with MTXmodel
+```{R, echo = T, results = 'hide', warning = FALSE, cache = T}
+# Set median_comparison_abundance_threshold = 0.0 since effect sizes are small
+param_list <- list(input_data = df_input_dataratio, 
+                   input_metadata = df_input_metadata, 
+                   output = 'demo_output_ratio',
+                   fixed_effects = c('diagnosis', 'dysbiosis_state', 'antibiotics', 'age'),
+                   random_effects = c('participant_id'),
+                   normalization = 'NONE',
+                   median_comparison_abundance_threshold = 0.0,
+                   coef_plot_vars = c('dysbiosis_state dysbiosis_CD', 'diagnosis CD'),
+                   heatmap_vars = c('dysbiosis_state dysbiosis_UC', 'diagnosis UC', 'age', 'antibiotics Yes'))
 
-```r
-library(MTXmodel)
-fit_rna_dna <- MTXmodel(
-  df_input_data, df_input_metadata, 'demo_output_rna_dna', transform = "LOG",
-  fixed_effects = c('diagnosis', 'dysbiosisnonIBD','dysbiosisUC','dysbiosisCD', 'antibiotics', 'age'),
-  random_effects = c('site', 'subject'),
-  reference = "diagnosis,nonIBD",
-  normalization = 'NONE',
-  standardize = FALSE,
-  input_dnadata = df_input_dnadata
-)
+fit_maaslin_ratio <- maaslin3(param_list)
 ```
-<img src="https://github.com/biobakery/biobakery/blob/master/images/heatmap_rna_dna.png" width="60%" />
 
-
-## 3.5 Compare output
-
-Finally, let's use some simple R scripts to compare the results from each model:
-
-First, we will just look at the raw counts of features associated with the CD term in the diagnosis variable. To do this we will use the base R function ``subset`` to subset the results to just the ones from the diagnosis comparisons and ``table`` to count the number of pathways that were associated with UC/CD in each model. 
-
-```r
-#compare the raw counts of features associated with CD
-results_rna = subset(fit_rna$results, metadata == "diagnosis")
-table(results_rna$value)
-#CD/UC = 186
-
-results_rna_ratio = subset(fit_rna_ratio$results, metadata == "diagnosis")
-table(results_rna_ratio$value)
-#CD/UC = 37
-
-results_rna_dna = subset(fit_rna_dna$results, metadata == "diagnosis")
-table(results_rna_dna$value)
-#CD/UC = 178
+```{r, out.width='100%', echo=F, cache = T}
+knitr::include_graphics("demo_output_ratio/figures/summary_plot.png")
 ```
-As you can tell, this number was highly dependent on the model, with most results coming from the raw RNA abundances through MaAsLin and the least results from the RNA/DNA ratio data once again with the MaAsLin function. 
 
-Next, let's look at which (if any) features overlapped between the models. We can do this with the `intersect` call in R:
+### 3.3.3 RNA abundance adjusted by DNA abundance with MaAsLin 3 {#333-rna-abundance-adjusted-by-dna-abundance-with-mtxmodel}
 
-```r
+Finally, we will run the MTX model in MaAsLin 3. We first put the DNA and RNA abundance files into the MaAsLin 3 function `preprocess_dna_mtx` to total sum scale the abundances of both and apply the proper transformation to the DNA abundances. For each sample in each feature, this function:
+
+1. Log 2 transforms the DNA abundance if the DNA abundance is >=0.
+2. Sets the DNA abundance to `log2([minimum relative abundance in the sample] / 2)` if the corresponding RNA abundance is non-zero but the DNA abundance is zero.
+3. Sets the DNA abundance to NA if both are zero, which excludes the sample when fitting the model for the feature.
+
+See `?preprocess_dna_mtx` for more details. Now, we will switch the `input_data` to the preprocessed RNA table `preprocess_out$dna_table` and include the pre-processed DNA as the feature-specific covariate with `feature_specific_covariate = preprocess_out$dna_table`. We also set the name of the covariate for model fitting with `feature_specific_covariate_name = 'DNA'` and we specify that we do not want to record the associations with the DNA in the outputs and plots by setting `feature_specific_covariate_record = FALSE`. As before, we set `median_comparison_abundance_threshold = 0.0` in order to detect the typically-smaller MTX effects.
+
+```{R, echo = T, results = 'hide', warning = FALSE, cache = T}
+preprocess_out <- preprocess_dna_mtx(df_input_dnadata, df_input_data)
+
+param_list <- list(input_data = preprocess_out$rna_table, 
+                   input_metadata = df_input_metadata, 
+                   output = 'demo_output_mtx_mgx',
+                   fixed_effects = c('diagnosis', 'dysbiosis_state', 'antibiotics', 'age'),
+                   random_effects = c('participant_id'),
+                   median_comparison_abundance_threshold = 0.0,
+                   feature_specific_covariate = preprocess_out$dna_table,
+                   feature_specific_covariate_name = 'DNA',
+                   feature_specific_covariate_record = FALSE,
+                   coef_plot_vars = c('dysbiosis_state dysbiosis_CD', 'diagnosis CD'),
+                   heatmap_vars = c('dysbiosis_state dysbiosis_UC', 'diagnosis UC', 'age', 'antibiotics Yes'))
+
+fit_maaslin_mtx_mgx <- maaslin3(param_list)
+```
+
+```{r, out.width='100%', echo=F, cache = T}
+knitr::include_graphics("demo_output_mtx_mgx/figures/summary_plot.png")
+```
+
+## 3.4 Compare output {#34-compare-output}
+
+Finally, let's use some simple R scripts to compare the results from each model. First, we will look at the number of significant [dysbiosis](https://www.nature.com/articles/s41586-019-1237-9) associations. To do this we will use the base R function ``subset`` to subset the results to just the ones from the dysbiosis comparisons and ``table`` to count the number of pathways that were associated with UC/CD in each model. 
+
+```{R, cache=T}
+#compare the raw counts of features associated with dysbiosis
+results_rna = subset(rbind(fit_maaslin_rna$fit_data_abundance$results, 
+                           fit_maaslin_rna$fit_data_prevalence$results),
+                     metadata == "dysbiosis_state" & qval_individual < 0.1 & is.na(error))
+table(results_rna$value, results_rna$model)
+#              LM logistic
+# dysbiosis_CD 66       44
+# dysbiosis_UC 14       11
+
+results_rna_ratio = subset(rbind(fit_maaslin_ratio$fit_data_abundance$results, 
+                                 fit_maaslin_ratio$fit_data_prevalence$results), 
+                           metadata == "dysbiosis_state" & qval_individual < 0.1 & is.na(error))
+table(results_rna_ratio$value, results_rna_ratio$model)
+#              LM
+# dysbiosis_CD 12
+
+results_rna_dna = subset(rbind(fit_maaslin_mtx_mgx$fit_data_abundance$results, 
+                               fit_maaslin_mtx_mgx$fit_data_prevalence$results),
+                           metadata == "dysbiosis_state" & qval_individual < 0.1 & is.na(error))
+table(results_rna_dna$value, results_rna_dna$model)
+#              LM logistic
+# dysbiosis_CD 47        6
+# dysbiosis_UC  2        0
+```
+
+As you can tell, this number was highly dependent on the model, with most results coming from the raw RNA abundances and the least results from the RNA/DNA ratio.
+
+Next, let's look at which features overlapped between the models. We can do this with the `intersect` call in R:
+
+```{R, cache=T}
 # features called by the RNA/DNA ratios compared to the Raw RNA abundances 
-intersect(results_rna_ratio$feature, results_rna$feature) # 37 features overlapped 
+intersect(results_rna_ratio$feature, results_rna$feature) # 9 features overlapped
 
 # features called by the Raw RNA abundances compared to the RNA abundances adjusted by the DNA abundances 
-intersect(results_rna$feature, results_rna_dna$feature) #178 features overlapped between the models
+intersect(results_rna$feature, results_rna_dna$feature) # 47 features overlapped
 
 # features called by the RNA/DNA ratios compared to the RNA abundances adjusted by the DNA abundances 
-intersect(results_rna_ratio$feature, results_rna_dna$feature) # 37 features overlapped 
-
+intersect(results_rna_ratio$feature, results_rna_dna$feature) # 10 features overlapped
 ```
 
-From this, we can see that while the models are calling different total numbers of pathways, the ones that they are calling are overlapping between all the models.  
+From this, we can see that while the models are calling different total numbers of pathways, the ones that they are calling are significantly overlapping.
 
-We can also look at the top pathways that each model called. The MaAsLin results are sorted by FDR-qvalue, so here we can use `head(x, number)` to get the `number` of top rows. 
+Finally, let's plot the top CD dysbiosis results in the MTX_model, across all the models. Here we first create one object that includes all the results, then subset it to the top 10 pathways in the DNA covariate results. 
 
-For the Raw RNA Abundance: 
+```{r, fig.width=8, fig.height=4, fig.align='center', cache=T}
+top_pathways <- results_rna_dna$feature[order(results_rna_dna$qval_individual)][1:10]
 
-```r
-#compare the raw counts of features associated with CD
-head(results_rna$feature, 3)
-results_rna$model = "RNA" # create a column that describes the data
-```
-```
-[1] "PWY_5690_TCA_cyc_II"             "PWY_5690_TCA_cyc_II"             "PWY_7199_pyrimidine_dns_salvage"
-```
+# Specify model type
+results_rna$model_type = "RNA model"
+results_rna_ratio$model_type = "RNA/DNA ratio"
+results_rna_dna$model_type = "RNA with DNA covariate"
 
-#RNA/DNA ratios 
-```r
-#compare the raw counts of features associated with CD
-head(results_rna_ratio$feature, 3)
-results_rna_ratio$model = "RNA/DNA Ratio" # create a column that describes the data
-```
-```
-[[1] "PWY_6700_queuosine_biosyn"   "PWY_6317_galactose_deg_I"    "PWY66_422_D_galactose_deg_V"
-```
-
-#MTXmodel
-```r
-#compare the raw counts of features associated with CD
-head(results_rna_dna$feature, 3)
-results_rna_dna$model = "RNA adjusted by DNA" # create a column that describes the data
-list = unique(results_rna_dna$feature)[c(1:10)] # select the top pathway results for the next step
-```
-```
-[1] "PWY_3841_folate_transformations_II"             "X1CMET2_PWY_N10_formyl_tetrahydrofolate_biosyn" "PWY_3841_folate_transformations_II"  
-```
-
-Finally, let's plot the top results in the MTX_model, across all the models. Here we first create one object that includes all the results, then subset it to the list we created above which is the top 10 pathways in the MTXmodel results. 
-
-```r
-library(ggplot2)
 results = rbind(results_rna, results_rna_dna, results_rna_ratio) # create one object from the results 
-results = results[results$feature %in% list, ] # subset to just the top features in the MTXmodel
-ggplot(results, aes(x = coef, y = feature, color = model)) + geom_point(aes(shape = value)) + theme_classic()
-ggsave("model_comparison.png", height = 5, width = 8) # save the plot to the working directory 
+results = results[results$feature %in% top_pathways, ] # subset to just the top features in the MaAsLin 3 DNA covariate model
+results$model <- ifelse(results$model == 'LM', 'Abundance', 'Prevalence') # Rename abundance/prevalence
+
+# Plot significant CD dysbiosis associations
+ggplot(results[results$value == 'dysbiosis_CD',], aes(x = coef, y = feature, color = model_type)) + 
+  geom_point(aes(shape = model), size = 3, alpha = 0.8) + 
+  geom_errorbar(aes(xmin = coef - stderr, xmax = coef + stderr), width = 0.2) + 
+  theme_bw() + 
+  theme(axis.title = ggplot2::element_text(size = 16), 
+    axis.text = ggplot2::element_text(size = 8),   
+) + 
+  xlab('Coefficient +/- SE') + 
+  ylab('Pathway') + 
+  labs(color = 'Model', shape = 'Association')
 ```
-<img src="https://github.com/biobakery/biobakery/blob/master/images/model_comparisons.png" width="70%" />
-
-Here, you can tell that model choice does matter quite a bit on the effect size. So even if the models are calling the same features the underlying effect size does vary. 
-
-# 4. Running on the command line
-
-``$ MTXmodel.R inst/extdata/HMP2_pwyRNA.tsv inst/extdata/HMP2_metadata.tsv demo_output --min_abundance 0 --min_prevalence 0.0 --max_significance 0.25 --min_variance 0.0 --correction BH --standardize TRUE --normalization NONE --transform LOG --analysis_method LM --cores 1 --fixed_effects diagnosis,dysbiosisCD,dysbiosisUC,dysbiosisnonIBD,antibiotics,age --random_effects subject,site --plot_heatmap FALSE --plot_scatter FALSE --reference diagnosis,nonIBD --rna_dna_flt semi_strict --input_dnadata inst/extdata/HMP2_pwyDNA.tsv
-``
-
-* Make sure to provide the full path to the MTXmodel executable (i.e., ./R/MTXmodel.R).
-* In the demo command:
-    * ``HMP2_pwyRNA.tsv`` is the path to your MTX-feature data file
-    * ``HMP2_pwyDNA.tsv`` is the path to your paired MGX-feature data file
-    * ``HMP2_metadata.tsv`` is the path to your metadata file
-    * ``demo_output`` is the path to the folder to write the output
+Here, you can tell that model choice influences the effect size, particularly for the prevalence models.

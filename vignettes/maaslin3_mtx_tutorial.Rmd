@@ -13,7 +13,7 @@ author:
    email: smaharjan@hsph.harvard.edu
 output: html_document
 vignette: >
-    %\VignetteIndexEntry{Tutorial}
+    %\VignetteIndexEntry{MTX Tutorial}
     %\VignetteEngine{knitr::rmarkdown}
     %\VignetteEncoding{UTF-8}
 ---

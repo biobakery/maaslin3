@@ -708,16 +708,11 @@ preprocess_dna_mtx <- function(dna_table, rna_table) {
   
   # Transforming DNA table
   print("Transforming DNA table...this can take a while")
-  for (row_name in rownames(dna_table)) {
-    dna_table[row_name,] <- 
-      ifelse(dna_table[row_name,] > 0,
-             log2(dna_table[row_name,]), # If present, just log2 transform it
-             ifelse(rna_table[row_name,] > 0, # Otherwise, if RNA is present, use pseudocount
-                    log2(min(dna_table[row_name,][dna_table[row_name,] > 0]) / 2), # sample minimum / 2
-                    NA) # If both are missing, set NA to exclude in analysis
-            )
-  }
-
+  impute_val <- log2(min(dna_table[dna_table > 0]) / 2)
+  dna_table <- log2(dna_table)
+  dna_table[dna_table == -Inf & rna_table > 0] <- impute_val
+  dna_table[dna_table == -Inf & rna_table == 0] <- NA
+  
   return(list("dna_table" = dna_table, 
               "rna_table" = rna_table))
 }

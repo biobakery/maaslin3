@@ -52,7 +52,7 @@ MaAsLin 3: Refining and extending generalized multivariate linear models for met
 
 In this tutorial, we will walk through most of the steps from [the MTX model manuscript](https://academic.oup.com/bioinformatics/article/37/Supplement_1/i34/6319701). We will compare the output of unadjusted MaAsLin 3 runs of MTX data with ratio-adjusted MTX data using DNA copy number or MTX abundance data adjusted with DNA abundances. 
 
-<img src="https://github.com/biobakery/omnibus-and-maaslin2-rscripts-and-hmp2-data/blob/master/assets/summary_plot_first.png" style="width:100%;">
+<img src="https://github.com/biobakery/biobakery/blob/master/images/Figure_MTXmodel.png" width="70%" />
 
 # 2. Install the library 
 
@@ -60,7 +60,7 @@ In this tutorial, we will walk through most of the steps from [the MTX model man
 
 The latest development version of MaAsLin 3 can be installed from GitHub using the `devtools` package. For MaAsLin 3 to install, you will need R >= 4.3. If your version is older than that, please refer to section [Installing R for the first time](https://github.com/biobakery/biobakery/wiki/maaslin3#1-installing-r) from the MaAsLin 3 tutorial to download the latest R.
 
-```{R}
+```{r, eval=FALSE, cache = F}
 # Install devtools if not present
 if (!require('devtools', character.only = TRUE)) {
   install.packages('devtools')
@@ -71,7 +71,7 @@ library("devtools")
 install_github("biobakery/MaAsLin3")
 ```
 
-```{R}
+```{r, eval=T, cache = F, echo=F}
 for (lib in c('maaslin3', 'dplyr', 'ggplot2', 'knitr', 'kableExtra')) {
     suppressPackageStartupMessages(require(lib, character.only = TRUE))
 }
@@ -114,58 +114,33 @@ Example input files can be found in the ``inst/extdata`` folder of the MaAsLin 3
 
 ``HMP2_pwy.RNA_DNA_ratio.tsv``: is a tab-delimited file with pathways as columns and samples as rows. It is a subset of the pathway file so it just includes the pathway RNA abundances for all samples and it has been normalized as a ratio of the underlying (matched) DNA abundances. 
 
-``HMP2_metadata.tsv``: is a tab-delimited file with samples as rows and metadata as columns. It is a subset of the metadata file so that it just includes some of the fields.
+``HMP2_metadata.tsv``: is a tab-delimited file with samples as rows and metadata as columns. It is a subset of the metadata file that just includes some of the fields.
 
-
-## 3.2 Output files
-
-MTXmodel generates the same types of output files with MaAsLin2: data and visualization. See more details in [MaAsLin2 manual](https://github.com/biobakery/Maaslin2#output-files). For this tutorial, we also will run two models using `MaAsLin 2` instead of the wrapper. 
-
-
-## 3.3 Setting up the environment
-
-Set up the working directory - **this example is specific to the Huttenhower VMs** - if you are running this somewhere else try `setwd("./Desktop")` or similar in your own environment
-
-```r
-getwd()
-setwd("./Tutorials/MTX_model/") # change this line to your specific environment
-dir.create("R_MTXmodel_Tuorial") # Create a new directory
-setwd("./R_MTXmodel_Tuorial") # Change the current working directory 
-getwd() #check if the directory has been successfully changed
-```
-
-Next, we will read-in the files downloaded with MTXmodel library in R. 
-Here we are first setting their path to an object and then reading them in as data.frames for MaAsLin 2 
-alternatively, you can use the path to the file natively.
-
-```r
-library(MTXmodel) #add the library to the working path
-
-#read-in each file from the package then convert it to a data.frame
+```{R}
 ### RNA abundances
 input_data <- system.file(
-  'extdata','HMP2_pwyRNA.tsv', package="MTXmodel")
+  'extdata','HMP2_pwyRNA.tsv', package="maaslin3")
 
-df_input_data = read.table(file             = input_data,
-                           header           = TRUE,
-                           sep              = "\t", 
-                           row.names        = 1,
+df_input_data = read.table(file = input_data,
+                           header = TRUE,
+                           sep = "\t", 
+                           row.names = 1,
                            stringsAsFactors = FALSE)
 df_input_data[1:5, 1:5]
 
 # RNA/DNA ratio data 
-#input_dataratio <- system.file(
-#  'extdata','HMP2_pwy.RNA_DNA_ratio.tsv', package="MTXmodel")
-df_input_dataratio = read.table(file             = "~/Tutorials/MTX_model/inst/extdata/HMP2_pwy.RNA_DNA_ratio.tsv",
-                                header           = TRUE,
-                                sep              = "\t", 
-                                row.names        = 1,
+input_dataratio <- system.file(
+ 'extdata','HMP2_pwy.RNA_DNA_ratio.tsv', package="maaslin3")
+df_input_dataratio = read.table(file = input_dataratio,
+                                header = TRUE,
+                                sep = "\t", 
+                                row.names = 1,
                                 stringsAsFactors = FALSE)
 df_input_dataratio[1:5, 1:5]
 
 # Metadata from the HMP2
 input_metadata <-system.file(
-  'extdata','HMP2_metadata.tsv', package="MTXmodel")
+  'extdata','HMP2_metadata.tsv', package="maaslin3")
 df_input_metadata = read.table(file             = input_metadata,
                                header           = TRUE,
                                sep              = "\t", 
@@ -175,7 +150,7 @@ df_input_metadata[1:5, 1:5]
 
 # DNA data 
 input_dnadata <- system.file(
-  'extdata','HMP2_pwyDNA.tsv', package="MTXmodel")
+  'extdata','HMP2_pwyDNA.tsv', package="maaslin3")
 df_input_dnadata = read.table(file             = input_dnadata,
                                header           = TRUE,
                                sep              = "\t", 
@@ -183,6 +158,12 @@ df_input_dnadata = read.table(file             = input_dnadata,
                                stringsAsFactors = FALSE)
 df_input_dnadata[1:5, 1:5]
 ```
+
+## 3.2 Output files
+
+The MTX model generates the same types of output files with MaAsLin 3: data and visualization. See more details in the [MaAsLin 3 manual](https://github.com/biobakery/Maaslin3?tab=readme-ov-file#output-files). For this tutorial, we also will run two models using `maaslin3` instead of the wrapper. 
+
+## 3.3 Setting up the environment
 
 Next, we are going to run the model in three different ways: 
   1. The raw RNA abundances from HUMAnN with MaAsLin 2

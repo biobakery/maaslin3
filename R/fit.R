@@ -1161,6 +1161,9 @@ fit.model <- function(
         }
       }
       
+      paras_sub$error <- ifelse(is.na(pvals_new) & !is.na(paras_sub$pval), 
+                                "P-value became NA in median comparison, try rerunning without the median comparison",
+                                paras_sub$error)
       paras_sub$pval <- pvals_new
       final_paras <- rbind(final_paras, paras_sub)
     }

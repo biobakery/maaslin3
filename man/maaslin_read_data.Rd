@@ -26,6 +26,12 @@ maaslin_read_data(param_list)
       \item \code{group_effects}: A factored categorical variable to be included for group testing. An ANOVA-style test will be performed to assess whether any of the variable's levels are significant, and no coefficients or individual p-values will be returned.
       \item \code{ordered_effects}: A factored categorical variable to be included. Consecutive levels will be tested for significance against each other, and the resulting associations will correspond to effect sizes, standard errors, and significances of each level versus the previous.
     }
+    Particularly for use in metatranscriptomics workflows, a table of feature-specific covariates can be included. A feature's covariates will be included like metadata when fitting the model for that feature.
+    \itemize{
+      \item \code{feature_specific_covariate}: A table of feature-specific covariates or a filepath to a tab-delimited file with feature-specific covariates. It should be formatted with features as columns and samples as rows (or the transpose). The row names and column names should be the same as those of the \code{input_data}: the column and row names should be the feature names and sample names respectively.
+      \item \code{feature_specific_covariate_name}: The name for the feature-specific covariates when fitting the models.
+      \item \code{feature_specific_covariate_record}: Whether to keep the feature-specific covariates in the outputs when calculating p-values, writing results, and displaying plots.
+    }
     The parameter list can also contain the following analysis options:
     \itemize{
       \item \code{min_abundance} (default \code{0}): Features with abundances of at least \code{min_abundance} in \code{min_prevalence} of the samples will be included for analysis. The threshold is applied before normalization and transformation. The options \code{min_abundance} and \code{min_prevalence} should usually be 0 since MaAsLin 3 is designed to model sparsity.

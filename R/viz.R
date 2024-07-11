@@ -215,10 +215,10 @@ maaslin3_summary_plot <-
       }
       if (min(coef_plot_data$qval_individual) < max_significance) {
         scale_fill_gradient_labels <- c(paste0("1e", floor(log10(min(coef_plot_data$qval_individual)))), 
-                                        paste0("1e", floor(log10(max_significance))),
+                                        paste0(max_significance),
                                         "1")
       } else {
-        scale_fill_gradient_labels <- c(paste0("1e", floor(log10(max_significance))),
+        scale_fill_gradient_labels <- c(paste0(max_significance),
                                         "1")
       }
       
@@ -517,6 +517,7 @@ maaslin3_association_plots <-
               } else {
                 renamed_levels <- as.character(levels(metadata[,metadata_name]))
               }
+            } else {
               renamed_levels <- as.character(levels(metadata[,metadata_name]))
             }
             

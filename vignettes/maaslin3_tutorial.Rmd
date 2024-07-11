@@ -24,7 +24,7 @@ If you use the MaAsLin 3 software, please cite our manuscript:
 MaAsLin 3: Refining and extending generalized multivariate linear models for meta-omic association discovery. (In progress).
 
 ### Support ###
-If you have questions, please direct them to the [MaAsLin 3 Forum](https://forum.biobakery.org/c/Downstream-analysis-and-statistics/MaAsLin3)   . 
+The user manual can be found [here](https://github.com/biobakery/Maaslin3). If you have questions, please direct them to the [MaAsLin 3 Forum](https://forum.biobakery.org/c/Downstream-analysis-and-statistics/MaAsLin3)   . 
 
 ## Contents
 * [1. Installing R](#installing-r)
@@ -153,7 +153,7 @@ The following command runs MaAsLin 3 on the HMP2 data, running a multivariable
 regression model to test for the association between microbial species abundance and prevalence
 versus IBD diagnosis and [dysbiosis scores](https://www.nature.com/articles/s41586-019-1237-9) while controlling for antibiotic usage, age, and the sampling depth (reads). The abundance associations come from fitting multivariate linear models to the log base 2 relative abundances of features in samples in which the feature is present. The prevalence associations come from fitting multivariate logistic models to the presence/absence data for a feature across all samples. Outputs are directed to a folder called `hmp2_output` under the current working directory (`output = "hmp2_output"`).
 
-To show one of each type of plot (see below), the maximum number of significant associations to plot has been increased with `max_pngs=100`. All other parameters beyond the first four are the default parameters but are still included for clarity:
+To show one of each type of plot (see below), the maximum number of significant associations to plot has been increased with `max_pngs=100` (default `30`). All other parameters beyond the first four are the default parameters but are still included for clarity:
 
 * Total sum scaling (`normalization = 'TSS'`) with a log transformation (`'transform = 'LOG'`) afterwards will be used. These are almost always the recommended choices (and all MaAsLin 3 evaluations were performed with these options), but other normalizations and transformations are allowed (see `normalization` and `transform` in `?maaslin3`). 
 * A data augmentation procedure is used to avoid linear separability in the logistic regressions (`augment = TRUE`). This is almost always recommended, though it can be turned off (see `augment` in the manual). 
@@ -197,14 +197,13 @@ When `median_comparison_abundance` or `median_comparison_prevalence` are on, the
 The main output from MaAsLin 3 is the list of significant associations in `significant_results.tsv`. This lists all associations that pass MaAsLin 3's significance 
 threshold, ordered by increasing joint q-value. The format is:
 
-  * Columns 1 and 2 are the feature and metadata names.
-  * Columns 3 and 4 are the value of the metadata and variable name from the model.
-  * Columns 5 and 6 are the fit coefficient and standard error from the model. In abundance models, a one-unit change in the metadatum variable corresponds to a $2^{\textrm{coef}}$ fold change in the relative abundance of the feature. In prevalence models, a one-unit change in the metadatum variable corresponds to a $\textrm{coef}$ change in the log-odds of a feature being present.
-  * Columns 7 and 8 are the p-value and false discovery rate (FDR) corrected q-value of the individual association.
-  * Column 9 specifies whether the association is abundance or prevalence.
-  * Column 10 is the total number of data points.
-  * Column 11 is the total number of non-zero data points.
-  * Columns 12 and 13 are the p-value and q-value of the joint prevalence and abundance association. The p-value comes from plugging in the minimum of the association's abundance and prevalence p-values into the Beta(1,2) CDF. It is interpreted as the probability that either the abundance or prevalence association would be as extreme as observed if there was neither an abundance nor prevalence association between the feature and metadatum.
+  * `feature` and `metadata` are the feature and metadata names.
+  * `value` and `name` are the value of the metadata and variable name from the model.
+  * `coef` and `stderr` are the fit coefficient and standard error from the model. In abundance models, a one-unit change in the metadatum variable corresponds to a $2^{\textrm{coef}}$ fold change in the relative abundance of the feature. In prevalence models, a one-unit change in the metadatum variable corresponds to a $\textrm{coef}$ change in the log-odds of a feature being present.
+  * `pval_individual` and `qval_individual` are the p-value and false discovery rate (FDR) corrected q-value of the individual association.
+  * `model` specifies whether the association is abundance or prevalence.
+  * `N` and `N.not.zero` are the total number of data points and the total number of non-zero data points for the feature.
+  * `pval_joint` and `qval_joint` are the p-value and q-value of the joint prevalence and abundance association. The p-value comes from plugging in the minimum of the association's abundance and prevalence p-values into the Beta(1,2) CDF. It is interpreted as the probability that either the abundance or prevalence association would be as extreme as observed if there was neither an abundance nor prevalence association between the feature and metadatum.
   
 ```{r, echo = F, cache = F}
 signif_results <- read.csv('hmp2_output/significant_results.tsv', sep='\t')
@@ -275,6 +274,8 @@ There are a few common issues to check for in the results:
     * Any significant abundance associations with a categorical variable should usually have **at least 10 observations in each category**.
     * Significant prevalence associations with categorical variables should also have **at least 10 samples in which the feature was present and at least 10 samples in which it was absent for each significant category**. 
     * Significant abundance associations with continuous metadata should be checked visually for influential outliers.
+    * Models should ideally have about 10 times as many samples (all samples for logistic fits, non-zero samples for linear fits) as covariate terms (all continuous variables plus all categorical variable levels).
+
     
 #### Replotting
 
@@ -533,7 +534,7 @@ In the model above, we have specified an interaction between `sex` and `diagnosi
 
 ### 4.4 Level contrasts {#level-contrasts}
 
-Another feature of MaAsLin 3 is the ability to test for level-versus-level differences in ordered predictors with contrast tests. Ordered predictors are categorical variables with a natural ordering such as cancer stage, consumption frequency of a dietary factor, or dosage group. Here, we assess how microbial abundances and prevalences are associated with eating red meat by including `ordered(red_meat)` in the formula. This will perform a contrast test for whether there is a difference between each pair of subsequent levels (e.g., "Yesterday, 3 or more times" versus "Yesterday, 1 to 2 times") rather than whether there are differences between the levels and the baseline (e.g., "Yesterday, 3 or more times" versus "Not in the last 7 days").
+Another feature of MaAsLin 3 is the ability to test for level-versus-level differences in ordered predictors with contrast tests. Ordered predictors are categorical variables with a natural ordering such as cancer stage, consumption frequency of a dietary factor, or dosage group. Here, we assess how microbial abundances and prevalences are associated with eating red meat by including `ordered(red_meat)` in the formula. This will perform a contrast test for whether there is a difference between each pair of subsequent levels (e.g., "Yesterday, 3 or more times" versus "Yesterday, 1 to 2 times") rather than whether there are differences between the levels and the baseline (e.g., "Yesterday, 3 or more times" versus "Not in the last 7 days"). The coefficient, standard error, and p-value all correspond to the difference between the level in `value` and the previous level. Ordered predictors should only be included as fixed effects (i.e., no ordered predictors as random effects etc.).
 
 ```{R, echo = T, results = 'hide', warning = FALSE, cache = F}
 # Put the red meat consumption responses in order
@@ -593,7 +594,7 @@ full_results %>%
 
 ### 4.5 Group-wise differences {#group-wise-differences}
 
-The last feature of MaAsLin 3 highlighted here is the ability to test for group-wise differences in categorical predictors using an ANOVA or ANOVA-like procedure. Group-wise predictors are categorical variables with or without an ordering such as race, country, or consumption frequency of a dietary factor. When performing a group-wise difference test, we are not comparing any two particular levels; rather, we are investigating whether abundances and prevalences are the same for all levels. Therefore, no coefficient is returned, only a p-value. Here, we test whether there are differences in microbial abundances and prevalences across people with different levels of red meat consumption by including `group(red_meat)`.
+The last feature of MaAsLin 3 highlighted here is the ability to test for group-wise differences in categorical predictors using an ANOVA or ANOVA-like procedure. Group-wise predictors are categorical variables with or without an ordering such as race, country, or consumption frequency of a dietary factor. When performing a group-wise difference test, we are not comparing any two particular levels; rather, we are investigating whether abundances and prevalences are the same for all levels. Therefore, no coefficient is returned, only a p-value. Here, we test whether there are differences in microbial abundances and prevalences across people with different levels of red meat consumption by including `group(red_meat)`. Group-wise predictors should only be included as fixed effects (i.e., no group-wise predictors as random effects etc.).
 
 ```{R, echo = T, results = 'hide', warning = FALSE, cache = F}
 param_list <- list(input_data = taxa_table, 

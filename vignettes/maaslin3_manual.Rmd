@@ -102,7 +102,7 @@ The data file can contain samples not included in the metadata file (along with 
 
 To run MaAsLin 3, it is also necessary to specify a model. The model can come from a formula or vectors of terms. In either case, variable names should not have spaces or unusual characters.
 
-* *Formula*: The `formula` parameter should be set to any formula that satisfies the `lme4` specifications: fixed effects, random effects, interaction terms, polynomial terms, and more can all be included. If categorical variables are included as fixed effects, each level will be tested against the first factor level. In addition, ordered predictors and group predictors can be included by including `group(variable_name)` and `ordered(variable_name)` in the formula.
+* *Formula*: The `formula` parameter should be set to any formula that satisfies the `lme4` specifications: fixed effects, random effects, interaction terms, polynomial terms, and more can all be included. If categorical variables are included as fixed effects, each level will be tested against the first factor level. In addition, ordered predictors and group predictors can be included by including `group(variable_name)` and `ordered(variable_name)` in the formula. Ordered and group predictors should stand alone in the formula (i.e., no group predictors in random effects).
 * *Vectors*: Alternatively, a vector of variable names can be supplied to the parameters `fixed_effects`, `random_effects`, `group_effects`, and `ordered_effects`. Categorical variables should either be ordered as factors beforehand, or `reference` should be provided as a string of 'variable,reference' semi-colon delimited for multiple variables (e.g., `variable_1,reference_1;variable_2,reference_2`). NOTE: adding a space between the variable and level might result in the wrong reference level being used.
 
 **Because MaAsLin 3 identifies prevalence (presence/absence) associations, sample read depth (number of reads) should be included as a covariate if available. Deeper sequencing will likely increase feature detection in a way that could spuriously correlate with metadata of interest when read depth is not included in the model.**
@@ -114,17 +114,15 @@ MaAsLin 3 generates two types of output files explained below: data and visualiz
 
 1. Data output files
     * ``all_results.tsv``
-        * This file contains all results ordered by increasing q-value.
-        * Columns 1 and 2 are the feature and metadata names.
-        * Columns 3 and 4 are the value of the metadata and variable name from the model.
-        * Columns 5 and 6 are the fit coefficient and standard error from the model. In abundance models, a one-unit change in the metadatum variable corresponds to a $2^{\textrm{coef}}$ fold change in the relative abundance of the feature. In prevalence models, a one-unit change in the metadatum variable corresponds to a $\textrm{coef}$ change in the log-odds of a feature being present.
-        * Column 7 is the p-value of the individual association.
-        * Column 8 lists any errors from the model fitting.
-        * Column 9 is the q-value of the individual association.
-        * Column 10 specifies whether the association is abundance or prevalence.
-        * Column 11 is the total number of data points.
-        * Column 12 is the total number of non-zero data points.
-        * Columns 13 and 14 are the p-value and q-value of the joint prevalence and abundance association. The p-value comes from plugging in the minimum of the association's abundance and prevalence p-values into the Beta(1,2) CDF. It is interpreted as the probability that either the abundance or prevalence association would be as extreme as observed if there was neither an abundance nor prevalence association between the feature and metadatum.
+        * `feature` and `metadata` are the feature and metadata names.
+        * `value` and `name` are the value of the metadata and variable name from the model.
+        * `coef` and `stderr` are the fit coefficient and standard error from the model. In abundance models, a one-unit change in the metadatum variable corresponds to a $2^{\textrm{coef}}$ fold change in the relative abundance of the feature. In prevalence models, a one-unit change in the metadatum variable corresponds to a $\textrm{coef}$ change in the log-odds of a feature being present.
+        * `pval_individual` is the p-value of the individual association.
+        * `error` lists any errors from the model fitting.
+        * `qval_individual` is the false discovery rate (FDR) corrected q-value of the individual association.
+        * `model` specifies whether the association is abundance or prevalence.
+          * `N` and `N.not.zero` are the total number of data points and the total number of non-zero data points for the feature.
+        * `pval_joint` and `qval_joint` are the p-value and q-value of the joint prevalence and abundance association. The p-value comes from plugging in the minimum of the association's abundance and prevalence p-values into the Beta(1,2) CDF. It is interpreted as the probability that either the abundance or prevalence association would be as extreme as observed if there was neither an abundance nor prevalence association between the feature and metadatum.
     * ``significant_results.tsv``
         * This file is a subset of the results in the first file.
         * It only includes associations with q-values <= to the threshold and no errors.
@@ -349,6 +347,13 @@ When running MaAsLin 3 in R, the manual page for each function (e.g., `?maaslin3
   * Tests are performed with the `anova` function's `LRT` option (logistic fixed and mixed effects), the `anova` function's F test (linear fixed effects), or `lmerTest::contest` (linear mixed effects).
 * `ordered_effects`: A factored categorical variable to be included. Consecutive levels will be tested for significance against each other with contrast tests, and the resulting associations will correspond to effect sizes, standard errors, and significances of each level versus the previous.
   * Contrast tests are performed with `multcomp::glht` (fixed effects and logistic mixed effects) and `lmerTest::contest` (linear mixed effects).
+
+#### Feature specific covariates ####
+Particularly for use in metatranscriptomics workflows, a table of feature-specific covariates can be included. A feature's covariates will be included like a fixed effect metadatum when fitting the model for that feature. The covariate's name does not need to be included in the formula.
+
+* `feature_specific_covariate`: A table of feature-specific covariates or a filepath to a tab-delimited file with feature-specific covariates. It should be formatted with features as columns and samples as rows (or the transpose). The row names and column names should be the same as those of the `input_data`: the column and row names should be the feature names and sample names respectively.
+* `feature_specific_covariate_name`: The name for the feature-specific covariates when fitting the models.
+* `feature_specific_covariate_record`: Whether to keep the feature-specific covariates in the outputs when calculating p-values, writing results, and displaying plots.
 
 #### Analysis options ####
 

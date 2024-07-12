@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 ###############################################################################
-# MaAsLin2 visualizations
+# MaAsLin3 visualizations
 
 # Copyright (c) 2018 Harvard School of Public Health
 

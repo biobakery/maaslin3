@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 ###############################################################################
-# MaAsLin2 visualizations
+# MaAsLin3 visualizations
 
 # Copyright (c) 2018 Harvard School of Public Health
 
@@ -28,7 +28,7 @@ for (lib in c('dplyr', 'ggplot2', 'viridis', "grid", 'RColorBrewer', 'patchwork'
     suppressPackageStartupMessages(require(lib, character.only = TRUE))
 }
 
-# MaAsLin2 theme based on Nature journal requirements
+# MaAsLin3 theme based on Nature journal requirements
 nature_theme <- function(x_axis_labels, y_label) {
     # set default text format based on categorical and length
     angle = NULL
@@ -62,7 +62,7 @@ nature_theme <- function(x_axis_labels, y_label) {
    )
 }
 
-# MaAsLin2 summary_plot function for overall view of associations
+# MaAsLin3 summary_plot function for overall view of associations
 maaslin3_summary_plot <-
   function(
     merged_results,

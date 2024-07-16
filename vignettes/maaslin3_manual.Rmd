@@ -295,12 +295,12 @@ scatter_plots <- maaslin_plot_results_from_output(param_list)
 ```
 
 In the new summary plot below, we can see that the feature names are cleaned up, the metadata names are cleaned up, the set of metadata variables used in the coefficient plot is different, and the metadata used in the heatmap is reordered.
-```{r, out.width='100%', echo=F, cache = F}
+```{r, out.width='100%', echo=F, cache = F, include=F}
 knitr::include_graphics("hmp2_output/figures/summary_plot.png")
 ```
 
 In the association plots, the taxa and metadata have been renamed to be consistent with the results file from earlier.
-```{r, echo=FALSE,out.width="49%",out.height="20%",fig.cap="The four types of association plots",fig.show='hold',fig.align='center', cache = F}
+```{r, echo=FALSE,out.width="49%",out.height="20%",fig.cap="The four types of association plots",fig.show='hold',fig.align='center', cache = F, include=F}
 knitr::include_graphics(c("hmp2_output/figures/association_plots/Age_Faecalibacterium prausnitzii_LM.png",
                           "hmp2_output/figures/association_plots/Dysbiosis_Escherichia coli_LM.png",
                           "hmp2_output/figures/association_plots/Age_Bifidobacterium longum_logistic.png",

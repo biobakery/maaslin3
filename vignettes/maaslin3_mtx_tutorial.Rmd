@@ -192,7 +192,7 @@ param_list <- list(input_data = df_input_data,
 fit_maaslin_rna <- maaslin3(param_list)
 ```
 
-```{r, out.width='100%', echo=F, cache = T}
+```{r, out.width='100%', echo=F, cache = T, include=F}
 knitr::include_graphics("demo_output_rna/figures/summary_plot.png")
 ```
 
@@ -214,7 +214,7 @@ param_list <- list(input_data = df_input_dataratio,
 fit_maaslin_ratio <- maaslin3(param_list)
 ```
 
-```{r, out.width='100%', echo=F, cache = T}
+```{r, out.width='100%', echo=F, cache = T, include=F}
 knitr::include_graphics("demo_output_ratio/figures/summary_plot.png")
 ```
 
@@ -246,7 +246,7 @@ param_list <- list(input_data = preprocess_out$rna_table,
 fit_maaslin_mtx_mgx <- maaslin3(param_list)
 ```
 
-```{r, out.width='100%', echo=F, cache = T}
+```{r, out.width='100%', echo=F, cache = T, include=F}
 knitr::include_graphics("demo_output_mtx_mgx/figures/summary_plot.png")
 ```
 
@@ -299,7 +299,7 @@ From this, we can see that while the models are calling different total numbers 
 
 Finally, let's plot the top CD dysbiosis results in the MTX_model, across all the models. Here we first create one object that includes all the results, then subset it to the top 10 pathways in the DNA covariate results. 
 
-```{r, fig.width=8, fig.height=4, fig.align='center', cache=T}
+```{r, fig.width=8, fig.height=4, fig.align='center', cache=T, include=F}
 top_pathways <- results_rna_dna$feature[order(results_rna_dna$qval_individual)][1:10]
 
 # Specify model type

@@ -242,7 +242,7 @@ MaAsLin 3 generates two types of output files explained below: data and visualiz
 2. Visualization output files
     * ``summary_plot.pdf``
         * This file contain a combined coefficient plot and heatmap of the most significant associations. In the heatmap, one star indicates the individual q-value is below the parameter `max_significance`, and two stars indicate the individual q-value is below `max_significance` divided by 10.
-```{r, out.width='100%', echo=F, cache = F}
+```{r, out.width='100%', echo=F, cache = F, include=F}
 # Rename summary plot to avoid knitting issues later
 quiet_out <- file.rename('hmp2_output/figures/summary_plot.png', 
             'hmp2_output/figures/summary_plot_first.png')
@@ -256,7 +256,7 @@ knitr::include_graphics("hmp2_output/figures/summary_plot_first.png")
         * Box plots are used for continuous data prevalence associations.
         * Grids are used for categorical data prevalence associations.
         * Data points plotted are after filtering, normalization, and transformation so that the scale in the plot is the scale that was used in fitting.
-```{r, echo=FALSE,out.width="49%",out.height="20%",fig.cap="The four types of association plots",fig.show='hold',fig.align='center', cache = F}
+```{r, echo=FALSE,out.width="49%",out.height="20%",fig.cap="The four types of association plots",fig.show='hold',fig.align='center', cache = F, include=F}
 knitr::include_graphics(c("hmp2_output/figures/association_plots/age_Faecalibacterium_prausnitzii_LM.png",
                           "hmp2_output/figures/association_plots/dysbiosis_state_Escherichia_coli_LM.png",
                           "hmp2_output/figures/association_plots/age_Bifidobacterium_longum_logistic.png",
@@ -347,12 +347,12 @@ scatter_plots <- maaslin_plot_results_from_output(param_list)
 ```
 
 In the new summary plot below, we can see that the feature names are cleaned up, the metadata names are cleaned up, the set of metadata variables used in the coefficient plot is different, and the metadata used in the heatmap is reordered.
-```{r, out.width='100%', echo=F, cache = F}
+```{r, out.width='100%', echo=F, cache = F, include=F}
 knitr::include_graphics("hmp2_output/figures/summary_plot.png")
 ```
 
 In the association plots, the taxa and metadata have been renamed to be consistent with the results file from earlier.
-```{r, echo=FALSE,out.width="49%",out.height="20%",fig.cap="The four types of association plots",fig.show='hold',fig.align='center', cache = F}
+```{r, echo=FALSE,out.width="49%",out.height="20%",fig.cap="The four types of association plots",fig.show='hold',fig.align='center', cache = F, include=F}
 knitr::include_graphics(c("hmp2_output/figures/association_plots/Age_Faecalibacterium prausnitzii_LM.png",
                           "hmp2_output/figures/association_plots/Dysbiosis_Escherichia coli_LM.png",
                           "hmp2_output/figures/association_plots/Age_Bifidobacterium longum_logistic.png",
@@ -565,7 +565,7 @@ param_list <- list(input_data = taxa_table,
 fit_out <- maaslin3(param_list)
 ```
 
-```{r, out.width='100%', echo=F, cache = F}
+```{r, out.width='100%', echo=F, cache = F, include=F}
 knitr::include_graphics("ordered_outputs/figures/summary_plot.png")
 ```
 

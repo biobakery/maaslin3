@@ -276,7 +276,7 @@ results_rna_dna = subset(rbind(fit_maaslin_mtx_mgx$fit_data_abundance$results,
                            metadata == "dysbiosis_state" & qval_individual < 0.1 & is.na(error))
 table(results_rna_dna$value, results_rna_dna$model)
 #              LM logistic
-# dysbiosis_CD 47        6
+# dysbiosis_CD 49        9
 # dysbiosis_UC  2        0
 ```
 
@@ -289,7 +289,7 @@ Next, let's look at which features overlapped between the models. We can do this
 intersect(results_rna_ratio$feature, results_rna$feature) # 9 features overlapped
 
 # features called by the Raw RNA abundances compared to the RNA abundances adjusted by the DNA abundances 
-intersect(results_rna$feature, results_rna_dna$feature) # 47 features overlapped
+intersect(results_rna$feature, results_rna_dna$feature) # 51 features overlapped
 
 # features called by the RNA/DNA ratios compared to the RNA abundances adjusted by the DNA abundances 
 intersect(results_rna_ratio$feature, results_rna_dna$feature) # 10 features overlapped
@@ -323,4 +323,4 @@ ggplot(results[results$value == 'dysbiosis_CD',], aes(x = coef, y = feature, col
   ylab('Pathway') + 
   labs(color = 'Model', shape = 'Association')
 ```
-Here, you can tell that model choice influences the effect size, particularly for the prevalence models.
+Here, you can tell that model choice can influence the effect size, particularly for the prevalence models.

@@ -53,7 +53,7 @@ if (!require('devtools', character.only = TRUE)) {
 
 # Install MaAsLin 3
 library("devtools")
-install_github("biobakery/MaAsLin3")
+install_github("biobakery/maaslin3")
 library(maaslin3)
 ```
 

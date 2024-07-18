@@ -24,7 +24,7 @@ If you use the MaAsLin 3 software, please cite our manuscript:
 MaAsLin 3: Refining and extending generalized multivariate linear models for meta-omic association discovery. (In progress).
 
 ### Support ###
-The user manual can be found [here](https://github.com/biobakery/Maaslin3). If you have questions, please direct them to the [MaAsLin 3 Forum](https://forum.biobakery.org/c/Downstream-analysis-and-statistics/MaAsLin3)   . 
+The user manual can be found [here](https://github.com/biobakery/maaslin3). If you have questions, please direct them to the [MaAsLin 3 Forum](https://forum.biobakery.org/c/Downstream-analysis-and-statistics/MaAsLin3)   . 
 
 ## Contents
 * [1. Installing R](#installing-r)
@@ -82,7 +82,7 @@ if (!require('devtools', character.only = TRUE)) {
 
 # Install MaAsLin 3
 library("devtools")
-install_github("biobakery/MaAsLin3")
+install_github("biobakery/maaslin3")
 ```
 
 ```{r, eval=T, cache = F, echo=F}

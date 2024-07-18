@@ -67,7 +67,7 @@ if (!require('devtools', character.only = TRUE)) {
 
 # Install MaAsLin 3
 library("devtools")
-install_github("biobakery/MaAsLin3")
+install_github("biobakery/maaslin3")
 ```
 
 ```{r, eval=T, cache = F, echo=F}
@@ -164,7 +164,7 @@ df_input_dnadata[1:5, 1:5]
 
 ## 3.2 Output files {#32-output-files}
 
-Running the MTX model in MaAsLin 3 generates the same output files as usual. See more details in the [MaAsLin 3 manual](https://github.com/biobakery/Maaslin3?tab=readme-ov-file#output-files).
+Running the MTX model in MaAsLin 3 generates the same output files as usual. See more details in the [MaAsLin 3 manual](https://github.com/biobakery/maaslin3?tab=readme-ov-file#output-files).
 
 ## 3.3 Running models in R {#33-running-models-in-R}
 

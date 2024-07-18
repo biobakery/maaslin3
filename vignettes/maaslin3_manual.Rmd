@@ -294,7 +294,7 @@ param_list$input_metadata <- param_list$input_metadata %>%
 scatter_plots <- maaslin_plot_results_from_output(param_list)
 ```
 
-In the new summary plot below, we can see that the feature names are cleaned up, the metadata names are cleaned up, the set of metadata variables used in the coefficient plot is different, and the metadata used in the heatmap is reordered.
+In the new summary plot below, we can see that the feature names are cleaned up, the metadata names are cleaned up, the set of metadata variables used in the coefficient plot is different, and the metadata used in the heatmap is reordered. (Make sure to set `include=T` to view the plots when knitting the Rmd.)
 ```{r, out.width='100%', echo=F, cache = F, include=F}
 knitr::include_graphics("hmp2_output/figures/summary_plot.png")
 ```

@@ -215,8 +215,9 @@ fit.model <- function(
               }
           summary_function <- function(fit, names_to_include) {
               lm_summary <- summary(fit)$coefficients
-              if (nrow(lm_summary) < length(names_to_include)) { # If deficient rank, make sure all rownames are included
-                store_names <- gsub('`', '', rownames(lm_summary))
+              
+              store_names <- gsub('`', '', rownames(lm_summary))
+              if (!all(names_to_include %in% store_names)) { # If deficient rank, make sure all rownames are included
                 rows_to_add = names_to_include[!(names_to_include %in% store_names)]
                 lm_summary <- rbind(lm_summary, matrix(rep(NaN, 4 * length(rows_to_add)), nrow=length(rows_to_add)))
                 rownames(lm_summary) <- c(store_names, rows_to_add)
@@ -258,8 +259,9 @@ fit.model <- function(
               }
           summary_function <- function(fit, names_to_include) {
               lm_summary <- coef(summary(fit))
-              if (nrow(lm_summary) < length(names_to_include)) { # If deficient rank, make sure all rownames are included
-                store_names <- gsub('`', '', rownames(lm_summary))
+              
+              store_names <- gsub('`', '', rownames(lm_summary))
+              if (!all(names_to_include %in% store_names)) { # If deficient rank, make sure all rownames are included
                 rows_to_add = names_to_include[!(names_to_include %in% store_names)]
                 lm_summary <- rbind(lm_summary, matrix(rep(NaN, 5 * length(rows_to_add)), nrow=length(rows_to_add)))
                 rownames(lm_summary) <- c(store_names, rows_to_add)
@@ -304,8 +306,8 @@ fit.model <- function(
       }
       summary_function <- function(fit, names_to_include) {
         lm_summary <- summary(fit)$coefficients
-        if (nrow(lm_summary) < length(names_to_include)) { # If equal numbers of predictors and observations
-          store_names <- gsub('`', '', rownames(lm_summary))
+        store_names <- gsub('`', '', rownames(lm_summary))
+        if (!all(names_to_include %in% store_names)) { # If deficient rank, make sure all rownames are included
           rows_to_add = names_to_include[!(names_to_include %in% store_names)]
           lm_summary <- rbind(lm_summary, matrix(rep(NaN, 4 * length(rows_to_add)), nrow=length(rows_to_add)))
           rownames(lm_summary) <- c(store_names, rows_to_add)
@@ -419,8 +421,8 @@ fit.model <- function(
       summary_function <- function(fit, names_to_include) {
         lm_summary <- coef(summary(fit))
         
-        if (nrow(lm_summary) < length(names_to_include)) { # If deficient rank, make sure all rownames are included
-          store_names <- gsub('`', '', rownames(lm_summary))
+        store_names <- gsub('`', '', rownames(lm_summary))
+        if (!all(names_to_include %in% store_names)) { # If deficient rank, make sure all rownames are included
           rows_to_add = names_to_include[!(names_to_include %in% store_names)]
           lm_summary <- rbind(lm_summary, matrix(rep(NaN, 4 * length(rows_to_add)), nrow=length(rows_to_add)))
           rownames(lm_summary) <- c(store_names, rows_to_add)
@@ -629,8 +631,6 @@ fit.model <- function(
         } else {
           fit_and_message <- c(list(fit1), NA)
         }
-        
-        
       }
     
     fit <- fit_and_message[[1]]
@@ -844,7 +844,7 @@ fit.model <- function(
         fit_properly <- TRUE
       }
       
-      # Prevents individual group levels from ending up in results (I think?)
+      # Prevents individual group levels from ending up in results
       output$para <- output$para[rownames(output$para) %in% names_to_include,]
     } else { # Fit issue occurred
         fit_properly <- FALSE

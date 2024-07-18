@@ -241,7 +241,7 @@ MaAsLin 3 generates two types of output files explained below: data and visualiz
         * It includes all settings, warnings, errors, and steps run.
 2. Visualization output files
     * ``summary_plot.pdf``
-        * This file contain a combined coefficient plot and heatmap of the most significant associations. In the heatmap, one star indicates the individual q-value is below the parameter `max_significance`, and two stars indicate the individual q-value is below `max_significance` divided by 10.
+        * This file contain a combined coefficient plot and heatmap of the most significant associations. In the heatmap, one star indicates the individual q-value is below the parameter `max_significance`, and two stars indicate the individual q-value is below `max_significance` divided by 10. (Make sure to set `include=T` to view the plots when knitting the Rmd.)
 ```{r, out.width='100%', echo=F, cache = F, include=F}
 # Rename summary plot to avoid knitting issues later
 quiet_out <- file.rename('hmp2_output/figures/summary_plot.png', 

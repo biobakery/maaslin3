@@ -1108,7 +1108,7 @@ maaslin_compute_formula <- function(params_and_data) {
     to_remove <- setdiff(fixed_effects, colnames(metadata))
     if (length(to_remove) > 0) {
       logging::logerror(
-        paste("Feature name not found in metadata",
+        paste("Variable name not found in metadata",
               "so not applied to formula as fixed effect: %s"),
         paste(to_remove, collapse = " , ")
       )

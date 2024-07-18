@@ -176,7 +176,7 @@ Next, we are going to run the model in three different ways:
 
 ### 3.3.1 Raw RNA Abundances with MaAsLin 3 {#331-raw-rna-abundances-with-maaslin-3}
 
-In this first example run on MTX data, we will run MaAsLin 3 on the RNA pathway abundances as characterized by HUMAnN 2 but not normalized by the matched DNA of these samples. When running MTX data, **it is recommended to set `median_comparison_abundance_threshold = 0.0`** in order to detect the typically-smaller MTX effects.
+In this first example run on MTX data, we will run MaAsLin 3 on the RNA pathway abundances as characterized by HUMAnN 2 but not normalized by the matched DNA of these samples. When running MTX data, **it is recommended to set `median_comparison_abundance_threshold = 0.0`** in order to detect the typically-smaller MTX effects. (Make sure to set `include=T` to view the plots when knitting the Rmd.)
 
 ```{R, echo = T, results = 'hide', warning = FALSE, cache = T}
 # Set median_comparison_abundance_threshold = 0.0 since effect sizes are small

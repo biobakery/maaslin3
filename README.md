@@ -98,7 +98,7 @@ MaAsLin 3 generates two types of output files explained below: data and visualiz
         * `coef` and `stderr` are the fit coefficient and standard error from the model. In abundance models, a one-unit change in the metadatum variable corresponds to a $2^{\textrm{coef}}$ fold change in the relative abundance of the feature. In prevalence models, a one-unit change in the metadatum variable corresponds to a $\textrm{coef}$ change in the log-odds of a feature being present.
         * `pval_individual` is the p-value of the individual association.
         * `error` lists any errors from the model fitting.
-        * `qval_individual` is the false discovery rate (FDR) corrected q-value of the individual association.
+        * `qval_individual` is the false discovery rate (FDR) corrected q-value of the individual association. The FDR correction is applied over all non-NA p-values.
         * `model` specifies whether the association is abundance or prevalence.
           * `N` and `N.not.zero` are the total number of data points and the total number of non-zero data points for the feature.
         * `pval_joint` and `qval_joint` are the p-value and q-value of the joint prevalence and abundance association. The p-value comes from plugging in the minimum of the association's abundance and prevalence p-values into the Beta(1,2) CDF. It is interpreted as the probability that either the abundance or prevalence association would be as extreme as observed if there was neither an abundance nor prevalence association between the feature and metadatum.

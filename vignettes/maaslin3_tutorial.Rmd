@@ -24,7 +24,7 @@ If you use the MaAsLin 3 software, please cite our manuscript:
 MaAsLin 3: Refining and extending generalized multivariate linear models for meta-omic association discovery. (In progress).
 
 ### Support ###
-The user manual can be found [here](https://github.com/biobakery/maaslin3). If you have questions, please direct them to the [MaAsLin 3 Forum](https://forum.biobakery.org/c/Downstream-analysis-and-statistics/MaAsLin3)   . 
+The user manual can be found [here](https://github.com/biobakery/maaslin3). If you have questions, please direct them to the [MaAsLin Forum](https://forum.biobakery.org/c/Downstream-analysis-and-statistics/maaslin). 
 
 ## Contents
 * [1. Installing R](#installing-r)
@@ -200,7 +200,7 @@ threshold, ordered by increasing joint q-value. The format is:
   * `feature` and `metadata` are the feature and metadata names.
   * `value` and `name` are the value of the metadata and variable name from the model.
   * `coef` and `stderr` are the fit coefficient and standard error from the model. In abundance models, a one-unit change in the metadatum variable corresponds to a $2^{\textrm{coef}}$ fold change in the relative abundance of the feature. In prevalence models, a one-unit change in the metadatum variable corresponds to a $\textrm{coef}$ change in the log-odds of a feature being present.
-  * `pval_individual` and `qval_individual` are the p-value and false discovery rate (FDR) corrected q-value of the individual association.
+  * `pval_individual` and `qval_individual` are the p-value and false discovery rate (FDR) corrected q-value of the individual association. FDR correction is performed over all non-NA p-values in the abundance and prevalence modeling separately.
   * `model` specifies whether the association is abundance or prevalence.
   * `N` and `N.not.zero` are the total number of data points and the total number of non-zero data points for the feature.
   * `pval_joint` and `qval_joint` are the p-value and q-value of the joint prevalence and abundance association. The p-value comes from plugging in the minimum of the association's abundance and prevalence p-values into the Beta(1,2) CDF. It is interpreted as the probability that either the abundance or prevalence association would be as extreme as observed if there was neither an abundance nor prevalence association between the feature and metadatum.
@@ -274,8 +274,10 @@ There are a few common issues to check for in the results:
     * Any significant abundance associations with a categorical variable should usually have **at least 10 observations in each category**.
     * Significant prevalence associations with categorical variables should also have **at least 10 samples in which the feature was present and at least 10 samples in which it was absent for each significant category**. 
     * Significant abundance associations with continuous metadata should be checked visually for influential outliers.
+3. The q-values are FDR corrected over all abundance or prevalence relationships (separately), so it may be preferable to FDR correct just the p-values from the variables of interest. This can reduce false positives when there are many significant but uninteresting associations (e.g., many read depth associations).
+4. There are also a few rules of thumb to keep in mind.
     * Models should ideally have about 10 times as many samples (all samples for logistic fits, non-zero samples for linear fits) as covariate terms (all continuous variables plus all categorical variable levels).
-
+    * Coefficients (effect sizes) larger than about 15 in absolute value are usually suspect unless very small unstandardized predictors are being included. (A coefficient of 15 corresponds to a fold change >30000!). If you encounter such coefficients, check that (1) no error was thrown, (2) the diagnostics look reasonable, (3) a sufficient number of samples were used in fitting, (4) the q-value is significant, (5) the metadata are not highly collinear, and (6) the random effects are plausible.
     
 #### Replotting
 
@@ -302,7 +304,7 @@ all_results <- all_results %>%
            gsub(pattern = 'sp ', replacement = 'sp. '))
 
 # Write results
-write.table(all_results, 'hmp2_output/all_results.tsv', sep='\t')
+write.table(all_results, 'hmp2_output/all_results.tsv', sep='\t', row.names = F)
 
 # Set the new heatmap and coefficient plot variables and order them
 param_list$heatmap_vars = c('Dysbiosis UC', 'Diagnosis UC', 'Abx Used', 'Age', 'Read depth')
@@ -475,10 +477,11 @@ fit_out$fit_data_abundance$results %>%
 Certain studies have a natural "grouping" of sample observations, such as by subject in longitudinal designs or by family in family designs. It is  important for statistic analysis to address the non-independence between samples belonging to the same group. MaAsLin 3 provides a simple interface for this with random effects, where the user can specify the grouping variable to run a [mixed effect model](https://cran.r-project.org/web/packages/lme4/index.html). This grouping variable can be provided with the `random_effects` parameter or specified in the model with `(1|grouping_variable)`. This will add in a "random intercept," a per-group adjustment to the model intercept. More complicated random effects can be specified in the formula in accordance with `lme4` formula parsing. For example, HMP2 has a longitudinal design where the same subject (column `participant_id`) can have multiple samples. We thus use `participant_id` as a random effect grouping variable in the model. 
 
 ```{R, echo = T, results = 'hide', warning = FALSE, cache = T}
+# Subset to only CD cases for time; taxa are subset automatically
 param_list <- list(input_data = taxa_table, 
-                   input_metadata = metadata, 
+                   input_metadata = metadata[metadata$diagnosis == 'CD',], 
                    output = 'random_effects_output', 
-                   formula = '~ diagnosis + dysbiosis_state + antibiotics + age + reads + (1|participant_id)',
+                   formula = '~ dysbiosis_state + antibiotics + age + reads + (1|participant_id)',
                    plot_summary_plot = F,
                    plot_associations = F)
 
@@ -503,10 +506,14 @@ Mixed effects models take longer to fit because of their complexity, and the fit
 One of the benefits of MaAsLin 3's formula mode is the ability to include interaction terms. Mathematically, an interaction term corresponds to the product of two columns in the design matrix. When a continuous variable is interacted with a categorical term, the interaction term corresponds to the change in the continuous variable's slope between the categories. For two categorical variables interacted, see below; it is better explained through an example. In the formula, interactions can be specified with the `:` symbol to include only the interaction term(s) or the `*` symbol to include both the interaction term and the non-interacted terms (i.e., `a*b` adds the terms `a`, `b`, and `a:b`).
 
 ```{R, echo = T, results = 'hide', warning = FALSE, cache = F}
+metadata <- metadata %>%
+  mutate(dysbiosis_general = ifelse(dysbiosis_state != 'none', 'dysbiosis', 'none')) %>%
+  mutate(dysbiosis_general = factor(dysbiosis_general, levels = c('none', 'dysbiosis')))
+
 param_list <- list(input_data = taxa_table, 
                    input_metadata = metadata, 
                    output = 'interaction_output', 
-                   formula = '~ sex*diagnosis + antibiotics + age + reads')
+                   formula = '~ diagnosis + diagnosis:dysbiosis_general + antibiotics + age + reads')
 
 fit_out <- maaslin3(param_list)
 ```
@@ -515,8 +522,8 @@ fit_out <- maaslin3(param_list)
 full_results <- rbind(fit_out$fit_data_abundance$results, 
       fit_out$fit_data_prevalence$results)
 full_results <- full_results %>%
-  arrange(qval_joint) %>%
-  filter(metadata %in% c("diagnosis", "sex"))
+  dplyr::arrange(qval_joint) %>%
+  dplyr::filter(metadata == "diagnosis")
 rownames(full_results) <- NULL
 full_results %>% 
   dplyr::mutate_if(is.numeric, .funs = function(x){(as.character(signif(x, 3)))}) %>%
@@ -524,13 +531,15 @@ full_results %>%
   kableExtra::kable_styling("striped", position = 'center') %>% 
   kableExtra::scroll_box(width = "800px", height = "400px")
 ```
-In the model above, we have specified an interaction between `sex` and `diagnosis` with `sex*diagnosis`. Since `diagnosis` has 3 levels itself (`nonIBD`, `UC`, `CD`), this will produce five terms (`name` column) for each feature: 
+In the model above, we have converted `dysbiosis_CD` and `dysbiosis_UC` into `dysbiosis` in the variable `dysbiosis_general` and then specified an interaction between `diagnosis` and `dysbiosis_general` with `diagnosis:dysbiosis_general`. Since `diagnosis` has 3 levels itself (`nonIBD`, `UC`, `CD`), this will produce five terms (`name` column) for each feature: 
 
-* `diagnosisCD` is the difference between female CD and female non-IBD (female non-IBD is the baseline)
-* `diagnosisUC` is the difference between female UC and female non-IBD
-* `sexMale` is the difference between male non-IBD and female non-IBD
-* `sexMale:diagnosisCD` (the interaction of `male` and `diagnosisCD`) is the difference-in-differences between CD versus non-IBD in males versus females, a measure of whether CD affects males differently from females. That is, given the difference between non-IBD and CD in males and the difference between non-IBD and CD in females, the `sexMale:diagnosisCD` coefficient is the difference between the two differences.
-* `sexMale:diagnosisUC` (the interaction of `male` and `diagnosisUC`) is the difference-in-differences between UC versus non-IBD in males versus females, a measure of whether UC affects males differently from females.
+* `diagnosisCD` is the difference between non-dysbiotic CD and non-IBD
+* `diagnosisUC` is the difference between non-dysbiotic UC and non-IBD
+* `diagnosisCD:dysbiosis_generaldysbiosis` (the interaction of `diagnosisCD` and `dysbiosis_generaldysbiosis`) is the difference between non-dysbiotic CD and dysbiotic CD
+* `diagnosisnonIBD:dysbiosis_generaldysbiosis` (the interaction of `diagnosisnonIBD` and `dysbiosis_generaldysbiosis`) is the difference between dysbiotic and non-dysbiotic non-IBD. Note that these coefficients are all NA since no subjects labeled non-IBD were marked as being dysbiotic.
+* `diagnosisUC:dysbiosis_generaldysbiosis` (the interaction of `diagnosisUC` and `dysbiosis_generaldysbiosis`) is the difference between non-dysbiotic UC and dysbiotic UC
+
+Since we have effectively fit the original model in a different way, this output table is equivalent to the original output table but with new names in the columns `metadata`, `value`, and `name` based on the interaction terms.
 
 ### 4.4 Level contrasts {#level-contrasts}
 

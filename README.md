@@ -10,7 +10,7 @@ MaAsLin 3: Refining and extending generalized multivariate linear models for met
 ### Support ###
 Check out the [MaAsLin 3 tutorial](https://github.com/biobakery/biobakery/wiki/MaAsLin3) for an overview of analysis options and some example runs.
 
-If you have questions, please direct them to the [MaAsLin 3 Forum](https://forum.biobakery.org/c/Downstream-analysis-and-statistics/MaAsLin3). 
+If you have questions, please direct them to the [MaAsLin 3 Forum](https://forum.biobakery.org/c/Downstream-analysis-and-statistics/maaslin). 
 
 --------------------------------------------
 

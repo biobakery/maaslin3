@@ -977,188 +977,192 @@ fit.model <- function(
       # Get the current median, excluding coefficients with NA p-values or 
       # p-values close to 1 since these could be model misfits
       cur_median <- median(paras_sub$coef[!is.na(paras_sub$pval) & paras_sub$pval < 0.95], na.rm=T)
-      
-      pvals_new <- vector()
-      if (metadata_variable %in% ordered_levels) {
-        ordered <- ordereds[which(startsWith(metadata_variable, ordereds))]
-        
-        for (feature in paras_sub$feature) {
-          if(is.null(random_effects_formula)) { # Fixed effects
-            cur_fit <- fits[[feature]]
-            
-            if (!metadata_variable %in% names(coef(cur_fit))) {
-              pvals_new <- c(pvals_new, NA)
-              next
-            }
-            
-            if (any(!paste0(ordered, levels(metadata[[ordered]])[-1]) %in% names(coef(cur_fit)))) {
-              pvals_new <- c(pvals_new, NA)
-              next
-            }
-            
-            mm_variable <- model.matrix(cur_fit)[, metadata_variable]
-            if (any(!unique(mm_variable[!is.na(mm_variable)]) %in% c(0,1))) {
-              median_comparison_threshold_updated <- median_comparison_threshold / sd(mm_variable)
-            } else {
-              median_comparison_threshold_updated <- median_comparison_threshold
-            }
-            
-            if (is.na(coef(cur_fit, complete = F)[which(names(coef(cur_fit, complete = F)) == metadata_variable)])) {
-              pval_new_current <- NA
-            } else if (abs(coef(cur_fit, complete = F)[which(names(coef(cur_fit, complete = F)) == metadata_variable)] - 
-                    cur_median) < median_comparison_threshold_updated) {
-              pval_new_current <- 1
-            } else {
-              contrast_mat <- matrix(0, ncol = length(coef(cur_fit, complete = F)), nrow = length(levels(metadata[[ordered]])[-1]))
+      if (is.na(cur_median)) {
+        pvals_new <- rep(NA, nrow(paras_sub))
+      } else {
+        pvals_new <- vector()
+        if (metadata_variable %in% ordered_levels) {
+          ordered <- ordereds[which(startsWith(metadata_variable, ordereds))]
+          
+          for (feature in paras_sub$feature) {
+            if(is.null(random_effects_formula)) { # Fixed effects
+              cur_fit <- fits[[feature]]
               
-              cols_to_add_1s <- which(names(coef(cur_fit, complete = F)) %in% paste0(ordered, levels(metadata[[ordered]])[-1]))
+              if (!metadata_variable %in% names(coef(cur_fit))) {
+                pvals_new <- c(pvals_new, NA)
+                next
+              }
+              
+              if (any(!paste0(ordered, levels(metadata[[ordered]])[-1]) %in% names(coef(cur_fit)))) {
+                pvals_new <- c(pvals_new, NA)
+                next
+              }
+              
+              mm_variable <- model.matrix(cur_fit)[, metadata_variable]
+              if (any(!unique(mm_variable[!is.na(mm_variable)]) %in% c(0,1))) {
+                median_comparison_threshold_updated <- median_comparison_threshold / sd(mm_variable)
+              } else {
+                median_comparison_threshold_updated <- median_comparison_threshold
+              }
+              
+              if (is.na(coef(cur_fit, complete = F)[which(names(coef(cur_fit, complete = F)) == metadata_variable)])) {
+                pval_new_current <- NA
+              } else if (abs(coef(cur_fit, complete = F)[which(names(coef(cur_fit, complete = F)) == metadata_variable)] - 
+                             cur_median) < median_comparison_threshold_updated) {
+                pval_new_current <- 1
+              } else {
+                contrast_mat <- matrix(0, ncol = length(coef(cur_fit, complete = F)), nrow = length(levels(metadata[[ordered]])[-1]))
+                
+                cols_to_add_1s <- which(names(coef(cur_fit, complete = F)) %in% paste0(ordered, levels(metadata[[ordered]])[-1]))
+                contrast_mat[1, cols_to_add_1s[1]] <- 1
+                for (i in seq_along(cols_to_add_1s[-1])) {
+                  contrast_mat[i + 1, cols_to_add_1s[-1][i]] <- 1
+                  contrast_mat[i + 1, cols_to_add_1s[i]] <- -1
+                }
+                
+                contrast_vec <- t(matrix(contrast_mat[which(paste0(ordered, levels(metadata[[ordered]])[-1]) == metadata_variable),]))
+                pval_new_current <- tryCatch({summary(multcomp::glht(cur_fit, linfct = contrast_vec, 
+                                                                     rhs = cur_median, coef. = function(x){coef(x, complete=F)}))$test$pvalues},
+                                             error = function(err) { NA })
+              }
+              
+              pvals_new <- c(pvals_new, pval_new_current)
+            } else { # Random effects
+              cur_fit <- fits[[feature]]
+              
+              if (!metadata_variable %in% names(lme4::fixef(cur_fit))) {
+                pvals_new <- c(pvals_new, NA)
+                next
+              }
+              
+              if (any(!paste0(ordered, levels(metadata[[ordered]])[-1]) %in% names(lme4::fixef(cur_fit)))) {
+                pvals_new <- c(pvals_new, NA)
+                next
+              }
+              
+              mm_variable <- model.matrix(cur_fit)[, metadata_variable]
+              if (any(!unique(mm_variable[!is.na(mm_variable)]) %in% c(0,1))) {
+                median_comparison_threshold_updated <- median_comparison_threshold / sd(mm_variable)
+              } else {
+                median_comparison_threshold_updated <- median_comparison_threshold
+              }
+              
+              contrast_mat <- matrix(0, ncol = length(lme4::fixef(cur_fit)), nrow = length(levels(metadata[[ordered]])[-1]))
+              cols_to_add_1s <- which(names(lme4::fixef(cur_fit)) %in% paste0(ordered, levels(metadata[[ordered]])[-1]))
               contrast_mat[1, cols_to_add_1s[1]] <- 1
               for (i in seq_along(cols_to_add_1s[-1])) {
                 contrast_mat[i + 1, cols_to_add_1s[-1][i]] <- 1
                 contrast_mat[i + 1, cols_to_add_1s[i]] <- -1
               }
-  
               contrast_vec <- t(matrix(contrast_mat[which(paste0(ordered, levels(metadata[[ordered]])[-1]) == metadata_variable),]))
-              pval_new_current <- tryCatch({summary(multcomp::glht(cur_fit, linfct = contrast_vec, 
-                                                               rhs = cur_median, coef. = function(x){coef(x, complete=F)}))$test$pvalues},
-                                                 error = function(err) { NA })
-            }
-
-            pvals_new <- c(pvals_new, pval_new_current)
-          } else { # Random effects
-            cur_fit <- fits[[feature]]
-            
-            if (!metadata_variable %in% names(lme4::fixef(cur_fit))) {
-              pvals_new <- c(pvals_new, NA)
-              next
-            }
-            
-            if (any(!paste0(ordered, levels(metadata[[ordered]])[-1]) %in% names(lme4::fixef(cur_fit)))) {
-              pvals_new <- c(pvals_new, NA)
-              next
-            }
-            
-            mm_variable <- model.matrix(cur_fit)[, metadata_variable]
-            if (any(!unique(mm_variable[!is.na(mm_variable)]) %in% c(0,1))) {
-              median_comparison_threshold_updated <- median_comparison_threshold / sd(mm_variable)
-            } else {
-              median_comparison_threshold_updated <- median_comparison_threshold
-            }
-            
-            contrast_mat <- matrix(0, ncol = length(lme4::fixef(cur_fit)), nrow = length(levels(metadata[[ordered]])[-1]))
-            cols_to_add_1s <- which(names(lme4::fixef(cur_fit)) %in% paste0(ordered, levels(metadata[[ordered]])[-1]))
-            contrast_mat[1, cols_to_add_1s[1]] <- 1
-            for (i in seq_along(cols_to_add_1s[-1])) {
-              contrast_mat[i + 1, cols_to_add_1s[-1][i]] <- 1
-              contrast_mat[i + 1, cols_to_add_1s[i]] <- -1
-            }
-            contrast_vec <- t(matrix(contrast_mat[which(paste0(ordered, levels(metadata[[ordered]])[-1]) == metadata_variable),]))
-            
-            if (model == "logistic") {
-              if (is.na(lme4::fixef(cur_fit)[which(names(lme4::fixef(cur_fit)) == metadata_variable)])) {
-                pval_new_current <- NA
-              } else if (abs(lme4::fixef(cur_fit)[which(names(lme4::fixef(cur_fit)) == metadata_variable)] - 
-                             cur_median) < median_comparison_threshold_updated) {
-                pval_new_current <- 1
-              } else {
-                pval_new_current <- tryCatch({summary(multcomp::glht(cur_fit, linfct = contrast_vec, 
-                                                           rhs = cur_median))$test$pvalues},
-                                             error = function(err) { NA })
-              }
-              pvals_new <- c(pvals_new, pval_new_current)
-            } else {
-              if (is.na(lme4::fixef(cur_fit)[which(names(lme4::fixef(cur_fit)) == metadata_variable)])) {
-                pval_new_current <- NA
-              } else if (abs(lme4::fixef(cur_fit)[which(names(lme4::fixef(cur_fit)) == metadata_variable)] - 
-                             cur_median) < median_comparison_threshold_updated) {
-                pval_new_current <- 1
-              } else {
-                pval_new_current <- tryCatch({lmerTest::contest(cur_fit, matrix(contrast_vec, T), rhs = cur_median)[['Pr(>F)']]},
-                                                   error = function(err) { NA })
-              }
               
-              pvals_new <- c(pvals_new, pval_new_current)
+              if (model == "logistic") {
+                if (is.na(lme4::fixef(cur_fit)[which(names(lme4::fixef(cur_fit)) == metadata_variable)])) {
+                  pval_new_current <- NA
+                } else if (abs(lme4::fixef(cur_fit)[which(names(lme4::fixef(cur_fit)) == metadata_variable)] - 
+                               cur_median) < median_comparison_threshold_updated) {
+                  pval_new_current <- 1
+                } else {
+                  pval_new_current <- tryCatch({summary(multcomp::glht(cur_fit, linfct = contrast_vec, 
+                                                                       rhs = cur_median))$test$pvalues},
+                                               error = function(err) { NA })
+                }
+                pvals_new <- c(pvals_new, pval_new_current)
+              } else {
+                if (is.na(lme4::fixef(cur_fit)[which(names(lme4::fixef(cur_fit)) == metadata_variable)])) {
+                  pval_new_current <- NA
+                } else if (abs(lme4::fixef(cur_fit)[which(names(lme4::fixef(cur_fit)) == metadata_variable)] - 
+                               cur_median) < median_comparison_threshold_updated) {
+                  pval_new_current <- 1
+                } else {
+                  pval_new_current <- tryCatch({lmerTest::contest(cur_fit, matrix(contrast_vec, T), rhs = cur_median)[['Pr(>F)']]},
+                                               error = function(err) { NA })
+                }
+                
+                pvals_new <- c(pvals_new, pval_new_current)
+              }
             }
           }
-        }
-      } else {
-        for (feature in paras_sub$feature) {
-          if(is.null(random_effects_formula)) { # Fixed effects
-            cur_fit <- fits[[feature]]
-            
-            if (!metadata_variable %in% names(coef(cur_fit))) {
-              pvals_new <- c(pvals_new, NA)
-              next
-            }
-            
-            mm_variable <- model.matrix(cur_fit)[, metadata_variable]
-            if (any(!unique(mm_variable[!is.na(mm_variable)]) %in% c(0,1))) {
-              median_comparison_threshold_updated <- median_comparison_threshold / sd(mm_variable)
-            } else {
-              median_comparison_threshold_updated <- median_comparison_threshold
-            }
-            
-            contrast_vec <- rep(0, length(coef(cur_fit, complete = F)))
-            contrast_vec[which(names(coef(cur_fit, complete = F)) == metadata_variable)] <- 1
-            
-            if (is.na(coef(cur_fit, complete = F)[which(names(coef(cur_fit, complete = F)) == metadata_variable)])) {
-              pval_new_current <- NA
-            } else if (abs(coef(cur_fit, complete = F)[which(names(coef(cur_fit, complete = F)) == metadata_variable)] - 
-                           cur_median) < median_comparison_threshold_updated) {
-              pval_new_current <- 1
-            } else {
-              pval_new_current <- tryCatch({summary(multcomp::glht(cur_fit, linfct = matrix(contrast_vec, T), 
-                                                         rhs = cur_median, coef. = function(x){coef(x, complete = F)}))$test$pvalues[1]},
-                                           error = function(err) { NA })
-            }
-            
-            pvals_new <- c(pvals_new, pval_new_current)
-          } else { # Random effects
-            cur_fit <- fits[[feature]]
-            
-            if (!metadata_variable %in% names(lme4::fixef(cur_fit))) {
-              pvals_new <- c(pvals_new, NA)
-              next
-            }
-            
-            mm_variable <- model.matrix(cur_fit)[, metadata_variable]
-            if (any(!unique(mm_variable[!is.na(mm_variable)]) %in% c(0,1))) {
-              median_comparison_threshold_updated <- median_comparison_threshold / sd(mm_variable)
-            } else {
-              median_comparison_threshold_updated <- median_comparison_threshold
-            }
-            
-            contrast_vec <- rep(0, length(lme4::fixef(cur_fit)))
-            contrast_vec[which(names(lme4::fixef(cur_fit)) == metadata_variable)] <- 1
-            
-            if (model == "logistic") {
-              if (is.na(lme4::fixef(cur_fit)[which(names(lme4::fixef(cur_fit)) == metadata_variable)])) {
+        } else {
+          for (feature in paras_sub$feature) {
+            if(is.null(random_effects_formula)) { # Fixed effects
+              cur_fit <- fits[[feature]]
+              
+              if (!metadata_variable %in% names(coef(cur_fit))) {
+                pvals_new <- c(pvals_new, NA)
+                next
+              }
+              
+              mm_variable <- model.matrix(cur_fit)[, metadata_variable]
+              if (any(!unique(mm_variable[!is.na(mm_variable)]) %in% c(0,1))) {
+                median_comparison_threshold_updated <- median_comparison_threshold / sd(mm_variable)
+              } else {
+                median_comparison_threshold_updated <- median_comparison_threshold
+              }
+              
+              contrast_vec <- rep(0, length(coef(cur_fit, complete = F)))
+              contrast_vec[which(names(coef(cur_fit, complete = F)) == metadata_variable)] <- 1
+              
+              if (is.na(coef(cur_fit, complete = F)[which(names(coef(cur_fit, complete = F)) == metadata_variable)])) {
                 pval_new_current <- NA
-              } else if (abs(lme4::fixef(cur_fit)[which(names(lme4::fixef(cur_fit)) == metadata_variable)] - 
+              } else if (abs(coef(cur_fit, complete = F)[which(names(coef(cur_fit, complete = F)) == metadata_variable)] - 
                              cur_median) < median_comparison_threshold_updated) {
                 pval_new_current <- 1
               } else {
                 pval_new_current <- tryCatch({summary(multcomp::glht(cur_fit, linfct = matrix(contrast_vec, T), 
-                                                           rhs = cur_median))$test$pvalues[1]},
+                                                                     rhs = cur_median, coef. = function(x){coef(x, complete = F)}))$test$pvalues[1]},
                                              error = function(err) { NA })
               }
               
               pvals_new <- c(pvals_new, pval_new_current)
-            } else {
-              if (is.na(lme4::fixef(cur_fit)[which(names(lme4::fixef(cur_fit)) == metadata_variable)])) {
-                pval_new_current <- NA
-              } else if (abs(lme4::fixef(cur_fit)[which(names(lme4::fixef(cur_fit)) == metadata_variable)] - 
-                             cur_median) < median_comparison_threshold_updated) {
-                pval_new_current <- 1
+            } else { # Random effects
+              cur_fit <- fits[[feature]]
+              
+              if (!metadata_variable %in% names(lme4::fixef(cur_fit))) {
+                pvals_new <- c(pvals_new, NA)
+                next
+              }
+              
+              mm_variable <- model.matrix(cur_fit)[, metadata_variable]
+              if (any(!unique(mm_variable[!is.na(mm_variable)]) %in% c(0,1))) {
+                median_comparison_threshold_updated <- median_comparison_threshold / sd(mm_variable)
               } else {
-                pval_new_current <- tryCatch({lmerTest::contest(cur_fit, matrix(contrast_vec, T), rhs = cur_median)[['Pr(>F)']]},
-                                             error = function(err) { NA })
+                median_comparison_threshold_updated <- median_comparison_threshold
               }
               
-              pvals_new <- c(pvals_new, pval_new_current)
+              contrast_vec <- rep(0, length(lme4::fixef(cur_fit)))
+              contrast_vec[which(names(lme4::fixef(cur_fit)) == metadata_variable)] <- 1
+              
+              if (model == "logistic") {
+                if (is.na(lme4::fixef(cur_fit)[which(names(lme4::fixef(cur_fit)) == metadata_variable)])) {
+                  pval_new_current <- NA
+                } else if (abs(lme4::fixef(cur_fit)[which(names(lme4::fixef(cur_fit)) == metadata_variable)] - 
+                               cur_median) < median_comparison_threshold_updated) {
+                  pval_new_current <- 1
+                } else {
+                  pval_new_current <- tryCatch({summary(multcomp::glht(cur_fit, linfct = matrix(contrast_vec, T), 
+                                                                       rhs = cur_median))$test$pvalues[1]},
+                                               error = function(err) { NA })
+                }
+                
+                pvals_new <- c(pvals_new, pval_new_current)
+              } else {
+                if (is.na(lme4::fixef(cur_fit)[which(names(lme4::fixef(cur_fit)) == metadata_variable)])) {
+                  pval_new_current <- NA
+                } else if (abs(lme4::fixef(cur_fit)[which(names(lme4::fixef(cur_fit)) == metadata_variable)] - 
+                               cur_median) < median_comparison_threshold_updated) {
+                  pval_new_current <- 1
+                } else {
+                  pval_new_current <- tryCatch({lmerTest::contest(cur_fit, matrix(contrast_vec, T), rhs = cur_median)[['Pr(>F)']]},
+                                               error = function(err) { NA })
+                }
+                
+                pvals_new <- c(pvals_new, pval_new_current)
+              }
             }
           }
         }
+        
       }
       
       paras_sub$error <- ifelse(is.na(pvals_new) & !is.na(paras_sub$pval), 

@@ -560,7 +560,7 @@ maaslin3_association_plots <-
               ggplot2::scale_y_continuous(expand = ggplot2::expansion(mult = c(0, 0.2)))
             
             temp_plot <- temp_plot + 
-              nature_theme(metadata_name, 
+              nature_theme(.data$metadata, 
                            paste0(feature_name, '\n(Normalization: ', normalization, ', Transformation: ', transformation, ')')) +
               ggplot2::theme(
                 panel.grid.major = ggplot2::element_blank(),
@@ -730,7 +730,7 @@ maaslin3_association_plots <-
                     legend.position = "none")
               
             temp_plot <- temp_plot + 
-              nature_theme(metadata_name, joined_features_metadata_prev['feature_abun']) + 
+              nature_theme(as.character(table_df$metadata), joined_features_metadata_prev['feature_abun']) + 
               ggplot2::theme(
                 panel.grid.major = ggplot2::element_blank(),
                 panel.grid.minor = ggplot2::element_blank(),

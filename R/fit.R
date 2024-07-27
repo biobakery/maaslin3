@@ -57,6 +57,7 @@ get_fixed_effects <- function(formula, random_effects_formula, dat_sub, groups, 
   } else { # Random effects
     patterns <- paste0("(", unlist(lme4::findbars(formula(gsub("^expr ", "", safe_deparse(formula))))), ")")
     
+    # Remove all the random effects from the formula
     for (pattern in patterns) {
       fixed_effects_only <- gsub(pattern, "", 
                        paste0(trimws(safe_deparse(formula(gsub("^expr ", "", safe_deparse(formula))))), collapse = " "), 
@@ -193,6 +194,24 @@ fit.model <- function(
   formula <- extract_special_predictor_out[[1]]
   ordereds <- extract_special_predictor_out[[2]]
   
+  # Extract strata
+  extract_special_predictor_out <- extract_special_predictor(formula, 'strata')
+  formula <- extract_special_predictor_out[[1]]
+  strata <- extract_special_predictor_out[[2]]
+  
+  if (length(strata) > 1) {
+    stop("Only one strata allowed. Please change the formula.")
+  }
+  
+  if (length(strata) > 0 & !is.null(random_effects_formula)) {
+    stop("Strata and random effects cannot be combined. Please only use random effects if you have multiple grouping categories.")
+  }
+  
+  if (length(strata) > 0 & model == 'LM') {
+    formula <- formula(paste0(safe_deparse(formula), ' + (1 | ', strata, ')'))
+    random_effects_formula <- formula
+  }
+  
   #############################################################
   # Determine the function and summary for the model selected #
   #############################################################
@@ -278,43 +297,132 @@ fit.model <- function(
   ##################
 
   if (model == "logistic") {
-    if (is.null(random_effects_formula)) { # Fixed effects only
-      if (augment) {
-        model_function <- function(formula, mm, weight_scheme, na.action) {
-          assign("weight_sch_current", weight_scheme, envir = environment(formula))
-          
-          glm_out <- glm(
-            formula = formula(formula),
-            family = 'binomial',
-            data = mm,
-            weights = weight_sch_current,
-            na.action = na.action,
-          )
-          
-          return(glm_out)
+    if (is.null(random_effects_formula)) {
+      if (length(strata) > 0) {
+        if (augment) {
+          model_function <-
+            function(formula, mm, weight_scheme, na.action) {
+              formula <- formula(paste0(safe_deparse(formula), ' + strata(', strata, ')'))
+              
+              assign("weight_sch_current", weight_scheme, envir = environment(formula))
+              
+              clogit_out <- tryCatch({
+                fit1 <- survival::clogit(
+                  formula(formula), 
+                  data = mm, 
+                  method = "breslow", 
+                  control = coxph.control(iter.max = 1000),
+                  na.action = na.action,
+                  weights = weight_sch_current,
+                  robust = F) # Robust SE seem to be worse with weighting...
+              }, warning = function(w) {
+                'warning'
+              }, error = function(e) {
+                'error'
+              })
+              
+              if (is.character(clogit_out)) {
+                fit1 <- survival::clogit(
+                  formula(formula), 
+                  data = mm, 
+                  method = "breslow", 
+                  control = coxph.control(iter.max = 1000),
+                  na.action = na.action,
+                  weights = weight_sch_current,
+                  robust = F) # Robust SE seem to be worse with weighting...
+                return(fit1)
+              } else  {
+                return(clogit_out)
+              }
+            }
+        } else {
+          model_function <-
+            function(formula, data, na.action) {
+              clogit_out <- tryCatch({
+                fit1 <- survival::clogit(
+                  formula(formula), 
+                  data = data, 
+                  method = "breslow", 
+                  control = coxph.control(iter.max = 1000),
+                  na.action = na.action,
+                  robust = F) # Robust SE seem to be worse with weighting...)
+              }, warning = function(w) {
+                'warning'
+              }, error = function(e) {
+                'error'
+              })
+              
+              if (is.character(clogit_out)) {
+                fit1 <- survival::clogit(
+                  formula(formula), 
+                  data = data, 
+                  method = "breslow", 
+                  control = coxph.control(iter.max = 1000),
+                  na.action = na.action,
+                  robust = F) # Robust SE seem to be worse with weighting...)
+                return(fit1)
+              } else  {
+                return(clogit_out)
+              }
+            }
         }
-      } else {
-        model_function <-
-          function(formula, data, na.action) {
-            return(glm(
-              formula(formula),
-              data = data,
-              family = 'binomial',
-              na.action = na.action,
-            ))
+        summary_function <- function(fit, names_to_include) {
+          lm_summary <- coef(summary(fit))
+          
+          store_names <- gsub('`', '', rownames(lm_summary))
+          if (!all(names_to_include %in% store_names)) { # If deficient rank, make sure all rownames are included
+            rows_to_add = names_to_include[!(names_to_include %in% store_names)]
+            lm_summary <- rbind(lm_summary, matrix(rep(NaN, ncol(lm_summary) * length(rows_to_add)), nrow=length(rows_to_add)))
+            rownames(lm_summary) <- c(store_names, rows_to_add)
           }
-      }
-      summary_function <- function(fit, names_to_include) {
-        lm_summary <- summary(fit)$coefficients
-        store_names <- gsub('`', '', rownames(lm_summary))
-        if (!all(names_to_include %in% store_names)) { # If deficient rank, make sure all rownames are included
-          rows_to_add = names_to_include[!(names_to_include %in% store_names)]
-          lm_summary <- rbind(lm_summary, matrix(rep(NaN, 4 * length(rows_to_add)), nrow=length(rows_to_add)))
-          rownames(lm_summary) <- c(store_names, rows_to_add)
+          
+          if ('robust se' %in% colnames(lm_summary)) {
+            para <- as.data.frame(lm_summary)[,-c(2,4,5)] # Don't actually use robust SE
+          } else {
+            para <- as.data.frame(lm_summary)[,-c(2,4)]
+          }
+          
+          para$name <- rownames(lm_summary)
+          return(para)
         }
-        para <- as.data.frame(lm_summary)[-1, -3]
-        para$name <- rownames(lm_summary)[-1]
-        return(para)
+      } else { # Fixed effects only
+        if (augment) {
+          model_function <- function(formula, mm, weight_scheme, na.action) {
+            assign("weight_sch_current", weight_scheme, envir = environment(formula))
+            
+            glm_out <- glm(
+              formula = formula(formula),
+              family = 'binomial',
+              data = mm,
+              weights = weight_sch_current,
+              na.action = na.action,
+            )
+            
+            return(glm_out)
+          }
+        } else {
+          model_function <-
+            function(formula, data, na.action) {
+              return(glm(
+                formula(formula),
+                data = data,
+                family = 'binomial',
+                na.action = na.action,
+              ))
+            }
+        }
+        summary_function <- function(fit, names_to_include) {
+          lm_summary <- summary(fit)$coefficients
+          store_names <- gsub('`', '', rownames(lm_summary))
+          if (!all(names_to_include %in% store_names)) { # If deficient rank, make sure all rownames are included
+            rows_to_add = names_to_include[!(names_to_include %in% store_names)]
+            lm_summary <- rbind(lm_summary, matrix(rep(NaN, 4 * length(rows_to_add)), nrow=length(rows_to_add)))
+            rownames(lm_summary) <- c(store_names, rows_to_add)
+          }
+          para <- as.data.frame(lm_summary)[-1, -3]
+          para$name <- rownames(lm_summary)[-1]
+          return(para)
+        }
       }
     } else { # Random effects
       ranef_function <- lme4::ranef
@@ -322,7 +430,7 @@ fit.model <- function(
         model_function <-
           function(formula, mm, weight_scheme, na.action) {
             assign("weight_sch_current", weight_scheme, envir = environment(formula))
-
+            
             index <- 1
             
             while (index < length(optimizers)) {
@@ -335,7 +443,7 @@ fit.model <- function(
                     na.action = na.action,
                     weights = weight_sch_current,
                     control = lme4::glmerControl(optimizer = optimizers[index],
-                                           optCtrl = optCtrlList[[index]]))
+                                                 optCtrl = optCtrlList[[index]]))
                 }, warning=function(w) {
                   if (w$message == "non-integer #successes in a binomial glm!") {
                     # Still worked
@@ -358,14 +466,14 @@ fit.model <- function(
             
             if (is.character(glm_out)) {
               withCallingHandlers({ # Catch non-integer # successes first
-                  fit1 <- lme4::glmer(
-                    formula(formula), 
-                    data = mm, 
-                    family = 'binomial',
-                    na.action = na.action,
-                    weights = weight_sch_current,
-                    control = lme4::glmerControl(optimizer = optimizers[index],
-                                           optCtrl = optCtrlList[[index]]))
+                fit1 <- lme4::glmer(
+                  formula(formula), 
+                  data = mm, 
+                  family = 'binomial',
+                  na.action = na.action,
+                  weights = weight_sch_current,
+                  control = lme4::glmerControl(optimizer = optimizers[index],
+                                               optCtrl = optCtrlList[[index]]))
               }, warning=function(w) {
                 if (w$message == "non-integer #successes in a binomial glm!") {
                   # Still worked
@@ -390,7 +498,7 @@ fit.model <- function(
                   family = 'binomial',
                   na.action = na.action,
                   control = lme4::glmerControl(optimizer = optimizers[index],
-                                         optCtrl = optCtrlList[[index]]))
+                                               optCtrl = optCtrlList[[index]]))
               }, warning = function(w) {
                 'warning'
               }, error = function(e) {
@@ -412,7 +520,7 @@ fit.model <- function(
                 family = 'binomial',
                 na.action = na.action,
                 control = lme4::glmerControl(optimizer = optimizers[index],
-                                       optCtrl = optCtrlList[[index]])))
+                                             optCtrl = optCtrlList[[index]])))
             } else  {
               return(glm_out)
             }
@@ -457,7 +565,8 @@ fit.model <- function(
       'lmerTest',
       'parallel',
       'lme4',
-      'multcomp'
+      'multcomp',
+      'survival'
     )) {
       suppressPackageStartupMessages(require(lib, character.only = TRUE))
     }

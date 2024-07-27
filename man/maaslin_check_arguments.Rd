@@ -19,12 +19,13 @@ maaslin_check_arguments(param_list)
     }
     A model should also be specified using one of the options below. If no formula is specified, at least one of  \code{fixed_effects}, \code{group_effects}, or \code{ordered_effects} should be specified.
     \itemize{
-      \item \code{formula}: A formula in \code{lme4} format. Random effects, interactions, and functions of the metadata can be included (note that these functions will be applied after standardization if \code{standardize=TRUE}). Group and ordered variables can be specified as: \code{group(grouping_variable)} and \code{ordered(ordered_variable)}. The other variable options below will not be considered if a formula is set.
+      \item \code{formula}: A formula in \code{lme4} format. Random effects, interactions, and functions of the metadata can be included (note that these functions will be applied after standardization if \code{standardize=TRUE}). Group, ordered, and strata variables can be specified as: \code{group(grouping_variable)}, \code{ordered(ordered_variable)} and \code{strata(strata_variable)}. The other variable options below will not be considered if a formula is set.
       \item \code{fixed_effects}: A vector of variable names to be included as fixed effects.
       \item \code{reference}: For a variable with more than two levels supplied with \code{fixed_effects}, the factor to use as a reference provided as a string of 'variable,reference' semi-colon delimited for multiple variables.
       \item \code{random_effects}: A vector of variable names to be included as random intercepts.
       \item \code{group_effects}: A factored categorical variable to be included for group testing. An ANOVA-style test will be performed to assess whether any of the variable's levels are significant, and no coefficients or individual p-values will be returned.
       \item \code{ordered_effects}: A factored categorical variable to be included. Consecutive levels will be tested for significance against each other, and the resulting associations will correspond to effect sizes, standard errors, and significances of each level versus the previous.
+      \item \code{strata_effects}: A vector with one variable name to be included as the strata variable in case-control studies. Strata cannot be combined with random effects.
     }
     Particularly for use in metatranscriptomics workflows, a table of feature-specific covariates can be included. A feature's covariates will be included like metadata when fitting the model for that feature.
     \itemize{

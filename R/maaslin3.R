@@ -82,6 +82,7 @@ args$formula <- NULL
 args$random_effects <- NULL
 args$group_effects <- NULL
 args$ordered_effects <- NULL
+args$strata_effects <- NULL
 args$fixed_effects <- NULL
 args$feature_specific_covariate <- NULL
 args$feature_specific_covariate_name <- NULL
@@ -185,6 +186,18 @@ options <-
     default = args$ordered_effects,
     help = paste("The ordered effects for the model,",
                  "comma-delimited for multiple effects",
+                 "[ Default: none ]"
+    )
+  )
+options <-
+  optparse::add_option(
+    options,
+    c("--strata_effects"),
+    type = "character",
+    dest = "strata_effects",
+    default = args$ordered_effects,
+    help = paste("The strata effects for the model.",
+                 "Only one is allowed.",
                  "[ Default: none ]"
     )
   )
@@ -510,6 +523,7 @@ maaslin_parse_param_list <- function(param_list) {
                         fixed_effects = args$fixed_effects,
                         group_effects = args$group_effects,
                         ordered_effects = args$ordered_effects,
+                        strata_effects = args$strata_effects,
                         feature_specific_covariate = args$feature_specific_covariate,
                         feature_specific_covariate_name = args$feature_specific_covariate_name,
                         feature_specific_covariate_record = args$feature_specific_covariate_record,
@@ -684,6 +698,7 @@ maaslin_log_arguments <- function(param_list) {
   logging::logdebug("Fixed effects: %s", param_list[["fixed_effects"]])
   logging::logdebug("Group effects: %s", param_list[["group_effects"]])
   logging::logdebug("Ordered effects: %s", param_list[["ordered_effects"]])
+  logging::logdebug("Strata effects: %s", param_list[["strata_effects"]])
   logging::logdebug("Formula: %s", param_list[["formula"]])
   logging::logdebug("Correction method: %s", param_list[["correction"]])
   logging::logdebug("Standardize: %s", param_list[["standardize"]])
@@ -1079,6 +1094,7 @@ maaslin_compute_formula <- function(params_and_data) {
   fixed_effects <- param_list[["fixed_effects"]]
   group_effects <- param_list[["group_effects"]]
   ordered_effects <- param_list[["ordered_effects"]]
+  strata_effects <- param_list[["strata_effects"]]
   random_effects <- param_list[["random_effects"]]
   feature_specific_covariate_name <- param_list[['feature_specific_covariate_name']]
   
@@ -1086,10 +1102,11 @@ maaslin_compute_formula <- function(params_and_data) {
     if (!is.null(param_list[["fixed_effects"]]) | 
         !is.null(param_list[["random_effects"]]) |
         !is.null(param_list[["group_effects"]]) | 
-        !is.null(param_list[["ordered_effects"]])) {
+        !is.null(param_list[["ordered_effects"]]) |
+        !is.null(param_list[["strata_effects"]])) {
       logging::logwarn(
-        paste("fixed_effects, random_effects, group_effects, or ordered_effects provided in addition to formula,", 
-              "using just the fixed_effects, random_effects, group_effects, and ordered_effects"))
+        paste("fixed_effects, random_effects, group_effects, ordered_effects, or strata_effects provided in addition to formula,", 
+              "using just the fixed_effects, random_effects, group_effects, ordered_effects, and strata_effects"))
     } else {
       logging::logwarn(
         paste("maaslin_compute_formula called even though a formula is provided",
@@ -1202,7 +1219,7 @@ maaslin_compute_formula <- function(params_and_data) {
   }
   
   # reduce metadata to only include fixed/group/random effects in formula
-  effects_names <- unique(c(fixed_effects, random_effects, group_effects, ordered_effects))
+  effects_names <- unique(c(fixed_effects, random_effects, group_effects, ordered_effects, strata_effects))
   metadata <- metadata[, effects_names, drop = FALSE]
   
   # create the fixed effects formula text
@@ -1212,6 +1229,9 @@ maaslin_compute_formula <- function(params_and_data) {
   }
   if (length(ordered_effects) > 0) {
     formula_effects <- union(formula_effects, paste0("ordered(", ordered_effects, ")"))
+  }
+  if (length(strata_effects) > 0) {
+    formula_effects <- union(formula_effects, paste0("strata(", strata_effects, ")"))
   }
   if (!is.null(feature_specific_covariate_name)) {
     formula_effects <- union(formula_effects, feature_specific_covariate_name)
@@ -1274,9 +1294,10 @@ maaslin_check_formula <- function(params_and_data) {
   if (!is.null(param_list[["fixed_effects"]]) | 
       !is.null(param_list[["random_effects"]]) | 
       !is.null(param_list[["group_effects"]]) | 
-      !is.null(param_list[["ordered_effects"]])) {
+      !is.null(param_list[["ordered_effects"]]) | 
+      !is.null(param_list[["strata_effects"]])) {
     logging::logwarn(
-      paste("fixed_effects, random_effects, group_effects, or ordered_effects provided in addition to formula,", 
+      paste("fixed_effects, random_effects, group_effects, ordered_effects, or strata_effects provided in addition to formula,", 
             "using only formula"))
   }
   
@@ -1319,7 +1340,7 @@ maaslin_check_formula <- function(params_and_data) {
   
   term_labels <- attr(terms(formula), "term.labels")
   
-  if (sum(!grepl("\\|", term_labels)) == 0 & is.null(feature_specific_covariate_name)) {
+  if (sum(!grepl("strata\\(|\\|", term_labels)) == 0 & is.null(feature_specific_covariate_name)) {
     logging::logerror("No fixed, group, or ordered effects included in formula.")
     stop()
   }
@@ -2056,6 +2077,7 @@ if (identical(environment(), globalenv()) &&
       fixed_effects = current_args$fixed_effects,
       group_effects = current_args$group_effects,
       ordered_effects = current_args$ordered_effects,
+      strata_effects = current_args$strata_effects,
       feature_specific_covariate = current_args$feature_specific_covariate,
       feature_specific_covariate_name = current_args$feature_specific_covariate_name,
       feature_specific_covariate_record = current_args$feature_specific_covariate_record,

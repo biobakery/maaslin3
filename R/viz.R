@@ -85,6 +85,7 @@ maaslin3_summary_plot <-
     merged_results <- merged_results[is.na(merged_results$error) & 
                                        !is.na(merged_results$qval_individual) &
                                        !is.na(merged_results$coef),]
+    
     if (nrow(merged_results) == 0) {
       logging::loginfo(
         paste("No associtions were without errors. No summary plot generated."))
@@ -273,6 +274,9 @@ maaslin3_summary_plot <-
 
     # Bin coefficients into categories
     coefficient_thresh <- round(max(abs(quantile(merged_results_sig$coef, c(0.1, 0.9)))) / 10, 1) * 5
+    if (coefficient_thresh == 0) {
+      coefficient_thresh <- 0.5
+    }
     coef_breaks <- c(-coefficient_thresh, -coefficient_thresh / 2, 0, coefficient_thresh / 2, coefficient_thresh, Inf)
     threshold_set <- c(paste0("(-Inf,", -1 * coefficient_thresh, "]"),
                        paste0("(", -1 * coefficient_thresh, ",", -1/2 * coefficient_thresh,"]"),
@@ -560,7 +564,7 @@ maaslin3_association_plots <-
               ggplot2::scale_y_continuous(expand = ggplot2::expansion(mult = c(0, 0.2)))
             
             temp_plot <- temp_plot + 
-              nature_theme(.data$metadata, 
+              nature_theme(as.character(joined_features_metadata_abun$metadata), 
                            paste0(feature_name, '\n(Normalization: ', normalization, ', Transformation: ', transformation, ')')) +
               ggplot2::theme(
                 panel.grid.major = ggplot2::element_blank(),

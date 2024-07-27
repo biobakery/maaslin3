@@ -4,7 +4,7 @@
 Compute a formula for a MaAsLin 3 run based on the specified effects.
 }
 \description{
-Compute a formula using variables provided through \code{fixed_effects}, \code{random_effects}, \code{group_effects}, and \code{ordered_effects}. Only one of \code{maaslin_compute_formula} or \code{maaslin_check_formula} should be used.
+Compute a formula using variables provided through \code{fixed_effects}, \code{random_effects}, \code{group_effects}, \code{ordered_effects}, and \code{strata_effects}. Only one of \code{maaslin_compute_formula} or \code{maaslin_check_formula} should be used.
 }
 \usage{
 maaslin_compute_formula(params_and_data)
@@ -13,7 +13,7 @@ maaslin_compute_formula(params_and_data)
     \item{params_and_data}{
     The results of \code{maaslin_reorder_data} or a list containing the following named items:
     \describe{
-      \item{(1)}{\code{param_list}: The parameter list with \code{unscaled_abundance} trimmed of samples with missing abundances or metadata and \code{fixed_effects}, \code{random_effects}, \code{group_effects}, or \code{ordered_effects} specified.}
+      \item{(1)}{\code{param_list}: The parameter list with \code{unscaled_abundance} trimmed of samples with missing abundances or metadata and \code{fixed_effects}, \code{random_effects}, \code{group_effects}, \code{ordered_effects}, or \code{strata_effects} specified.}
       \item{(2)}{\code{data}: A data frame of feature abundances trimmed of samples with missing abundances or metadata.}
       \item{(3)}{\code{metadata}: A data frame of metadata trimmed of samples with missing abundances or metadata.}
     }

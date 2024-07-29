@@ -236,7 +236,7 @@ When running MaAsLin 3 in R, the manual page for each function (e.g., `?maaslin3
 
 #### Model formula ####
 
-* `formula`: A formula in `lme4` format. Random effects, interactions, and functions of the metadata can be included (note that these functions will be applied after standardization if `standardize = TRUE`). Group and ordered variables can be specified as: `group(grouping_variable)` and `ordered(ordered_variable)`. Ordered and group predictors should stand alone in the formula (i.e., no group predictors in random effects). The other variable options below will not be considered if a formula is set.
+* `formula`: A formula in `lme4` format. Random effects, interactions, and functions of the metadata can be included (note that these functions will be applied after standardization if `standardize = TRUE`). Group, ordered, and strata variables can be specified as: `group(grouping_variable)`, `ordered(ordered_variable)` and `strata(strata_variable)`.  Ordered and group predictors should stand alone in the formula (i.e., no group predictors in random effects). The other variable options below will not be considered if a formula is set.
 * `fixed_effects`: A vector of variable names to be included as fixed effects.
   * Fixed effects models are fit with `lm` (linear) or `glm` (logistic).
 * `reference`: For a variable with more than two levels supplied with `fixed_effects`, the factor to use as a reference provided as a string of 'variable,reference' semi-colon delimited for multiple variables.
@@ -246,7 +246,8 @@ When running MaAsLin 3 in R, the manual page for each function (e.g., `?maaslin3
   * Tests are performed with the `anova` function's `LRT` option (logistic fixed and mixed effects), the `anova` function's F test (linear fixed effects), or `lmerTest::contest` (linear mixed effects).
 * `ordered_effects`: A factored categorical variable to be included. Consecutive levels will be tested for significance against each other with contrast tests, and the resulting associations will correspond to effect sizes, standard errors, and significances of each level versus the previous.
   * Contrast tests are performed with `multcomp::glht` (fixed effects and logistic mixed effects) and `lmerTest::contest` (linear mixed effects).
-  
+* `strata_effects`: A single grouping variable to be included in matched case-control studies. If a strata variable is included, no random effects can be included. When a strata variable is included, a conditional logistic regression will be run to account for the strata. The abundance model will be run with a random intercept in place of the strata. Strata can include more than two observations per group. Only variables that differ within the groups can be tested.
+
 #### Feature specific covariates ####
 Particularly for use in metatranscriptomics workflows, a table of feature-specific covariates can be included. A feature's covariates will be included like a fixed effect metadatum when fitting the model for that feature. The covariate's name does not need to be included in the formula.
 

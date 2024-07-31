@@ -23,11 +23,6 @@
 # THE SOFTWARE.
 ###############################################################################
 
-# Load libararies
-for (lib in c('dplyr', 'ggplot2', 'viridis', "grid", 'RColorBrewer', 'patchwork', 'scales')) {
-    suppressPackageStartupMessages(require(lib, character.only = TRUE))
-}
-
 # MaAsLin3 theme based on Nature journal requirements
 nature_theme <- function(x_axis_labels, y_label) {
     # set default text format based on categorical and length

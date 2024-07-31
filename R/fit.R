@@ -1,15 +1,4 @@
 #!/usr/bin/env Rscript
-# Load Required Packages
-for (lib in c(
-  'dplyr',
-  'pbapply',
-  'lmerTest',
-  'parallel',
-  'lme4',
-  'multcomp'
-)) {
-  suppressPackageStartupMessages(require(lib, character.only = TRUE))
-}
 
 # Function to augment data for logistic fitting
 augment_data <- function(formula, random_effects_formula, dat_sub){

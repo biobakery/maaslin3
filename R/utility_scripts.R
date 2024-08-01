@@ -79,6 +79,7 @@ CLRnorm = function(features, zero_threshold) {
 # From metagenomeSeq #
 ######################
 
+# The zero threshold isn't correct here yet, but we're probably removing these
 calcNormFactors <- function(x, p = cumNormStat(x)) {
   xx <- x
   xx[xx == 0] <- NA
@@ -182,6 +183,7 @@ CSSnorm = function(features, zero_threshold) {
 # From edgeR #
 ##############
 
+# The zero threshold isn't correct here yet, but we're probably removing these
 .calcFactorQuantile <- function (data, lib.size, p=0.75)
   #	Generalized version of upper-quartile normalization
   #	Mark Robinson and Gordon Smyth

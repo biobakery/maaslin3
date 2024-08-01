@@ -1534,11 +1534,11 @@ maaslin_normalize = function(params_and_data_and_formula) {
   logging::loginfo(
     "Running selected normalization method: %s", normalization)
   
-  if (normalization == 'TSS') {features <- TSSnorm(features)}
-  if (normalization == 'CLR') {features <- CLRnorm(features)}
-  if (normalization == 'CSS') {features <- CSSnorm(features)}
-  if (normalization == 'TMM') {features <- TMMnorm(features)}
-  if (normalization == 'NONE') {features <- NONEnorm(features)}
+  if (normalization == 'TSS') {features <- TSSnorm(features, param_list[["zero_threshold"]])}
+  if (normalization == 'CLR') {features <- CLRnorm(features, param_list[["zero_threshold"]])}
+  if (normalization == 'CSS') {features <- CSSnorm(features, param_list[["zero_threshold"]])}
+  if (normalization == 'TMM') {features <- TMMnorm(features, param_list[["zero_threshold"]])}
+  if (normalization == 'NONE') {features <- NONEnorm(features, param_list[["zero_threshold"]])}
   
   if (!is.null(param_list[['unscaled_abundance']])) {
     features <- UNSCALEDnorm(features, param_list[['unscaled_abundance']])

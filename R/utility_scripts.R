@@ -2,10 +2,10 @@
 ## TSS Normalization #
 ######################
 
-TSSnorm = function(features) {
+TSSnorm = function(features, zero_threshold) {
   # Convert to Matrix from Data Frame
   features_norm = as.matrix(features)
-  X_mask <- ifelse(features > 0, 1, 0)
+  X_mask <- ifelse(features > zero_threshold, 1, 0)
   dd <- colnames(features_norm)
   
   ##############
@@ -45,7 +45,7 @@ TSSnorm = function(features) {
 ######################
 
 # Only CLRs on the non-zero part of the vector
-CLRnorm = function(features) {
+CLRnorm = function(features, zero_threshold) {
   # Convert to Matrix from Data Frame
   features_norm = as.matrix(features)
   dd <- colnames(features_norm)
@@ -56,8 +56,8 @@ CLRnorm = function(features) {
   
   # CLR Normalizing the Data
   X <- features_norm
-  X_mask <- ifelse(X > 0, 1, 0)
-  Xgeom <- exp(1)^apply(X, 1, function(x) {mean(log(x[x > 0]))})
+  X_mask <- ifelse(X > zero_threshold, 1, 0)
+  Xgeom <- exp(1)^apply(X, 1, function(x) {mean(log(x[x > zero_threshold]))})
   features_CLR <- log(X/Xgeom)
   features_CLR <- ifelse(X_mask, features_CLR, NA)
 
@@ -155,9 +155,9 @@ MRcounts <- function (counts, norm_factors, sl = 1000)  {
   return(x)
 }
 
-CSSnorm = function(features) {
+CSSnorm = function(features, zero_threshold) {
   features_norm = as.matrix(features)
-  X_mask <- ifelse(features_norm > 0, 1, 0)
+  X_mask <- ifelse(features_norm > zero_threshold, 1, 0)
   dd <- colnames(features_norm)
   
   counts = t(features_norm)
@@ -239,7 +239,7 @@ CSSnorm = function(features) {
   2^f
 }
 
-TMMnorm = function(features) {
+TMMnorm = function(features, zero_threshold) {
   # Convert to Matrix from Data Frame
   features_norm = as.matrix(features)
   X_mask <- ifelse(features_norm > 0, 1, 0)
@@ -307,10 +307,10 @@ TMMnorm = function(features) {
 # NONE Normalization #
 ######################
 
-NONEnorm = function(features) {
+NONEnorm = function(features, zero_threshold) {
   X <- as.matrix(features)
-  X_mask <- ifelse(X > 0, 1, 0)
-  features_NONE <- data.frame(ifelse(X_mask > 0, X, NA))
+  X_mask <- ifelse(X > zero_threshold, 1, 0)
+  features_NONE <- data.frame(ifelse(X_mask > zero_threshold, X, NA))
   return(features_NONE)
 }
 
@@ -321,11 +321,11 @@ NONEnorm = function(features) {
 UNSCALEDnorm = function(features, abs_abundances) {
   # Convert to Matrix from Data Frame
   if (colnames(abs_abundances) == 'total') {
-    X_mask <- ifelse(features > 0, 1, 0)
+    X_mask <- ifelse(features > zero_threshold, 1, 0)
     abs_mult_fact <- abs_abundances[rownames(features),1]
   } else {
     abs_feature <- colnames(abs_abundances)
-    X_mask <- ifelse(features[,colnames(features) != abs_feature] > 0, 1, 0)
+    X_mask <- ifelse(features[,colnames(features) != abs_feature] > zero_threshold, 1, 0)
     abs_mult_fact <- abs_abundances[rownames(features),1] / features[,abs_feature]
     features <- features[,colnames(features) != abs_feature]
   }

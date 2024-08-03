@@ -24,12 +24,6 @@
 # THE SOFTWARE.
 ###############################################################################
 
-# load in the required libraries, report an error if they are not installed
-
-for (lib in c('optparse', 'logging', 'data.table', 'dplyr')) {
-    suppressPackageStartupMessages(require(lib, character.only = TRUE))
-}
-
 ###############################################################
 # If running on the command line, load other Maaslin3 modules #
 ###############################################################
@@ -44,8 +38,12 @@ if (identical(environment(), globalenv()) &&
         sub("--file=", "", script_options[grep("--file=", script_options)])
     script_dir <- dirname(script_path)
     script_name <- basename(script_path)
-    
-    for (R_file in dir(script_dir, pattern = "*.R$"))
+    R_files <- c("fit.R", "utility_scripts.R", "vis.R")
+    # load in the required libraries, report an error if they are not installed
+    for (lib in c('optparse', 'logging', 'data.table', 'dplyr', 'pbapply','lmerTest','parallel','lme4','multcomp','ggplot2','viridis',"grid",'RColorBrewer','patchwork','scales')) {
+        suppressPackageStartupMessages(require(lib, character.only = TRUE))
+    }
+    for (R_file in R_files) 
     {
         if (!(R_file == script_name))
             source(file.path(script_dir, R_file))

@@ -4,7 +4,7 @@ Title: "Refining and extending generalized multivariate linear models
 Year: 2024
 Version: 3.0.0
 Authors@R: c(
-  person("William", "Nickols", email = "willnickols@g.harvard.edu", role = c("aut", "cre")), 
+  person("William", "Nickols", email = "willnickols@g.harvard.edu", role = c("aut", "cre"), comment=c(ORCID="0000-0001-8214-9746")), 
   person("Jacob", "Nearing", email = "nearing@broadinstitute.org", role = "aut")
   )
 Depends: R (>= 4.3)
@@ -12,15 +12,12 @@ Description: MaAsLin 3 refines and extends generalized multivariate linear model
 License: MIT + file LICENSE
 Imports: dplyr, pbapply, lmerTest, parallel, lme4, optparse, logging,
         data.table, multcomp, ggplot2, RColorBrewer, patchwork, scales,
-        rlang, hash, matrixStats, tibble, ggnewscale, kableExtra, survival
-Suggests: knitr, testthat (>= 2.1.0), rmarkdown, markdown
+        rlang, tibble, ggnewscale, survival, methods
+Suggests: knitr, testthat (>= 2.1.0), rmarkdown, markdown, kableExtra
 VignetteBuilder: knitr
 Collate: fit.R utility_scripts.R viz.R maaslin3.R
 URL: http://huttenhower.sph.harvard.edu/maaslin3
-biocViews: Metagenomics, Software, Microbiome, Normalization
+biocViews: Metagenomics, Software, Microbiome, Normalization, MultipleComparison
 BugReports: https://github.com/biobakery/maaslin3/issues
 NeedsCompilation: no
 Packaged: 2024-07-16 15:01:54 UTC; williamnickols
-Author: William Nickols [aut, cre],
-  Jacob Nearing [aut]
-Maintainer: William Nickols <willnickols@g.harvard.edu>

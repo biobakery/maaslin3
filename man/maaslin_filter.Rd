@@ -1,23 +1,29 @@
-\name{maaslin_transform}
-\alias{maaslin_transform}
+\name{maaslin_filter}
+\alias{maaslin_filter}
 \title{
-Transform abundance data for MaAsLin 3 modeling.
+Filter abundance data before MaAsLin 3 model fitting.
 }
 \description{
-Transform the abundance data according to the \code{transform} parameter.
+Set abundances below \code{zero_threshold} to zero, remove features without abundances more than \code{min_abundance} in \code{min_prevalence} of the samples, and remove features with variances less than or equal to \code{min_variance}.
 }
 \usage{
-maaslin_transform(filtered_data,
-                  output,
-                  transform = 'LOG')
+maaslin_filter(normalized_data,
+               output,
+               min_abundance = 0,
+               min_prevalence = 0.1,
+               zero_threshold = 0,
+               min_variance = 0)
 }
 \arguments{
-    \item{filtered_data}{A data frame of filtered feature abundances. It should be formatted with features as columns and samples as rows. The column and row names should be the feature names and sample names respectively.}
+    \item{normalized_data}{A data frame of normalized feature abundances. It should be formatted with features as columns and samples as rows. The column and row names should be the feature names and sample names respectively.}
     \item{output}{The output folder to write results.}
-    \item{transform}{The transformation to apply to the features after normalization and before analysis. The option \code{LOG} (base 2) is recommended, but \code{PLOG} (pseudo-log) and \code{NONE} can also be used.}
+    \item{min_abundance}{Features with abundances more than \code{min_abundance} in \code{min_prevalence} of the samples will be included for analysis. The threshold is applied after normalization and before transformation.}
+    \item{min_prevalence}{See \code{min_abundance}.}
+    \item{zero_threshold}{Abundances less than or equal to \code{zero_threshold} will be treated as zeros. This is primarily to be used when the abundance table has likely low-abundance false positives.}
+    \item{min_variance}{Features with abundance variances less than or equal to \code{min_variance} will be dropped. This is primarily used for dropping features that are entirely zero.}
 }
 \value{
-A dataframe of transformed features (features are columns; samples are rows).
+A dataframe of filtered features (features are columns; samples are rows).
 }
 \author{
     William Nickols<willnickols@g.harvard.edu>,\cr
@@ -70,9 +76,6 @@ A dataframe of transformed features (features are columns; samples are rows).
                                       output = 'output')
                                       
   filtered_data = maaslin3::maaslin_filter(normalized_data,
-                                      output = 'output')
-                                      
-  transformed_data = maaslin3::maaslin_filter(filtered_data,
                                       output = 'output')
 
   unlink('output')

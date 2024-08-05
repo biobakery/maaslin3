@@ -26,20 +26,20 @@
 # MaAsLin3 theme based on Nature journal requirements
 nature_theme <- function(x_axis_labels, y_label) {
     # set default text format based on categorical and length
-    angle = NULL
-    hjust = NULL
-    size = 8
+    angle <- NULL
+    hjust <- NULL
+    size <- 8
     if (max(nchar(x_axis_labels), na.rm=TRUE) > 5) {
-        angle = 45
-        hjust = 1
-        size = 6
+        angle <- 45
+        hjust <- 1
+        size <- 6
     }
-    axis_title_size = 10
+    axis_title_size <- 10
     if (nchar(y_label) > 15) {
-        axis_title_size = 8
+        axis_title_size <- 8
     }
     if (nchar(y_label) > 25) {
-        axis_title_size = 6
+        axis_title_size <- 6
     }
     return ( ggplot2::theme_bw() + ggplot2::theme(
         axis.text.x = ggplot2::element_text(size = size, vjust = 1, hjust = hjust, angle = angle),
@@ -83,7 +83,7 @@ maaslin3_summary_plot <-
     
     if (nrow(merged_results) == 0) {
       logging::loginfo(
-        paste("No associtions were without errors. No summary plot generated."))
+        paste("No associations were without errors. No summary plot generated."))
       return(NULL)
     }
     merged_results$model <- ifelse(merged_results$model == 'LM', 'Abundance', 'Prevalence')
@@ -122,7 +122,7 @@ maaslin3_summary_plot <-
     if (length(unique(merged_results_joint_only$feature)) < first_n) {
       first_n <- length(unique(merged_results_joint_only$feature))
     }
-    signif_taxa <- unique(merged_results_joint_only$feature)[1:first_n]
+    signif_taxa <- unique(merged_results_joint_only$feature)[seq(first_n)]
 
     merged_results_sig <- merged_results %>%
       dplyr::filter(.data$feature %in% signif_taxa)
@@ -141,7 +141,7 @@ maaslin3_summary_plot <-
       coef_plot_vars <- mean_log_qval$full_metadata_name[order(mean_log_qval$mean_value)]
       coef_plot_vars <- setdiff(coef_plot_vars, heatmap_vars)
       if (length(coef_plot_vars) > 0) {
-        coef_plot_vars <- coef_plot_vars[1:min(2, length(coef_plot_vars))]
+        coef_plot_vars <- coef_plot_vars[seq(min(2, length(coef_plot_vars)))]
       }
     }
     
@@ -223,7 +223,7 @@ maaslin3_summary_plot <-
         ggplot2::geom_errorbar(ggplot2::aes(xmin = .data$coef - .data$stderr, xmax = .data$coef + .data$stderr), width = 0.2) + 
         ggplot2::geom_point(data = coef_plot_data[coef_plot_data$model == 'Prevalence',], 
                             ggplot2::aes(shape = .data$model, fill = .data$qval_individual), size = 4.5, color = "black")+
-        ggplot2::scale_fill_gradient(low="darkgreen", high="white",
+        ggplot2::scale_fill_gradient(low="#008B8B", high="white",
                               limits = scale_fill_gradient_limits,
                               breaks = scale_fill_gradient_breaks,
                               labels = scale_fill_gradient_labels,
@@ -232,7 +232,7 @@ maaslin3_summary_plot <-
         ggnewscale::new_scale_fill() + 
         ggplot2::geom_point(data = coef_plot_data[coef_plot_data$model == 'Abundance',], 
                             ggplot2::aes(shape = .data$model, fill = .data$qval_individual), size = 4.5, color = "black")+
-        ggplot2::scale_fill_gradient(low="purple4", high="white",
+        ggplot2::scale_fill_gradient(low="#8B008B", high="white",
                                      limits = scale_fill_gradient_limits,
                                      breaks = scale_fill_gradient_breaks,
                                      labels = scale_fill_gradient_labels,
@@ -280,7 +280,7 @@ maaslin3_summary_plot <-
                        paste0("(", 1/2 * coefficient_thresh, ",", 1 * coefficient_thresh,"]"),
                        paste0("(", 1 * coefficient_thresh, ",Inf)"))
     
-    threshold_indices <- sapply(merged_results_sig$coef, function(value) {
+    threshold_indices <- vapply(merged_results_sig$coef, function(value) {
       which(value < coef_breaks)[1]
     })
     
@@ -381,12 +381,12 @@ maaslin3_association_plots <-
       feature_specific_covariate_name = NULL,
       feature_specific_covariate_record = NULL) {
       
-      new_name_normalization <- c('Total sum scaling', 'Center log ratio', 'Cumulative sum scaling', 'None', 'Trimmed means of M values')
-      names(new_name_normalization) <- c("TSS", "CLR", "CSS", "NONE", "TMM")
+      new_name_normalization <- c('Total sum scaling', 'Center log ratio', 'None')
+      names(new_name_normalization) <- c("TSS", "CLR", "NONE")
       normalization <- new_name_normalization[normalization]
       
-      new_name_transformation <- c('Log base 2', 'Logit', 'Arcsin square root', 'None')
-      names(new_name_transformation) <- c("LOG", "LOGIT", "AST", "NONE")
+      new_name_transformation <- c('Log base 2', 'Pseudo-log base 2', 'None')
+      names(new_name_transformation) <- c("LOG", 'PLOG', "NONE")
       transformation <- new_name_transformation[transform]
       
       merged_results <- merged_results[is.na(merged_results$error) & 
@@ -409,7 +409,7 @@ maaslin3_association_plots <-
       
       features_by_metadata <- unique(merged_results[,c('feature', 'metadata', 'model')])
       
-      for (row_num in 1:min(nrow(features_by_metadata), max_pngs)) {
+      for (row_num in seq(min(nrow(features_by_metadata), max_pngs))) {
         feature_name <- features_by_metadata[row_num, 'feature']
         feature_abun <- data.frame(sample = rownames(features),
                                    feature_abun = features[,feature_name])
@@ -429,7 +429,7 @@ maaslin3_association_plots <-
         }
         joined_features_metadata <- dplyr::inner_join(feature_abun, metadata_sub, by = c('sample'))
         
-        model_name = features_by_metadata[row_num, 'model']
+        model_name <- features_by_metadata[row_num, 'model']
         
         this_signif_association <- merged_results[merged_results$feature == feature_name & 
                                                     merged_results$metadata == metadata_name &
@@ -690,7 +690,7 @@ maaslin3_association_plots <-
             }
             for (name in x_axis_label_names) {
               mean_abun <- mean(joined_features_metadata_prev$feature_abun[
-                joined_features_metadata_prev$metadata == name] == 'Present', na.rm=T)
+                joined_features_metadata_prev$metadata == name] == 'Present', na.rm=TRUE)
               new_n <- paste(name, " (p = ", round(mean_abun, 2)*100, "%)", sep="")
               levels(joined_features_metadata_prev[,'metadata'])[
                 levels(joined_features_metadata_prev[,'metadata']) == name] <- new_n
@@ -770,11 +770,16 @@ maaslin3_association_plots <-
         for (feature in names(saved_plots[[metadata_variable]])) {
           for (model_name in names(saved_plots[[metadata_variable]][[feature]])) {
             this_plot <- saved_plots[[metadata_variable]][[feature]][[model_name]]
+            
+            association_plots_sub_folder <- file.path(association_plots_folder, metadata_variable, model_name)
+            if (!file.exists(association_plots_sub_folder)) {
+              dir.create(association_plots_sub_folder, recursive = TRUE)
+            }
 
-            png_file <- file.path(association_plots_folder,
+            png_file <- file.path(association_plots_sub_folder,
                                   paste0(metadata_variable, '_', feature, "_", model_name, ".png"))
             height <- max(960, 15 * max(nchar(unlist(strsplit(this_plot$labels$y, '\n')))))
-            ggplot2::ggsave(filename = png_file, plot = this_plot, dpi = 300, width = 960/300, height = height/300)
+            ggplot2::ggsave(filename = png_file, plot = this_plot, dpi = 600, width = 960/300, height = height/300)
           }
         }
       }

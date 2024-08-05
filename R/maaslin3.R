@@ -52,13 +52,8 @@ if (identical(environment(), globalenv()) &&
 
 #### Set the default options ####
 
-normalization_choices <- c("TSS", "CLR", "CSS", "NONE", "TMM")
-transform_choices <- c("LOG", "LOGIT", "AST", "NONE")
-valid_choice_transform_norm <- hash::hash()
-valid_choice_transform_norm[[transform_choices[2]]] <-
-  normalization_choices[c(4)]
-valid_choice_transform_norm[[transform_choices[3]]] <-
-  normalization_choices[c(1, 4)]
+normalization_choices <- c("TSS", "CLR", "NONE")
+transform_choices <- c("LOG", "PLOG", "NONE")
 
 correction_choices <-
     c("BH", "holm", "hochberg", "hommel", "bonferroni", "BY")
@@ -70,7 +65,7 @@ args$input_metadata <- NULL
 args$output <- NULL
 args$min_abundance <- 0.0
 args$zero_threshold <- 0.0
-args$min_prevalence <- 0.0
+args$min_prevalence <- 0.1
 args$min_variance <- 0.0
 args$max_significance <- 0.1
 args$normalization <- normalization_choices[1]
@@ -91,6 +86,7 @@ args$median_comparison_prevalence <- FALSE
 args$median_comparison_abundance_threshold <- 0.25
 args$median_comparison_prevalence_threshold <- 0.25
 args$augment <- TRUE
+args$evaluate_only <- NULL
 args$unscaled_abundance <- NULL
 args$plot_summary_plot <- TRUE
 args$summary_plot_first_n <- 25
@@ -399,6 +395,21 @@ options <-
                  "separability [ Default: %default ]")
   )
 options <-
+  optparse::add_option(
+    options,
+    c("--evaluate_only"),
+    type = "character",
+    dest = "evaluate_only",
+    default = args$evaluate_only,
+    help = paste(
+      "Whether to evaluate just the abundnace or prevalence models [ Default: %default ] [ Choices:",
+      c("abundance", "prevalence"),
+      "]"
+    )
+    
+  )
+
+options <-
     optparse::add_option(
         options,
         c("--plot_summary_plot"),
@@ -502,96 +513,43 @@ option_not_valid_error <- function(message, valid_options) {
 
 #### end ####
 
-##################################################
-# Fill in parameter list with missing parameters #
-##################################################
-
-maaslin_parse_param_list <- function(param_list) {
-  if (sum(c("input_data", "input_metadata", "output") %in% names(param_list)) != 3) {
-    stop("param_list must include input_data, input_metadata, and output")
-  }
-  default_params = list(min_abundance = args$min_abundance,
-                        zero_threshold = args$zero_threshold,
-                        min_prevalence = args$min_prevalence,
-                        min_variance = args$min_variance,
-                        normalization = args$normalization,
-                        transform = args$transform,
-                        max_significance = args$max_significance,
-                        random_effects = args$random_effects,
-                        fixed_effects = args$fixed_effects,
-                        group_effects = args$group_effects,
-                        ordered_effects = args$ordered_effects,
-                        strata_effects = args$strata_effects,
-                        feature_specific_covariate = args$feature_specific_covariate,
-                        feature_specific_covariate_name = args$feature_specific_covariate_name,
-                        feature_specific_covariate_record = args$feature_specific_covariate_record,
-                        formula = args$formula,
-                        correction = args$correction,
-                        standardize = args$standardize,
-                        median_comparison_abundance = args$median_comparison_abundance,
-                        median_comparison_prevalence = args$median_comparison_prevalence,
-                        median_comparison_abundance_threshold = args$median_comparison_abundance_threshold,
-                        median_comparison_prevalence_threshold = args$median_comparison_prevalence_threshold,
-                        augment = args$augment,
-                        cores = args$cores,
-                        plot_summary_plot = args$plot_summary_plot,
-                        summary_plot_first_n = args$summary_plot_first_n,
-                        heatmap_vars = args$heatmap_vars,
-                        coef_plot_vars = args$coef_plot_vars,
-                        plot_associations = args$plot_associations,
-                        max_pngs = args$max_pngs,
-                        save_models = args$save_models,
-                        unscaled_abundance = args$unscaled_abundance,
-                        reference = args$reference)
-  
-  input_param_list_names <- names(param_list)
-  missing_params <- setdiff(names(default_params), input_param_list_names)
-  extra_params <- setdiff(input_param_list_names, c("input_data", "input_metadata", "output", names(default_params)))
-  
-  if (length(extra_params) > 0) {
-    stop(paste0('Extra parameters were included in the parameter list: ', 
-                paste0(extra_params, collapse = ', ')))
-  }
-  
-  for (param in missing_params) {
-    param_list[[param]] <- default_params[[param]]
-  }
-  
-  if (!is.null(param_list[['unscaled_abundance']]) & 
-      param_list[["median_comparison_abundance"]] & 
-      !('median_comparison_abundance' %in% input_param_list_names)) {
-    stop("`median_comparison_abundance` usually should not be TRUE (default) with unscaled abundances. 
-         Set `median_comparison_abundance` to TRUE in the parameters to bypass this error.")
-  }
-  
-  if (!((is.null(param_list[['feature_specific_covariate']]) + 
-      is.null(param_list[['feature_specific_covariate_name']]) + 
-      is.null(param_list[['feature_specific_covariate_record']])) %in% c(0,3))) {
-    stop("`feature_specific_covariate`, `feature_specific_covariate_name`, and `feature_specific_covariate_record`
-         should all be null or all be non-null")
-  }
-
-  # Allow for lower case variables
-  param_list[["normalization"]] <- toupper(param_list[["normalization"]])
-  param_list[["transform"]] <- toupper(param_list[["transform"]])
-
-  # Match variable ignoring case then set correctly as required for p.adjust
-  param_list[["correction"]] <- correction_choices[match(toupper(param_list[["correction"]]), 
-                                                         toupper(correction_choices))]
-  
-  return(param_list)
-}
-
 ####################################
 # Check valid options are selected #
 ####################################
 
-maaslin_check_arguments <- function(param_list) {
-  param_list <- maaslin_parse_param_list(param_list)
+maaslin_check_arguments <- function(feature_specific_covariate = NULL,
+                                    feature_specific_covariate_name = NULL,
+                                    feature_specific_covariate_record = NULL,
+                                    zero_threshold = 0,
+                                    normalization = 'TSS',
+                                    transform = 'LOG',
+                                    correction = 'BH',
+                                    evaluate_only = NULL,
+                                    unscaled_abundance = NULL,
+                                    median_comparison_abundance = TRUE
+                                    ) {
+  normalization <- toupper(normalization)
+  transform <- toupper(transform)
+  
+  # Match variable ignoring case then set correctly as required for p.adjust
+  correction <- correction_choices[match(toupper(correction), 
+                                         toupper(correction_choices))]
+
+  if (!is.null(unscaled_abundance) && median_comparison_abundance) {
+    stop("`median_comparison_abundance` usually should not be TRUE (default) with unscaled abundances. 
+         To bypass this check, run the maaslin steps individually, skipping `maaslin_check_arguments`.")
+  }
+  
+  if (!((is.null(feature_specific_covariate) + 
+         is.null(feature_specific_covariate_name) + 
+         is.null(feature_specific_covariate_record)) %in% c(0,3))) {
+    stop("`feature_specific_covariate`, `feature_specific_covariate_name`, and `feature_specific_covariate_record`
+         should all be null or all be non-null")
+  }
   
   # Check valid normalization option selected
   logging::loginfo("Verifying options selected are valid")
-  if (!param_list[["normalization"]] %in% normalization_choices) {
+  if (!normalization %in% normalization_choices) {
     option_not_valid_error(
       paste(
         "Please select a normalization",
@@ -600,14 +558,12 @@ maaslin_check_arguments <- function(param_list) {
     )
   }
   
-  if (!is.null(param_list[['unscaled_abundance']]) & param_list[["normalization"]] != 'TSS') {
-    stop(
-      paste("Normalization must be TSS if using unscaled abundance")
-    )
+  if (!is.null(unscaled_abundance) & normalization != 'TSS') {
+    stop("Normalization must be TSS if using unscaled abundance")
   }
   
   # check valid transform option selected
-  if (!param_list[["transform"]] %in% transform_choices) {
+  if (!transform %in% transform_choices) {
     option_not_valid_error(
       "Please select a transform from the list of available options",
       toString(transform_choices)
@@ -615,7 +571,7 @@ maaslin_check_arguments <- function(param_list) {
   }
   
   # check valid correction method selected
-  if (!param_list[["correction"]] %in% correction_choices) {
+  if (!correction %in% correction_choices) {
     option_not_valid_error(
       paste("Please select a correction method",
             "from the list of available options"),
@@ -623,38 +579,76 @@ maaslin_check_arguments <- function(param_list) {
     )
   }
   
-  # check a valid choice combination is selected
-  for (limited_transform in hash::keys(valid_choice_transform_norm)) {
-    if (param_list[["transform"]] == limited_transform) {
-      if (!param_list[["normalization"]] %in% 
-          valid_choice_transform_norm[[limited_transform]]) {
-        option_not_valid_error(
-          paste("This transform can only be used",
-                 "with a subset of normalizations.",
-                 "Please select from the following list"
-          ),
-          toString(
-            valid_choice_transform_norm[[limited_transform]])
-        )
-      }
-    }
+  if (normalization == 'CLR' & transform != 'NONE') {
+    stop("normalization = CLR can only be used with transform NONE")
   }
   
-  # If formula is a formula object, convert it back to a string
-  if (class(param_list[['formula']]) == 'formula') {
-    param_list[['formula']] <- paste0(trimws(deparse(param_list[['formula']])), collapse = " ")
+  if (transform == 'PLOG' & zero_threshold >= 0) {
+    stop("transform set to PLOG, but zero_threshold is >= 0. Set zero_threshold to -1 to count all features as present and apply PLOG.")
   }
   
-  return(param_list)
+  if (!is.null(evaluate_only) && !evaluate_only %in% c("abundance", "prevalence")) {
+    stop("evaluate_only must be NULL, 'abundance', or 'prevalence'")
+  }
+  
+  if (transform == 'PLOG' && (is.null(evaluate_only) || evaluate_only != "abundance")) {
+    stop("PLOG should only be used for abundance-only modeling (evaluate_only)")
+  }
 }
 
 #####################################
 # Create log file and log arguments #
 #####################################
 
-maaslin_log_arguments <- function(param_list) {
-  param_list <- maaslin_parse_param_list(param_list)
-  output <- param_list[["output"]]
+maaslin_log_arguments <- function(input_data,
+                                  input_metadata,
+                                  output,
+                                  formula = NULL,
+                                  fixed_effects = NULL,
+                                  reference = NULL,
+                                  random_effects = NULL,
+                                  group_effects = NULL,
+                                  ordered_effects = NULL,
+                                  strata_effects = NULL,
+                                  feature_specific_covariate = NULL,
+                                  feature_specific_covariate_name = NULL,
+                                  feature_specific_covariate_record = NULL,
+                                  min_abundance = 0,
+                                  min_prevalence = 0.1,
+                                  zero_threshold = 0,
+                                  min_variance = 0,
+                                  max_significance = 0.1,
+                                  normalization = 'TSS',
+                                  transform = 'LOG',
+                                  correction = 'BH',
+                                  standardize = TRUE,
+                                  unscaled_abundance = NULL,
+                                  median_comparison_abundance = TRUE,
+                                  median_comparison_prevalence = FALSE,
+                                  median_comparison_abundance_threshold = 0.25,
+                                  median_comparison_prevalence_threshold = 0.25,
+                                  augment = TRUE,
+                                  evaluate_only = NULL,
+                                  plot_summary_plot = TRUE,
+                                  summary_plot_first_n = 25,
+                                  coef_plot_vars = NULL,
+                                  heatmap_vars = NULL,
+                                  plot_associations = TRUE,
+                                  max_pngs = 30,
+                                  cores = 1,
+                                  save_models = FALSE) {
+  # Allow for lower case variables
+  normalization <- toupper(normalization)
+  transform <- toupper(transform)
+  
+  # Match variable ignoring case then set correctly as required for p.adjust
+  correction <- correction_choices[match(toupper(correction), 
+                                         toupper(correction_choices))]
+  
+  # If formula is a formula object, convert it back to a string
+  if (methods::is(formula, "formula")) {
+    formula <- paste0(trimws(deparse(formula)), collapse = " ")
+  }
   
   # create an output folder
   if (!file.exists(output)) {
@@ -679,68 +673,74 @@ maaslin_log_arguments <- function(param_list) {
   
   logging::loginfo("Writing function arguments to log file")
   logging::logdebug("Function arguments")
-  if (is.character(param_list[["input_data"]])) {
-    logging::logdebug("Input data file: %s", param_list[["input_data"]])
+  if (is.character(input_data)) {
+    logging::logdebug("Input data file: %s", input_data)
   }
-  if (is.character(param_list[["input_metadata"]])) {
-    logging::logdebug("Input metadata file: %s", param_list[["input_metadata"]])
+  if (is.character(input_metadata)) {
+    logging::logdebug("Input metadata file: %s", input_metadata)
   }
-  logging::logdebug("Output folder: %s", param_list[["output"]])
-  logging::logdebug("Min Abundance: %f", param_list[["min_abundance"]])
-  logging::logdebug("Zero Threshold: %f", param_list[["zero_threshold"]])
-  logging::logdebug("Min Prevalence: %f", param_list[["min_prevalence"]])
-  logging::logdebug("Normalization: %s", param_list[["normalization"]])
-  logging::logdebug("Transform: %s", param_list[["transform"]])
-  logging::logdebug("Max significance: %f", param_list[["max_significance"]])
-  logging::logdebug("Random effects: %s", param_list[["random_effects"]])
-  logging::logdebug("Fixed effects: %s", param_list[["fixed_effects"]])
-  logging::logdebug("Group effects: %s", param_list[["group_effects"]])
-  logging::logdebug("Ordered effects: %s", param_list[["ordered_effects"]])
-  logging::logdebug("Strata effects: %s", param_list[["strata_effects"]])
-  logging::logdebug("Formula: %s", param_list[["formula"]])
-  logging::logdebug("Correction method: %s", param_list[["correction"]])
-  logging::logdebug("Standardize: %s", param_list[["standardize"]])
-  logging::logdebug("Augment: %s", param_list[["augment"]])
-  logging::logdebug("Cores: %d", param_list[["cores"]])
-  logging::logdebug("Abundance median comparison: %s", param_list[["median_comparison_abundance"]])
-  logging::logdebug("Prevalence median comparison: %s", param_list[["median_comparison_prevalence"]])
-  logging::logdebug("Abundance median comparison threshold: %s", param_list[["median_comparison_abundance_threshold"]])
-  logging::logdebug("Prevalence median comparison threshold: %s", param_list[["median_comparison_prevalence_threshold"]])
-  if (is.character(param_list[["unscaled_abundance"]])) {
-    logging::logdebug("Unscaled abundance: %s", param_list[["unscaled_abundance"]])
+  logging::logdebug("Output folder: %s", output)
+  logging::logdebug("Min Abundance: %f", min_abundance)
+  logging::logdebug("Zero Threshold: %f", zero_threshold)
+  logging::logdebug("Min Prevalence: %f", min_prevalence)
+  logging::logdebug("Normalization: %s", normalization)
+  logging::logdebug("Transform: %s", transform)
+  logging::logdebug("Max significance: %f", max_significance)
+  logging::logdebug("Random effects: %s", random_effects)
+  logging::logdebug("Fixed effects: %s", fixed_effects)
+  logging::logdebug("Group effects: %s", group_effects)
+  logging::logdebug("Ordered effects: %s", ordered_effects)
+  logging::logdebug("Strata effects: %s", strata_effects)
+  logging::logdebug("Formula: %s", formula)
+  logging::logdebug("Correction method: %s", correction)
+  logging::logdebug("Standardize: %s", standardize)
+  logging::logdebug("Augment: %s", augment)
+  logging::logdebug("Evaluate only: %s", evaluate_only)
+  logging::logdebug("Cores: %d", cores)
+  logging::logdebug("Abundance median comparison: %s", median_comparison_abundance)
+  logging::logdebug("Prevalence median comparison: %s", median_comparison_prevalence)
+  logging::logdebug("Abundance median comparison threshold: %s", median_comparison_abundance_threshold)
+  logging::logdebug("Prevalence median comparison threshold: %s", median_comparison_prevalence_threshold)
+  if (is.character(unscaled_abundance)) {
+    logging::logdebug("Unscaled abundance: %s", unscaled_abundance)
   }
-  if (!is.null(param_list[["feature_specific_covariate"]])) {
-    if (is.character(param_list[["feature_specific_covariate"]])) {
-      logging::logdebug("Feature specific covariate: %s", param_list[["feature_specific_covariate"]])
+  if (!is.null(feature_specific_covariate)) {
+    if (is.character(feature_specific_covariate)) {
+      logging::logdebug("Feature specific covariate: %s", feature_specific_covariate)
     }
   }
-  if (!is.null(param_list[["feature_specific_covariate_name"]])) {
-    if (is.character(param_list[["feature_specific_covariate_name"]])) {
-      logging::logdebug("Feature specific covariate name: %s", param_list[["feature_specific_covariate_name"]])
+  if (!is.null(feature_specific_covariate_name)) {
+    if (is.character(feature_specific_covariate_name)) {
+      logging::logdebug("Feature specific covariate name: %s", feature_specific_covariate_name)
     }
   }
-  if (!is.null(param_list[["feature_specific_covariate_record"]])) {
-    if (is.character(param_list[["feature_specific_covariate_record"]])) {
-      logging::logdebug("Feature specific covariate include: %s", param_list[["feature_specific_covariate_record"]])
+  if (!is.null(feature_specific_covariate_record)) {
+    if (is.character(feature_specific_covariate_record)) {
+      logging::logdebug("Feature specific covariate include: %s", feature_specific_covariate_record)
     }
   }
   
-  maaslin_check_arguments(param_list)
-  
-  return(param_list)
+  maaslin_check_arguments(feature_specific_covariate,
+                          feature_specific_covariate_name,
+                          feature_specific_covariate_record,
+                          zero_threshold,
+                          normalization,
+                          transform,
+                          correction,
+                          evaluate_only,
+                          unscaled_abundance,
+                          median_comparison_abundance)
 }
 
 #################################
 # Read in the data and metadata #
 #################################
 
-maaslin_read_data <- function(param_list) {
-  param_list <- maaslin_parse_param_list(param_list)
-  input_data <- param_list[["input_data"]]
-  input_metadata <- param_list[["input_metadata"]]
-  unscaled_abundance <- param_list[["unscaled_abundance"]]
-  feature_specific_covariate <- param_list[["feature_specific_covariate"]]
-  
+maaslin_read_data <- function(input_data,
+                              input_metadata,
+                              feature_specific_covariate = NULL,
+                              unscaled_abundance = NULL) {
+
   # if a character string then this is a file name, else it 
   # is a data frame
   if (is.character(input_data) && file.exists(input_data)) {
@@ -811,28 +811,21 @@ maaslin_read_data <- function(param_list) {
     stop("feature_specific_covariate is not a file or data frame!")
   }
   
-  if (!is.null(unscaled_abundance)) {
-    param_list[["unscaled_abundance"]] <- unscaled_abundance
-  }
-  
-  param_list[["feature_specific_covariate"]] <- feature_specific_covariate
-  
-  return(list("param_list" = param_list, 
-              "data" = data, 
-              "metadata" = metadata))
+  return(list("data" = data, 
+              "metadata" = metadata,
+              "feature_specific_covariate" = feature_specific_covariate,
+              "unscaled_abundance" = unscaled_abundance))
 }
 
 ###############################################################
 # Determine orientation of data in input and reorder to match #
 ###############################################################
 
-maaslin_reorder_data <- function(params_and_data) {
-  param_list <- maaslin_parse_param_list(params_and_data[["param_list"]])
-  data <- params_and_data[["data"]]
-  metadata <- params_and_data[["metadata"]]
-  unscaled_abundance <- param_list[["unscaled_abundance"]]
-  feature_specific_covariate <- param_list[["feature_specific_covariate"]]
-  
+maaslin_reorder_data <- function(data,
+                                 metadata,
+                                 feature_specific_covariate = NULL,
+                                 unscaled_abundance = NULL) {
+
   logging::loginfo("Determining format of input files")
   samples_row_row <- intersect(rownames(data), rownames(metadata))
   if (length(samples_row_row) > 0) {
@@ -1067,52 +1060,31 @@ maaslin_reorder_data <- function(params_and_data) {
   
   if (!is.null(unscaled_abundance)) {
     unscaled_abundance <- unscaled_abundance[intersect_samples, , drop = FALSE]
-    param_list[["unscaled_abundance"]] <- unscaled_abundance
   }
   
   if (!is.null(feature_specific_covariate)) {
     feature_specific_covariate <- feature_specific_covariate[intersect_samples, , drop = FALSE]
-    param_list[["feature_specific_covariate"]] <- feature_specific_covariate
   }
   
-  return(list("param_list" = param_list, 
-              "data" = data, 
-              "metadata" = metadata))
+  return(list("data" = data, 
+              "metadata" = metadata,
+              "feature_specific_covariate" = feature_specific_covariate,
+              "unscaled_abundance" = unscaled_abundance))
 }
 
 ###########################################
 # Compute the formula based on user input #
 ###########################################
 
-maaslin_compute_formula <- function(params_and_data) {
-  param_list <- maaslin_parse_param_list(params_and_data[["param_list"]])
-  data <- params_and_data[["data"]]
-  metadata <- params_and_data[["metadata"]]
-  
-  fixed_effects <- param_list[["fixed_effects"]]
-  group_effects <- param_list[["group_effects"]]
-  ordered_effects <- param_list[["ordered_effects"]]
-  strata_effects <- param_list[["strata_effects"]]
-  random_effects <- param_list[["random_effects"]]
-  feature_specific_covariate_name <- param_list[['feature_specific_covariate_name']]
-  
-  if (!is.null(param_list[["formula"]])) {
-    if (!is.null(param_list[["fixed_effects"]]) | 
-        !is.null(param_list[["random_effects"]]) |
-        !is.null(param_list[["group_effects"]]) | 
-        !is.null(param_list[["ordered_effects"]]) |
-        !is.null(param_list[["strata_effects"]])) {
-      logging::logwarn(
-        paste("fixed_effects, random_effects, group_effects, ordered_effects, or strata_effects provided in addition to formula,", 
-              "using just the fixed_effects, random_effects, group_effects, ordered_effects, and strata_effects"))
-    } else {
-      logging::logwarn(
-        paste("maaslin_compute_formula called even though a formula is provided",
-              "without fixed_effects or random_effects,",
-              "creating new formula based on metadata"))
-    }
-  }
-  
+maaslin_compute_formula <- function(data,
+                                    metadata,
+                                    fixed_effects = NULL,
+                                    random_effects = NULL,
+                                    group_effects = NULL,
+                                    ordered_effects = NULL,
+                                    strata_effects = NULL,
+                                    feature_specific_covariate_name = NULL) {
+
   random_effects_formula <- NULL
   # use all metadata if no fixed effects are provided
   if (is.null(fixed_effects)) {
@@ -1174,8 +1146,8 @@ maaslin_compute_formula <- function(params_and_data) {
           as.formula(random_effects_formula_text),
           error = function(e)
             stop(
-              paste(
-                "Invalid formula for random effects: ",
+              sprintf(
+                "Invalid formula for random effects: %s",
                 random_effects_formula_text
               )
             )
@@ -1243,9 +1215,8 @@ maaslin_compute_formula <- function(params_and_data) {
       as.formula(formula_text),
       error = function(e)
         stop(
-          paste(
-            "Invalid formula.",
-            "Please provide a different formula: ",
+          sprintf(
+            "Invalid formula. Please provide a different formula: %s",
             formula_text
           )
         )
@@ -1261,42 +1232,28 @@ maaslin_compute_formula <- function(params_and_data) {
     formula <- update(random_effects_formula, formula)
   }
   
-  return(list("param_list" = param_list, 
-              "data" = data, 
-              "metadata" = metadata, 
-              "formula" = list("formula" = formula, 
-                               "random_effects_formula" = random_effects_formula)))
+  return(list("formula" = formula, 
+              "random_effects_formula" = random_effects_formula))
 }
 
 ##############################
 # Check a user input formula #
 ##############################
 
-maaslin_check_formula <- function(params_and_data) {
-  param_list <- maaslin_parse_param_list(params_and_data[["param_list"]])
-  data <- params_and_data[["data"]]
-  metadata <- params_and_data[["metadata"]]
-  
-  input_formula <- param_list[["formula"]]
-  feature_specific_covariate_name <- param_list[["feature_specific_covariate_name"]]
-  
-  random_effects_formula <- NULL
-  # use all metadata if no fixed effects are provided
-  if (is.null(input_formula)) {
-    logging::logwarn(
-      paste("No user formula provided,",
-            "building one instead"))
-    return(maaslin_compute_formula(params_and_data))
+maaslin_check_formula <- function(data,
+                                  metadata,
+                                  input_formula = NULL,
+                                  feature_specific_covariate_name = NULL) {
+
+  if (methods::is(input_formula, "formula")) {
+    input_formula <- paste0(trimws(deparse(input_formula)), collapse = " ")
   }
   
-  if (!is.null(param_list[["fixed_effects"]]) | 
-      !is.null(param_list[["random_effects"]]) | 
-      !is.null(param_list[["group_effects"]]) | 
-      !is.null(param_list[["ordered_effects"]]) | 
-      !is.null(param_list[["strata_effects"]])) {
-    logging::logwarn(
-      paste("fixed_effects, random_effects, group_effects, ordered_effects, or strata_effects provided in addition to formula,", 
-            "using only formula"))
+  random_effects_formula <- NULL
+  
+  if (is.null(input_formula)) {
+    logging::logerror(
+      paste("No user formula provided"))
   }
   
   # Remove anything before the tilde if necessary
@@ -1317,8 +1274,8 @@ maaslin_check_formula <- function(params_and_data) {
       as.formula(input_formula),
       error = function(e)
         stop(
-          paste(
-            "Invalid formula: ",
+          sprintf(
+            "Invalid formula: %s",
             input_formula
           )
         )
@@ -1355,36 +1312,166 @@ maaslin_check_formula <- function(params_and_data) {
     random_effects_formula <- NULL
   }
   
-  # reduce metadata to only include fixed/group/ordered/random effects in formula
+  # reduce metadata to only include fixed/group/ordered/strata/random effects in formula
   metadata <- metadata[, formula_terms, drop = FALSE]
   
-  return(list("param_list" = param_list, 
-              "data" = data, 
-              "metadata" = metadata, 
-              "formula" = list("formula" = formula, 
-                               "random_effects_formula" = random_effects_formula)))
+  return(list("formula" = formula, 
+              "random_effects_formula" = random_effects_formula))
 }
 
-##############################################################################################
-# Filter data based on min abundance, min prevalence, and min variance; standardize metadata #
-##############################################################################################
+#################
+# Normalization #
+#################
 
-maaslin_filter_and_standardize <- function(params_and_data_and_formula) {
-  param_list <- maaslin_parse_param_list(params_and_data_and_formula[["param_list"]])
-  data <- params_and_data_and_formula[["data"]]
-  metadata <- params_and_data_and_formula[["metadata"]]
+maaslin_normalize <- function(data,
+                             output,
+                             zero_threshold = 0,
+                             normalization = 'TSS',
+                             unscaled_abundance = NULL) {
+  features <- data
   
-  #########################################################
-  # Filter data based on min abundance and min prevalence #
-  #########################################################
+  normalization <- toupper(normalization)
+
+  logging::loginfo(
+    "Running selected normalization method: %s", normalization)
   
-  reference <- param_list[["reference"]]
+  if (normalization == 'TSS') {features <- TSSnorm(features, zero_threshold)}
+  if (normalization == 'CLR') {features <- CLRnorm(features, zero_threshold)}
+  if (normalization == 'NONE') {features <- NONEnorm(features, zero_threshold)}
+  
+  if (!is.null(unscaled_abundance)) {
+    features <- UNSCALEDnorm(features, unscaled_abundance, zero_threshold)
+  }
+  
+  features_folder <- file.path(output, "features")
+  if (!file.exists(features_folder)) {
+    logging::loginfo("Creating output feature tables folder")
+    dir.create(features_folder, recursive = TRUE)
+  }
+  
+  data_norm_file <- file.path(features_folder, "data_norm.tsv")
+  logging::loginfo("Writing normalized data to file %s", data_norm_file)
+  write.table(
+    data.frame("feature" = rownames(features), features), 
+    file = data_norm_file, 
+    sep = "\t", 
+    quote = FALSE, 
+    row.names = FALSE
+  )
+  
+  return(features)
+}
+
+
+########################################################################
+# Filter data based on min abundance, min prevalence, and min variance #
+########################################################################
+
+maaslin_filter <- function(normalized_data,
+                           output,
+                           min_abundance = 0,
+                           min_prevalence = 0.1,
+                           zero_threshold = 0,
+                           min_variance = 0) {
+  unfiltered_data <- normalized_data
+  
+  # require at least total samples * min prevalence values 
+  # for each feature to be greater than min abundance
+  logging::loginfo(
+    "Filter data based on min abundance and min prevalence")
+  total_samples <- nrow(unfiltered_data)
+  logging::loginfo("Total samples in data: %d", total_samples)
+  min_samples <- total_samples * min_prevalence
+  logging::loginfo(
+    paste("Min samples required with min abundance",
+          "for a feature not to be filtered: %f"),
+    min_samples
+  )
+  
+  # Filter by abundance
+  data_zeros <- unfiltered_data
+  for (col_index in seq_along(data_zeros)) {
+    data_zeros[,col_index][is.na(data_zeros[,col_index])] <- min(min_abundance, zero_threshold) - 1
+  }
+  
+  ##################################################################################
+  # Apply the non-zero abundance threshold to split the data into 0s and non-zeros #
+  ##################################################################################
+  
+  prevalence_mask <- ifelse(data_zeros > zero_threshold, 1, 0)
+  data_zeros <- data_zeros * prevalence_mask
+  
+  filtered_data <-
+    unfiltered_data[, colSums(data_zeros > min_abundance) > min_samples,
+                    drop = FALSE]
+  total_filtered_features <- ncol(unfiltered_data) - ncol(filtered_data)
+  logging::loginfo("Total filtered features: %d", total_filtered_features)
+  filtered_feature_names <-
+    setdiff(names(unfiltered_data), names(filtered_data))
+  logging::loginfo("Filtered feature names from abundance and prevalence filtering: %s",
+                   toString(filtered_feature_names))
+  
+  #################################
+  # Filter data based on variance #
+  #################################
+  
+  vars <- apply(filtered_data, 2, var, na.rm=TRUE)
+  variance_filtered_data <- filtered_data[, which(vars > min_variance), drop = FALSE]
+  variance_filtered_features <- ncol(filtered_data) - ncol(variance_filtered_data)
+  logging::loginfo("Total filtered features with variance filtering: %d", variance_filtered_features)
+  variance_filtered_feature_names <- setdiff(names(filtered_data), names(variance_filtered_data))
+  logging::loginfo("Filtered feature names from variance filtering: %s",
+                   toString(variance_filtered_feature_names))
+  filtered_data <- variance_filtered_data
+  
+  #######################
+  # Write filtered data #
+  #######################
+  
+  features_folder <- file.path(output, "features")
+  if (!file.exists(features_folder)) {
+    logging::loginfo("Creating output feature tables folder")
+    dir.create(features_folder, recursive = TRUE)
+  }
+  
+  filtered_file <- file.path(features_folder, "filtered_data.tsv")
+  logging::loginfo("Writing filtered data to file %s", filtered_file)
+  write.table(
+    data.frame("feature" = rownames(filtered_data), filtered_data), 
+    file = filtered_file, 
+    sep = "\t", 
+    quote = FALSE, 
+    row.names = FALSE
+  )
+  
+  return(filtered_data)
+}
+
+#######################################
+# Filter and standardize the metadata #
+#######################################
+
+maaslin_process_metadata <- function(metadata,
+                                     formula = NULL,
+                                     fixed_effects = NULL,
+                                     reference = NULL,
+                                     feature_specific_covariate_name = NULL,
+                                     standardize = TRUE) {
+
   if (is.null(reference)) {
     reference <- ","
   }
   split_reference <- unlist(strsplit(reference, "[,;]"))
   
-  fixed_effects <- param_list[["fixed_effects"]]
+  # Extract fixed effects from formula if null
+  if (is.null(fixed_effects)) {
+    term_labels <- attr(terms(formula), "term.labels")
+    term_labels <- term_labels[!grepl("group|ordered|strata|\\|", term_labels)]
+    tmp_formula <- formula(paste0("~ ", paste0(term_labels, collapse = " + ")))
+    formula_terms <- all.vars(tmp_formula)
+    fixed_effects <- formula_terms[formula_terms != feature_specific_covariate_name]
+  }
+  
   # for each fixed effect, check that a reference level has been set if necessary: 
   # number of levels > 2 and metadata isn't already an ordered factor
   for (i in fixed_effects) {
@@ -1395,7 +1482,7 @@ maaslin_filter_and_standardize <- function(params_and_data_and_formula) {
     # respect ordering if a factor is explicitly passed in with no reference set
     if (is.factor(metadata[,i]) && !(i %in% split_reference)) {
       logging::loginfo(paste("Factor detected for categorial metadata '", 
-                             i, "'. Provide a reference argument or manually set factor ordering to change reference level.", sep=""))
+                             i, "'. Using as-is.", sep=""))
       next
     }
     
@@ -1404,16 +1491,16 @@ maaslin_filter_and_standardize <- function(params_and_data_and_formula) {
     mlevels <- levels(metadata[,i])
     
     # get reference level for variable being considered, returns NA if not found
-    ref <- split_reference[match(i, split_reference)+1]
+    ref <- split_reference[match(i, split_reference) + 1]
     
     # if metadata has 2 levels, allow but don't require setting reference level, otherwise require it
     if ((length(mlevels) == 2)) {
       if(!is.na(ref)) {
-        metadata[,i] = relevel(metadata[,i], ref = ref)
+        metadata[,i] <- relevel(metadata[,i], ref = ref)
       }
     } else if (length(mlevels) > 2) {
       if (!is.na(ref)) {
-        metadata[,i] = relevel(metadata[,i], ref = ref)
+        metadata[,i] <- relevel(metadata[,i], ref = ref)
       } else {
         stop(paste("Please provide the reference for the variable '",
                    i, "' which includes more than 2 levels: ",
@@ -1425,86 +1512,11 @@ maaslin_filter_and_standardize <- function(params_and_data_and_formula) {
     }
   }
   
-  unfiltered_data <- data
-  unfiltered_metadata <- metadata
-  
-  # require at least total samples * min prevalence values 
-  # for each feature to be greater than min abundance
-  logging::loginfo(
-    "Filter data based on min abundance and min prevalence")
-  total_samples <- nrow(unfiltered_data)
-  logging::loginfo("Total samples in data: %d", total_samples)
-  min_samples <- total_samples * param_list[["min_prevalence"]]
-  logging::loginfo(
-    paste("Min samples required with min abundance",
-          "for a feature not to be filtered: %f"),
-    min_samples
-  )
-  
-  # Filter by abundance using zero as value for NAs
-  data_zeros <- unfiltered_data
-  for (col_index in 1:ncol(data_zeros)) {
-    data_zeros[,col_index][is.na(data_zeros[,col_index])] <- 0
-  }
-  
-  ##################################################################################
-  # Apply the non-zero abundance threshold to split the data into 0s and non-zeros #
-  ##################################################################################
-  
-  prevalence_mask <- ifelse(data_zeros > param_list[["zero_threshold"]], 1, 0)
-  data_zeros <- data_zeros * prevalence_mask
-  
-  filtered_data <-
-    unfiltered_data[, 
-                    colSums(data_zeros > param_list[["min_abundance"]]) > min_samples,
-                    drop = FALSE]
-  total_filtered_features <-
-    ncol(unfiltered_data) - ncol(filtered_data)
-  logging::loginfo("Total filtered features: %d", total_filtered_features)
-  filtered_feature_names <-
-    setdiff(names(unfiltered_data), names(filtered_data))
-  logging::loginfo("Filtered feature names from abundance and prevalence filtering: %s",
-                   toString(filtered_feature_names))
-  
-  #################################
-  # Filter data based on variance #
-  #################################
-  
-  vars <- apply(filtered_data, 2, var)
-  variance_filtered_data <- filtered_data[, which(vars > param_list[["min_variance"]]), drop = FALSE]
-  variance_filtered_features <- ncol(filtered_data) - ncol(variance_filtered_data)
-  logging::loginfo("Total filtered features with variance filtering: %d", variance_filtered_features)
-  variance_filtered_feature_names <- setdiff(names(filtered_data), names(variance_filtered_data))
-  logging::loginfo("Filtered feature names from variance filtering: %s",
-                   toString(variance_filtered_feature_names))
-  filtered_data <- variance_filtered_data
-
-  #######################
-  # Write filtered data #
-  #######################
-  
-  output <- param_list[["output"]]
-  features_folder <- file.path(output, "features")
-  if (!file.exists(features_folder)) {
-    logging::loginfo("Creating output feature tables folder")
-    dir.create(features_folder, recursive = T)
-  }
-  
-  filtered_file = file.path(features_folder, "filtered_data.tsv")
-  logging::loginfo("Writing filtered data to file %s", filtered_file)
-  write.table(
-    data.frame("feature" = rownames(filtered_data), filtered_data), 
-    file = filtered_file, 
-    sep = "\t", 
-    quote = FALSE, 
-    row.names = FALSE
-  )
-  
   ################################
   # Standardize metadata, if set #
   ################################
   
-  if (param_list[["standardize"]]) {
+  if (standardize) {
     logging::loginfo(
       "Applying z-score to standardize continuous metadata")
     metadata <- metadata %>% dplyr::mutate_if(is.numeric, scale)
@@ -1512,86 +1524,31 @@ maaslin_filter_and_standardize <- function(params_and_data_and_formula) {
     logging::loginfo("Bypass z-score application to metadata")
   }
   
-  return(list("param_list" = params_and_data_and_formula[["param_list"]],
-              "data" = data, 
-              "filtered_data" = filtered_data, 
-              "metadata" = metadata,
-              "unfiltered_metadata" = unfiltered_metadata, 
-              "formula" = params_and_data_and_formula[["formula"]]))
-}
-
-#################
-# Normalization #
-#################
-
-maaslin_normalize = function(params_and_data_and_formula) {
-  param_list <- maaslin_parse_param_list(params_and_data_and_formula[["param_list"]])
-  features <- params_and_data_and_formula[["filtered_data"]]
-  normalization <- param_list[["normalization"]]
-
-  logging::loginfo(
-    "Running selected normalization method: %s", normalization)
-  
-  if (normalization == 'TSS') {features <- TSSnorm(features, param_list[["zero_threshold"]])}
-  if (normalization == 'CLR') {features <- CLRnorm(features, param_list[["zero_threshold"]])}
-  if (normalization == 'CSS') {features <- CSSnorm(features, param_list[["zero_threshold"]])}
-  if (normalization == 'TMM') {features <- TMMnorm(features, param_list[["zero_threshold"]])}
-  if (normalization == 'NONE') {features <- NONEnorm(features, param_list[["zero_threshold"]])}
-  
-  if (!is.null(param_list[['unscaled_abundance']])) {
-    features <- UNSCALEDnorm(features, param_list[['unscaled_abundance']])
-  }
-  
-  output <- param_list[["output"]]
-  features_folder <- file.path(output, "features")
-  if (!file.exists(features_folder)) {
-    logging::loginfo("Creating output feature tables folder")
-    dir.create(features_folder, recursive = T)
-  }
-  
-  filtered_data_norm_file = file.path(features_folder, "filtered_data_norm.tsv")
-  logging::loginfo("Writing filtered, normalized data to file %s", filtered_data_norm_file)
-  write.table(
-    data.frame("feature" = rownames(features), features), 
-    file = filtered_data_norm_file, 
-    sep = "\t", 
-    quote = FALSE, 
-    row.names = FALSE
-  )
-  
-  return(list("param_list" = params_and_data_and_formula[["param_list"]], 
-              "data" = params_and_data_and_formula[["data"]], 
-              "filtered_data" = params_and_data_and_formula[["filtered_data"]][,colnames(features), drop = F], 
-              "filtered_data_norm" = features,
-              "metadata" = params_and_data_and_formula[["metadata"]],
-              "unfiltered_metadata" = params_and_data_and_formula[["unfiltered_metadata"]], 
-              "formula" = params_and_data_and_formula[["formula"]]))
+  return(metadata)
 }
 
 ##################
 # Transformation #
 ##################
 
-maaslin_transform = function(params_and_data_and_formula) {
-  param_list <- maaslin_parse_param_list(params_and_data_and_formula[["param_list"]])
-  features <- params_and_data_and_formula[["filtered_data_norm"]]
-  transformation <- param_list[["transform"]]
+maaslin_transform <- function(filtered_data,
+                             output,
+                             transform = 'LOG') {
+  features <- filtered_data
+
+  logging::loginfo("Running selected transform method: %s", transform)
   
-  logging::loginfo("Running selected transform method: %s", transformation)
-  
-  if (transformation == 'LOG') {features <- apply(features, 2, LOG)}
-  if (transformation == 'LOGIT') {features <- apply(features, 2, LOGIT)}
-  if (transformation == 'AST') {features <- apply(features, 2, AST)}
-  
-  output <- param_list[["output"]]
+  if (transform == 'LOG') {features <- LOG(features)}
+  if (transform == 'PLOG') {features <- PLOG(features)}
+
   features_folder <- file.path(output, "features")
   if (!file.exists(features_folder)) {
     logging::loginfo("Creating output feature tables folder")
-    dir.create(features_folder, recursive = T)
+    dir.create(features_folder, recursive = TRUE)
   }
   
-  filtered_data_norm_transformed_file = file.path(features_folder, "filtered_data_norm_transformed.tsv")
-  logging::loginfo("Writing filtered, normalized, transformed data to file %s", filtered_data_norm_transformed_file)
+  filtered_data_norm_transformed_file <- file.path(features_folder, "data_transformed.tsv")
+  logging::loginfo("Writing normalized, filtered, transformed data to file %s", filtered_data_norm_transformed_file)
   write.table(
     data.frame("feature" = rownames(features), features), 
     file = filtered_data_norm_transformed_file, 
@@ -1600,231 +1557,279 @@ maaslin_transform = function(params_and_data_and_formula) {
     row.names = FALSE
   )
   
-  return(list("param_list" = params_and_data_and_formula[["param_list"]], 
-              "data" = params_and_data_and_formula[["data"]], 
-              "filtered_data" = params_and_data_and_formula[["filtered_data"]], 
-              "filtered_data_norm_transformed" = features,
-              "metadata" = params_and_data_and_formula[["metadata"]],
-              "unfiltered_metadata" = params_and_data_and_formula[["unfiltered_metadata"]], 
-              "formula" = params_and_data_and_formula[["formula"]]))
+  return(features)
 }
 
 ##########
 # Fit LM #
 ##########
 
-maaslin_fit = function(params_and_data_and_formula) {
-  param_list <- maaslin_parse_param_list(params_and_data_and_formula[["param_list"]])
-
+maaslin_fit <- function(filtered_data,
+                       transformed_data,
+                       metadata,
+                       formula,
+                       random_effects_formula,
+                       feature_specific_covariate = NULL,
+                       feature_specific_covariate_name = NULL,
+                       feature_specific_covariate_record = NULL,
+                       zero_threshold = 0,
+                       correction = 'BH',
+                       median_comparison_abundance = TRUE,
+                       median_comparison_prevalence = FALSE,
+                       median_comparison_abundance_threshold = 0.25,
+                       median_comparison_prevalence_threshold = 0.25,
+                       augment = TRUE,
+                       evaluate_only = NULL,
+                       cores = 1,
+                       save_models = FALSE) {
+  
   logging::loginfo("Running the linear model (LM) component")
   
-  prevalence_mask <- ifelse(params_and_data_and_formula[["filtered_data"]] > 
-                              param_list[["zero_threshold"]], 1, 0)
-  
-  if (!is.null(param_list[["feature_specific_covariate"]])) {
+  if (!is.null(feature_specific_covariate)) {
     tryCatch({
-      param_list[["feature_specific_covariate"]] <- 
-        param_list[["feature_specific_covariate"]][
-          rownames(params_and_data_and_formula[["filtered_data"]]),
-          colnames(params_and_data_and_formula[["filtered_data"]]) ]
+      feature_specific_covariate <- 
+        feature_specific_covariate[rownames(filtered_data), colnames(filtered_data)]
     }, error = function(e) {
-      stop(paste("feature_specific_covariate does not contain the features and samples of the filtered data."))
+      stop("feature_specific_covariate does not contain the features and samples of the filtered data.")
     })
+  }
+  
+  # Match variable ignoring case then set correctly as required for p.adjust
+  correction <- correction_choices[match(toupper(correction), 
+                                         toupper(correction_choices))]
+  
+  if (is.null(evaluate_only) || evaluate_only == "abundance") {
+    #######################
+    # For non-zero models #
+    #######################
+    
+    fit_data_abundance <-
+      fit.model(
+        features = transformed_data,
+        metadata = metadata,
+        model = 'LM',
+        formula = formula,
+        random_effects_formula = random_effects_formula,
+        correction = correction,
+        save_models = save_models,
+        augment = augment,
+        cores = cores,
+        median_comparison = median_comparison_abundance,
+        median_comparison_threshold = median_comparison_abundance_threshold,
+        feature_specific_covariate = feature_specific_covariate,
+        feature_specific_covariate_name = feature_specific_covariate_name,
+        feature_specific_covariate_record = feature_specific_covariate_record
+      )
+    
+    #################################################################
+    # Count the total values for each feature (untransformed space) #
+    #################################################################
+    
+    logging::loginfo("Counting total values for each feature")
+    
+    fit_data_abundance$results$N <-
+      apply(
+        fit_data_abundance$results,
+        1,
+        FUN = function(x)
+          length(transformed_data[, x[1]])
+      )
+    fit_data_abundance$results$N.not.zero <-
+      apply(
+        fit_data_abundance$results,
+        1,
+        FUN = function(x)
+          length(which(filtered_data[, x[1]] > zero_threshold))
+      )
     
   }
   
-  #######################
-  # For non-zero models #
-  #######################
+  if (is.null(evaluate_only) || evaluate_only == "prevalence") {
+      
+    #####################
+    # For binary models #
+    #####################
+    
+    logging::loginfo("Running the logistic model component")
+    
+    prevalence_mask <- ifelse(!is.na(filtered_data), 1, 0)
+    
+    fit_data_prevalence <-
+      fit.model(
+        features = prevalence_mask,
+        metadata = metadata,
+        model = 'logistic',
+        formula = formula,
+        random_effects_formula = random_effects_formula,
+        correction = correction,
+        save_models = save_models,
+        augment = augment,
+        cores = cores,
+        median_comparison = median_comparison_prevalence,
+        median_comparison_threshold = median_comparison_prevalence_threshold,
+        feature_specific_covariate = feature_specific_covariate,
+        feature_specific_covariate_name = feature_specific_covariate_name,
+        feature_specific_covariate_record = feature_specific_covariate_record
+      )
   
-  fit_data_abundance <-
-    fit.model(
-      features = params_and_data_and_formula[["filtered_data_norm_transformed"]],
-      metadata = params_and_data_and_formula[["metadata"]],
-      model = 'LM',
-      formula = params_and_data_and_formula[["formula"]][["formula"]],
-      random_effects_formula = params_and_data_and_formula[["formula"]][["random_effects_formula"]],
-      correction = param_list[["correction"]],
-      save_models = param_list[["save_models"]],
-      augment = param_list[["augment"]],
-      cores = param_list[["cores"]],
-      median_comparison = param_list[["median_comparison_abundance"]],
-      median_comparison_threshold = param_list[["median_comparison_abundance_threshold"]],
-      feature_specific_covariate = param_list[["feature_specific_covariate"]],
-      feature_specific_covariate_name = param_list[["feature_specific_covariate_name"]],
-      feature_specific_covariate_record = param_list[["feature_specific_covariate_record"]]
-    )
+    logging::loginfo("Counting total values for each feature")
+    
+    fit_data_prevalence$results$N <-
+      apply(
+        fit_data_prevalence$results,
+        1,
+        FUN = function(x)
+          length(transformed_data[, x[1]])
+      )
+    fit_data_prevalence$results$N.not.zero <-
+      apply(
+        fit_data_prevalence$results,
+        1,
+        FUN = function(x)
+          length(which(filtered_data[, x[1]] > zero_threshold))
+      )
+  }
   
-  #################################################################
-  # Count the total values for each feature (untransformed space) #
-  #################################################################
+  if (is.null(evaluate_only)) {
+    results <- add_joint_signif(fit_data_abundance, fit_data_prevalence, 'LM', correction)
+    fit_data_abundance$results <- results[[1]]
+    fit_data_prevalence$results <- results[[2]]
+  } else if (evaluate_only == 'abundance') {
+    fit_data_abundance$results$pval_joint <- fit_data_abundance$results$pval
+    fit_data_abundance$results$qval_joint <- fit_data_abundance$results$qval
+    fit_data_abundance$results <- fit_data_abundance$results %>%
+      dplyr::rename(pval_individual = .data$pval,
+                    qval_individual = .data$qval)
+  } else if (evaluate_only == 'prevalence') {
+    fit_data_prevalence$results$pval_joint <- fit_data_prevalence$results$pval
+    fit_data_prevalence$results$qval_joint <- fit_data_prevalence$results$qval
+    fit_data_prevalence$results <- fit_data_prevalence$results %>%
+      dplyr::rename(pval_individual = .data$pval,
+                    qval_individual = .data$qval)
+  }
   
-  logging::loginfo("Counting total values for each feature")
+  if (is.null(evaluate_only) || evaluate_only == "prevalence") {
+    current_likely_error_subsetter <- !is.na(fit_data_prevalence$results$N.not.zero) & 
+      (fit_data_prevalence$results$N.not.zero < 50 &
+         fit_data_prevalence$results$N.not.zero / fit_data_prevalence$results$N < 0.05) &
+      ((!is.na(fit_data_prevalence$results$coef) & 
+          abs(fit_data_prevalence$results$coef) > 15) |
+         (!is.na(fit_data_prevalence$results$pval_individual) & 
+            fit_data_prevalence$results$pval_individual < 10^-10))
+    current_errors_for_likely_issues <- 
+      fit_data_prevalence$results$error[current_likely_error_subsetter]
+    fit_data_prevalence$results$error[current_likely_error_subsetter] <- 
+      ifelse(!is.na(current_errors_for_likely_issues),
+             current_errors_for_likely_issues,
+             "A large coefficient (>15 in absolute value) or small p-value (< 10^-10) was obtained from a feature present in <5% of samples. Check this is intended.")
+    
+    current_likely_error_subsetter <- !is.na(fit_data_prevalence$results$N.not.zero) & 
+      (fit_data_prevalence$results$N - fit_data_prevalence$results$N.not.zero < 50 &
+         fit_data_prevalence$results$N.not.zero / fit_data_prevalence$results$N > 0.95) &
+      ((!is.na(fit_data_prevalence$results$coef) & 
+          abs(fit_data_prevalence$results$coef) > 15) |
+         (!is.na(fit_data_prevalence$results$pval_individual) & 
+            fit_data_prevalence$results$pval_individual < 10^-10))
+    current_errors_for_likely_issues <- 
+      fit_data_prevalence$results$error[current_likely_error_subsetter]
+    fit_data_prevalence$results$error[current_likely_error_subsetter] <- 
+      ifelse(!is.na(current_errors_for_likely_issues),
+             current_errors_for_likely_issues,
+             "A large coefficient (>15 in absolute value) or small p-value (< 10^-10) was obtained from a feature present in >95% of samples. Check this is intended.")
   
-  fit_data_abundance$results$N <-
-    apply(
-      fit_data_abundance$results,
-      1,
-      FUN = function(x)
-        length(params_and_data_and_formula[["filtered_data_norm_transformed"]][, x[1]])
-    )
-  fit_data_abundance$results$N.not.zero <-
-    apply(
-      fit_data_abundance$results,
-      1,
-      FUN = function(x)
-        length(which(params_and_data_and_formula[["filtered_data"]][, x[1]] != 0))
-    )
+    fit_data_prevalence$results <- fit_data_prevalence$results[order(fit_data_prevalence$results$qval_joint),]
+    fit_data_prevalence$results <- fit_data_prevalence$results[order(!is.na(fit_data_prevalence$results$error)),] # Move all that had errors to the end
+  } else {
+    fit_data_prevalence <- NULL
+  }
   
-  #####################
-  # For binary models #
-  #####################
+  if (is.null(evaluate_only) || evaluate_only == "abundance") {
+    fit_data_abundance$results <- fit_data_abundance$results[order(fit_data_abundance$results$qval_joint),]
+    fit_data_abundance$results <- fit_data_abundance$results[order(!is.na(fit_data_abundance$results$error)),] # Move all that had errors to the end
+  } else {
+    fit_data_abundance <- NULL
+  }
   
-  logging::loginfo("Running the logistic model component")
-  
-  fit_data_prevalence <-
-    fit.model(
-      features = prevalence_mask,
-      metadata = params_and_data_and_formula[["metadata"]],
-      model = 'logistic',
-      formula = params_and_data_and_formula[["formula"]][["formula"]],
-      random_effects_formula = params_and_data_and_formula[["formula"]][["random_effects_formula"]],
-      correction = param_list[["correction"]],
-      save_models = param_list[["save_models"]],
-      augment = param_list[["augment"]],
-      cores = param_list[["cores"]],
-      median_comparison = param_list[["median_comparison_prevalence"]],
-      median_comparison_threshold = param_list[["median_comparison_prevalence_threshold"]],
-      feature_specific_covariate = param_list[["feature_specific_covariate"]],
-      feature_specific_covariate_name = param_list[["feature_specific_covariate_name"]],
-      feature_specific_covariate_record = param_list[["feature_specific_covariate_record"]]
-    )
-
-  logging::loginfo("Counting total values for each feature")
-  
-  fit_data_prevalence$results$N <-
-    apply(
-      fit_data_prevalence$results,
-      1,
-      FUN = function(x)
-        length(params_and_data_and_formula[["filtered_data_norm_transformed"]][, x[1]])
-    )
-  fit_data_prevalence$results$N.not.zero <-
-    apply(
-      fit_data_prevalence$results,
-      1,
-      FUN = function(x)
-        length(which(params_and_data_and_formula[["filtered_data"]][, x[1]] != 0))
-    )
-  
-  results <- add_joint_signif(fit_data_abundance, fit_data_prevalence, 'LM', param_list[["correction"]])
-  fit_data_abundance$results <- results[[1]]
-  fit_data_prevalence$results <- results[[2]]
-  
-  current_errors_for_likely_issues <- 
-    fit_data_prevalence$results$error[!is.na(fit_data_prevalence$results$N.not.zero) & 
-                                        (fit_data_prevalence$results$N.not.zero < 50 &
-                                           fit_data_prevalence$results$N.not.zero / fit_data_prevalence$results$N < 0.05) &
-                                        ((!is.na(fit_data_prevalence$results$coef) & 
-                                            abs(fit_data_prevalence$results$coef) > 15) |
-                                           (!is.na(fit_data_prevalence$results$pval_individual) & 
-                                              fit_data_prevalence$results$pval_individual < 10^-10))]
-  fit_data_prevalence$results$error[!is.na(fit_data_prevalence$results$N.not.zero) & 
-                                  (fit_data_prevalence$results$N.not.zero < 50 &
-                                  fit_data_prevalence$results$N.not.zero / fit_data_prevalence$results$N < 0.05) &
-                                  ((!is.na(fit_data_prevalence$results$coef) & 
-                                      abs(fit_data_prevalence$results$coef) > 15) |
-                                     (!is.na(fit_data_prevalence$results$pval_individual) & 
-                                        fit_data_prevalence$results$pval_individual < 10^-10))] <- 
-    ifelse(!is.na(current_errors_for_likely_issues),
-           current_errors_for_likely_issues,
-           "A large coefficient (>15 in absolute value) or small p-value (< 10^-10) was obtained from a feature present in <5% of samples. Check this is intended.")
-  
-  current_errors_for_likely_issues <- 
-    fit_data_prevalence$results$error[!is.na(fit_data_prevalence$results$N.not.zero) & 
-                                        (fit_data_prevalence$results$N - fit_data_prevalence$results$N.not.zero < 50 &
-                                           fit_data_prevalence$results$N.not.zero / fit_data_prevalence$results$N > 0.95) &
-                                        ((!is.na(fit_data_prevalence$results$coef) & 
-                                            abs(fit_data_prevalence$results$coef) > 15) |
-                                           (!is.na(fit_data_prevalence$results$pval_individual) & 
-                                              fit_data_prevalence$results$pval_individual < 10^-10))]
-  fit_data_prevalence$results$error[!is.na(fit_data_prevalence$results$N.not.zero) & 
-                                      (fit_data_prevalence$results$N - fit_data_prevalence$results$N.not.zero < 50 &
-                                         fit_data_prevalence$results$N.not.zero / fit_data_prevalence$results$N > 0.95) &
-                                      ((!is.na(fit_data_prevalence$results$coef) & 
-                                          abs(fit_data_prevalence$results$coef) > 15) |
-                                         (!is.na(fit_data_prevalence$results$pval_individual) & 
-                                            fit_data_prevalence$results$pval_individual < 10^-10))] <- 
-    ifelse(!is.na(current_errors_for_likely_issues),
-           current_errors_for_likely_issues,
-           "A large coefficient (>15 in absolute value) or small p-value (< 10^-10) was obtained from a feature present in >95% of samples. Check this is intended.")
-  
-  fit_data_abundance$results <- fit_data_abundance$results[order(fit_data_abundance$results$qval_joint),]
-  fit_data_abundance$results <- fit_data_abundance$results[order(!is.na(fit_data_abundance$results$error)),] # Move all that had errors to the end
-  
-  fit_data_prevalence$results <- fit_data_prevalence$results[order(fit_data_prevalence$results$qval_joint),]
-  fit_data_prevalence$results <- fit_data_prevalence$results[order(!is.na(fit_data_prevalence$results$error)),] # Move all that had errors to the end
-  
-  return(list("param_list" = param_list, 
-              "data" = params_and_data_and_formula[["data"]], 
-              "filtered_data" = params_and_data_and_formula[["filtered_data"]], 
-              "filtered_data_norm_transformed" = params_and_data_and_formula[["filtered_data_norm_transformed"]],
-              "metadata" = params_and_data_and_formula[["metadata"]],
-              "unfiltered_metadata" = params_and_data_and_formula[["unfiltered_metadata"]], 
-              "formula" = params_and_data_and_formula[["formula"]],
-              "fit_data_abundance" = fit_data_abundance,
-              "fit_data_prevalence" = fit_data_prevalence
-              ))
+  return(list("fit_data_abundance" = fit_data_abundance,
+              "fit_data_prevalence" = fit_data_prevalence))
 }
 
 ###########################
 # Write tables of results #
 ###########################
 
-maaslin_write_results <- function(params_data_formula_fit) {
-  param_list <- maaslin_parse_param_list(params_data_formula_fit[["param_list"]])
-  output <- param_list[["output"]]
-  
+maaslin_write_results <- function(output,
+                                  fit_data_abundance,
+                                  fit_data_prevalence,
+                                  random_effects_formula = NULL,
+                                  max_significance = 0.1,
+                                  save_models = FALSE) {
   # create an output folder if it does not exist
   if (!file.exists(output)) {
     logging::loginfo("Creating output folder")
     dir.create(output)
   }
   
-  write_fits(params_data_formula_fit)
-  write_results(params_data_formula_fit)
+  write_fits(output,
+             fit_data_abundance,
+             fit_data_prevalence,
+             random_effects_formula,
+             save_models)
+  
+  write_results(output,
+                fit_data_abundance,
+                fit_data_prevalence,
+                max_significance)
 }
 
-maaslin_write_results_lefse_format <- function(params_data_formula_fit) {
-  param_list <- maaslin_parse_param_list(params_data_formula_fit[["param_list"]])
-  output <- param_list[["output"]]
-  
+maaslin_write_results_lefse_format <- function(output,
+                                               fit_data_abundance,
+                                               fit_data_prevalence) {
   # create an output folder if it does not exist
   if (!file.exists(output)) {
     logging::loginfo("Creating output folder")
     dir.create(output)
   }
   
-  write_results_in_lefse_format(params_data_formula_fit$fit_data_abundance$results, 
-                                file.path(output, 'lefse_style_results_abundance.res'))
-  write_results_in_lefse_format(params_data_formula_fit$fit_data_prevalence$results, 
-                                file.path(output, 'lefse_style_results_prevalence.res'))
+  if (!is.null(fit_data_abundance$results)) {
+    write_results_in_lefse_format(fit_data_abundance$results, 
+                                  file.path(output, 'lefse_style_results_abundance.res'))
+  }
+  if (!is.null(fit_data_prevalence$results)) {
+    write_results_in_lefse_format(fit_data_prevalence$results, 
+                                  file.path(output, 'lefse_style_results_prevalence.res'))
+  }
 }
 
 #######################################################
 # Create visualizations for results passing threshold #
 #######################################################
 
-maaslin_plot_results <- function(params_data_formula_fit) {
-  param_list <- maaslin_parse_param_list(params_data_formula_fit[["param_list"]])
-  output <- param_list[["output"]]
-  
+maaslin_plot_results <- function(output,
+                                 transformed_data,
+                                 unstandardized_metadata,
+                                 fit_data_abundance,
+                                 fit_data_prevalence,
+                                 normalization,
+                                 transform,
+                                 feature_specific_covariate = NULL,
+                                 feature_specific_covariate_name = NULL,
+                                 feature_specific_covariate_record = NULL,
+                                 median_comparison_abundance = TRUE,
+                                 median_comparison_prevalence = FALSE,
+                                 max_significance = 0.1,
+                                 plot_summary_plot = TRUE,
+                                 summary_plot_first_n = 25,
+                                 coef_plot_vars = NULL,
+                                 heatmap_vars = NULL,
+                                 plot_associations = TRUE,
+                                 max_pngs = 30) {
   # create an output folder and figures folder if it does not exist
   if (!file.exists(output)) {
     logging::loginfo("Creating output folder")
     dir.create(output)
   }
-  if (param_list[["plot_summary_plot"]] || param_list[["plot_associations"]]) {
+  if (plot_summary_plot || plot_associations) {
     figures_folder <- file.path(output, "figures")
     if (!file.exists(figures_folder)) {
       logging::loginfo("Creating output figures folder")
@@ -1832,17 +1837,20 @@ maaslin_plot_results <- function(params_data_formula_fit) {
     }
   }
   
-  merged_results <- rbind(params_data_formula_fit[["fit_data_abundance"]][['results']],
-                          params_data_formula_fit[["fit_data_prevalence"]][['results']])
+  if (is.null(fit_data_abundance$results)) {
+    merged_results <- fit_data_prevalence$results
+  } else if (is.null(fit_data_prevalence$results)) {
+    merged_results <- fit_data_abundance$results
+  } else {
+    merged_results <- rbind(fit_data_abundance$results,
+                            fit_data_prevalence$results)
+  }
   
-  if (param_list[["plot_summary_plot"]]) {
+  if (plot_summary_plot) {
     summary_plot_file <- file.path(figures_folder, "summary_plot.pdf")
     logging::loginfo(
       "Writing summary plot of significant results to file: %s",
       summary_plot_file)
-    
-    coef_plot_vars = param_list[["coef_plot_vars"]]
-    heatmap_vars = param_list[["heatmap_vars"]]
     
     if (!is.null(coef_plot_vars) & length(coef_plot_vars) == 1) {
       coef_plot_vars <- trimws(unlist(strsplit(coef_plot_vars, ',')))
@@ -1854,15 +1862,15 @@ maaslin_plot_results <- function(params_data_formula_fit) {
     maaslin3_summary_plot(merged_results, 
                  summary_plot_file, 
                  figures_folder,
-                 first_n = param_list[["summary_plot_first_n"]],
-                 max_significance = param_list[["max_significance"]],
+                 first_n = summary_plot_first_n,
+                 max_significance = max_significance,
                  coef_plot_vars = coef_plot_vars,
                  heatmap_vars = heatmap_vars,
-                 median_comparison_abundance = param_list[["median_comparison_abundance"]],
-                 median_comparison_prevalence = param_list[["median_comparison_prevalence"]])
+                 median_comparison_abundance = median_comparison_abundance,
+                 median_comparison_prevalence = median_comparison_prevalence)
   }
   
-  if (param_list[["plot_associations"]]) {
+  if (plot_associations) {
     logging::loginfo(
       paste("Writing association plots",
             "(one for each significant association)",
@@ -1872,39 +1880,43 @@ maaslin_plot_results <- function(params_data_formula_fit) {
 
     return(maaslin3_association_plots(
       merged_results = merged_results,
-      metadata = params_data_formula_fit[["unfiltered_metadata"]],
-      features = params_data_formula_fit[["filtered_data_norm_transformed"]],
-      max_significance = param_list[['max_significance']],
+      metadata = unstandardized_metadata,
+      features = transformed_data,
+      max_significance = max_significance,
       figures_folder = figures_folder,
-      max_pngs = param_list[["max_pngs"]],
-      normalization = param_list[["normalization"]],
-      transform = param_list[["transform"]],
-      feature_specific_covariate = param_list[["feature_specific_covariate"]],
-      feature_specific_covariate_name = param_list[["feature_specific_covariate_name"]],
-      feature_specific_covariate_record = param_list[["feature_specific_covariate_record"]])
+      max_pngs = max_pngs,
+      normalization = normalization,
+      transform = transform,
+      feature_specific_covariate = feature_specific_covariate,
+      feature_specific_covariate_name = feature_specific_covariate_name,
+      feature_specific_covariate_record = feature_specific_covariate_record)
       )
   }
 }
 
-maaslin_plot_results_from_output <- function(param_list) {
-  params_tmp <- maaslin_log_arguments(param_list) %>%
-    maaslin_read_data() %>%
-    maaslin_reorder_data()
-  params_tmp[['formula']] <- list() # Placeholder to avoid problematic renames
+maaslin_plot_results_from_output <- function(output,
+                                             metadata,
+                                             normalization,
+                                             transform,
+                                             feature_specific_covariate = NULL,
+                                             feature_specific_covariate_name = NULL,
+                                             feature_specific_covariate_record = NULL,
+                                             median_comparison_abundance = TRUE,
+                                             median_comparison_prevalence = FALSE,
+                                             max_significance = 0.1,
+                                             plot_summary_plot = TRUE,
+                                             summary_plot_first_n = 25,
+                                             coef_plot_vars = NULL,
+                                             heatmap_vars = NULL,
+                                             plot_associations = TRUE,
+                                             max_pngs = 30) {
 
-  params_and_data_and_formula <- params_tmp %>%
-    maaslin_filter_and_standardize()
-  
-  param_list <- params_and_data_and_formula[['param_list']]
-  
-  output <- param_list[["output"]]
-  
   # create an output folder and figures folder if it does not exist
   if (!file.exists(output)) {
     logging::loginfo("Creating output folder")
     dir.create(output)
   }
-  if (param_list[["plot_summary_plot"]] || param_list[["plot_associations"]]) {
+  if (plot_summary_plot || plot_associations) {
     figures_folder <- file.path(output, "figures")
     if (!file.exists(figures_folder)) {
       logging::loginfo("Creating output figures folder")
@@ -1914,21 +1926,18 @@ maaslin_plot_results_from_output <- function(param_list) {
   
   all_results_file <- paste0(gsub('/$', '', output), '/', 'all_results.tsv')
   if (!file.exists(all_results_file)) {
-    stop(paste0('Please generate the results file first: ', all_results_file))
+    stop(sprintf('Please generate the results file first: %s', all_results_file))
   }
   merged_results <- utils::read.csv(all_results_file, sep = '\t')
-  merged_results$model[merged_results$model == 'abundance'] = 'LM'
-  merged_results$model[merged_results$model == 'prevalence'] = 'logistic'
-  
-  if (param_list[["plot_summary_plot"]]) {
+  merged_results$model[merged_results$model == 'abundance'] <- 'LM'
+  merged_results$model[merged_results$model == 'prevalence'] <- 'logistic'
+
+  if (plot_summary_plot) {
     summary_plot_file <- file.path(figures_folder, "summary_plot.pdf")
     logging::loginfo(
       "Writing summary plot of significant results to file: %s",
       summary_plot_file)
-    
-    coef_plot_vars = param_list[["coef_plot_vars"]]
-    heatmap_vars = param_list[["heatmap_vars"]]
-    
+
     if (!is.null(coef_plot_vars) & length(coef_plot_vars) == 1) {
       coef_plot_vars <- trimws(unlist(strsplit(coef_plot_vars, ',')))
     }
@@ -1939,20 +1948,20 @@ maaslin_plot_results_from_output <- function(param_list) {
     maaslin3_summary_plot(merged_results, 
                       summary_plot_file, 
                       figures_folder,
-                      first_n = param_list[["summary_plot_first_n"]],
-                      max_significance = param_list[["max_significance"]],
+                      first_n = summary_plot_first_n,
+                      max_significance = max_significance,
                       coef_plot_vars = coef_plot_vars,
                       heatmap_vars = heatmap_vars,
-                      median_comparison_abundance = param_list[["median_comparison_abundance"]],
-                      median_comparison_prevalence = param_list[["median_comparison_prevalence"]])
+                      median_comparison_abundance = median_comparison_abundance,
+                      median_comparison_prevalence = median_comparison_prevalence)
   }
   
-  if (param_list[["plot_associations"]]) {
-    features_file <- paste0(gsub('/$', '', output), '/', 'features/filtered_data_norm_transformed.tsv')
+  if (plot_associations) {
+    features_file <- paste0(gsub('/$', '', output), '/', 'features/data_transformed.tsv')
     if (!file.exists(features_file)) {
-      stop(paste0('Please generate the results file first: ', features_file))
+      stop(sprintf('Please generate the results file first: %s', features_file))
     }
-    filtered_data_norm_transformed <- utils::read.csv(features_file, sep = '\t', row.names = 1, check.names = F)
+    transformed_data <- utils::read.csv(features_file, sep = '\t', row.names = 1, check.names = FALSE)
     
     logging::loginfo(
       paste("Writing association plots",
@@ -1962,29 +1971,31 @@ maaslin_plot_results_from_output <- function(param_list) {
     )
     
     # Need to redo this if not fitting the model
-    if (!is.null(param_list[["feature_specific_covariate"]])) {
+    if (!is.null(feature_specific_covariate)) {
       tryCatch({
-        param_list[["feature_specific_covariate"]] <- 
-          param_list[["feature_specific_covariate"]][
-            rownames(params_and_data_and_formula[["filtered_data"]]),
-            colnames(params_and_data_and_formula[["filtered_data"]]) ]
+        feature_specific_covariate <- 
+          feature_specific_covariate[rownames(transformed_data), colnames(transformed_data)]
       }, error = function(e) {
-        stop(paste("feature_specific_covariate does not contain the features and samples of the filtered data."))
+        stop("feature_specific_covariate does not contain the features and samples of the filtered data.")
       })
+    }
+    
+    if (missing("normalization") | missing("transform") | missing("metadata")) {
+      stop("Missing normalization, transform, or metadata argument to maaslin_plot_results_from_output")
     }
     
     plots_out <- maaslin3_association_plots(
       merged_results = merged_results,
-      metadata = params_and_data_and_formula[["unfiltered_metadata"]],
-      features = filtered_data_norm_transformed,
-      max_significance = param_list[['max_significance']],
+      metadata = metadata,
+      features = transformed_data,
+      max_significance = max_significance,
       figures_folder = figures_folder,
-      max_pngs = param_list[["max_pngs"]],
-      normalization = param_list[["normalization"]],
-      transform = param_list[["transform"]],
-      feature_specific_covariate = param_list[["feature_specific_covariate"]],
-      feature_specific_covariate_name = param_list[["feature_specific_covariate_name"]],
-      feature_specific_covariate_record = param_list[["feature_specific_covariate_record"]])
+      max_pngs = max_pngs,
+      normalization = normalization,
+      transform = transform,
+      feature_specific_covariate = feature_specific_covariate,
+      feature_specific_covariate_name = feature_specific_covariate_name,
+      feature_specific_covariate_record = feature_specific_covariate_record)
   } else {
     plots_out <- NULL
   }
@@ -2000,40 +2011,217 @@ maaslin_plot_results_from_output <- function(param_list) {
 # Main maaslin3 function (defaults same command line) #
 #######################################################
 
-maaslin3 <- function(param_list) {
-  # Create log file, log arguments, and check arguments
-  params_tmp <- maaslin_log_arguments(param_list) %>%
-    maaslin_read_data() %>%
-    maaslin_reorder_data()
+maaslin3 <- function(
+    input_data,
+    input_metadata,
+    output,
+    formula = NULL,
+    fixed_effects = NULL,
+    reference = NULL,
+    random_effects = NULL,
+    group_effects = NULL,
+    ordered_effects = NULL,
+    strata_effects = NULL,
+    feature_specific_covariate = NULL,
+    feature_specific_covariate_name = NULL,
+    feature_specific_covariate_record = NULL,
+    min_abundance = 0,
+    min_prevalence = 0.1,
+    zero_threshold = 0,
+    min_variance = 0,
+    max_significance = 0.1,
+    normalization = 'TSS',
+    transform = 'LOG',
+    correction = 'BH',
+    standardize = TRUE,
+    unscaled_abundance = NULL,
+    median_comparison_abundance = TRUE,
+    median_comparison_prevalence = FALSE,
+    median_comparison_abundance_threshold = 0.25,
+    median_comparison_prevalence_threshold = 0.25,
+    augment = TRUE,
+    evaluate_only = NULL,
+    plot_summary_plot = TRUE,
+    summary_plot_first_n = 25,
+    coef_plot_vars = NULL,
+    heatmap_vars = NULL,
+    plot_associations = TRUE,
+    max_pngs = 30,
+    cores = 1,
+    save_models = FALSE
+    ) {
   
-  if (is.null(params_tmp[['param_list']][['formula']])) {
-    params_tmp_2 <- params_tmp %>%
-      maaslin_compute_formula()
+  # Allow for lower case variables
+  normalization <- toupper(normalization)
+  transform <- toupper(transform)
+  
+  # Match variable ignoring case then set correctly as required for p.adjust
+  correction <- correction_choices[match(toupper(correction), 
+                                         toupper(correction_choices))]
+  
+  # If formula is a formula object, convert it back to a string
+  if (methods::is(formula, "formula")) {
+    formula <- paste0(trimws(deparse(formula)), collapse = " ")
+  }
+
+  # Create log file, log arguments, and check arguments
+  maaslin_log_arguments(input_data,
+                        input_metadata,
+                        output,
+                        formula,
+                        fixed_effects,
+                        reference,
+                        random_effects,
+                        group_effects,
+                        ordered_effects,
+                        strata_effects,
+                        feature_specific_covariate,
+                        feature_specific_covariate_name,
+                        feature_specific_covariate_record,
+                        min_abundance,
+                        min_prevalence,
+                        zero_threshold,
+                        min_variance,
+                        max_significance,
+                        normalization,
+                        transform,
+                        correction,
+                        standardize,
+                        unscaled_abundance,
+                        median_comparison_abundance,
+                        median_comparison_prevalence,
+                        median_comparison_abundance_threshold,
+                        median_comparison_prevalence_threshold,
+                        augment,
+                        evaluate_only,
+                        plot_summary_plot,
+                        summary_plot_first_n,
+                        coef_plot_vars,
+                        heatmap_vars,
+                        plot_associations,
+                        max_pngs,
+                        cores,
+                        save_models)
+  
+  read_data_list <- maaslin_read_data(input_data,
+                                      input_metadata,
+                                      feature_specific_covariate,
+                                      unscaled_abundance)
+  
+  read_data_list <- maaslin_reorder_data(read_data_list$data,
+                         read_data_list$metadata,
+                         read_data_list$feature_specific_covariate,
+                         read_data_list$unscaled_abundance)
+  
+  data <- read_data_list$data
+  metadata <- read_data_list$metadata
+  unscaled_abundance <- read_data_list$unscaled_abundance
+  feature_specific_covariate <- read_data_list$feature_specific_covariate
+  
+  if (is.null(formula)) {
+    formulas <- maaslin_compute_formula(data,
+                                        metadata,
+                                        fixed_effects,
+                                        random_effects,
+                                        group_effects,
+                                        ordered_effects,
+                                        strata_effects,
+                                        feature_specific_covariate_name)
   } else {
-    params_tmp_2 <- params_tmp %>%
-      maaslin_check_formula()
+    formulas <- maaslin_check_formula(data,
+                                      metadata,
+                                      formula,
+                                      feature_specific_covariate_name)
   }
   
-  params_and_data_and_formula <- params_tmp_2 %>%
-    maaslin_filter_and_standardize() %>%
-    maaslin_normalize() %>%
-    maaslin_transform()
+  formula <- formulas$formula
+  random_effects_formula <- formulas$random_effects_formula
   
-  params_data_formula_fit <- params_and_data_and_formula %>%
-    maaslin_fit()
+  normalized_data <- maaslin_normalize(data,
+                                      output,
+                                      zero_threshold,
+                                      normalization,
+                                      unscaled_abundance)
+  
+  filtered_data <- maaslin_filter(normalized_data,
+                                  output,
+                                  min_abundance,
+                                  min_prevalence,
+                                  zero_threshold,
+                                  min_variance)
+  
+  transformed_data <- maaslin_transform(filtered_data,
+                                      output,
+                                      transform)
+  
+  standardized_metadata <- maaslin_process_metadata(metadata,
+                                           formula,
+                                           fixed_effects,
+                                           reference,
+                                           feature_specific_covariate_name,
+                                           standardize)
 
-  maaslin_write_results(params_data_formula_fit)
+  maaslin_results <- maaslin_fit(filtered_data,
+                                transformed_data,
+                                standardized_metadata,
+                                formula,
+                                random_effects_formula,
+                                feature_specific_covariate,
+                                feature_specific_covariate_name,
+                                feature_specific_covariate_record,
+                                zero_threshold,
+                                correction,
+                                median_comparison_abundance,
+                                median_comparison_prevalence,
+                                median_comparison_abundance_threshold,
+                                median_comparison_prevalence_threshold,
+                                augment,
+                                evaluate_only,
+                                cores,
+                                save_models)
   
-  if (params_data_formula_fit[['param_list']][['plot_summary_plot']] | 
-      params_data_formula_fit[['param_list']][['plot_associations']]) {
-    maaslin_plot_results(params_data_formula_fit)
+  maaslin_write_results(output,
+                        maaslin_results$fit_data_abundance,
+                        maaslin_results$fit_data_prevalence,
+                        random_effects_formula,
+                        max_significance,
+                        save_models)
+
+  if (plot_summary_plot | plot_associations) {
+    maaslin_plot_results(output,
+                         transformed_data,
+                         metadata,
+                         maaslin_results$fit_data_abundance,
+                         maaslin_results$fit_data_prevalence,
+                         normalization,
+                         transform,
+                         feature_specific_covariate,
+                         feature_specific_covariate_name,
+                         feature_specific_covariate_record,
+                         median_comparison_abundance,
+                         median_comparison_prevalence,
+                         max_significance,
+                         plot_summary_plot,
+                         summary_plot_first_n,
+                         coef_plot_vars,
+                         heatmap_vars,
+                         plot_associations,
+                         max_pngs)
   }
   
   if ('logging::writeToFile' %in% names(logging::getLogger()[['handlers']])) {
     logging::removeHandler('logging::writeToFile')
   }
-
-  return(params_data_formula_fit)
+  
+  return(list("data" = data, 
+              "normalized_data" = normalized_data,
+              "filtered_data" = filtered_data, 
+              "transformed_data" = transformed_data,
+              "metadata" = metadata,
+              "standardized_metadata" = standardized_metadata, 
+              "formula" = formulas,
+              "fit_data_abundance" = maaslin_results$fit_data_abundance,
+              "fit_data_prevalence" = maaslin_results$fit_data_prevalence))
 }
 
 ###########################################################################
@@ -2044,7 +2232,7 @@ maaslin3 <- function(param_list) {
 if (identical(environment(), globalenv()) &&
     !length(grep("^source\\(", sys.calls()))) {
   # get command line options and positional arguments
-  parsed_arguments = optparse::parse_args(options, 
+  parsed_arguments <- optparse::parse_args(options, 
                                           positional_arguments = TRUE)
   current_args <- parsed_arguments[["options"]]
   positional_args <- parsed_arguments[["args"]]
@@ -2052,16 +2240,13 @@ if (identical(environment(), globalenv()) &&
   if (length(positional_args) != 3) {
     optparse::print_help(options)
     stop(
-      paste("Please provide the required",
-            "positional arguments",
-            "<data.tsv> <metadata.tsv> <output_folder>")
+      sprintf("Please provide the required positional arguments <data.tsv> <metadata.tsv> <output_folder>")
     )
   }
   
   # call maaslin with the command line options
   fit_data <-
-    maaslin3(list(
-      input_data = positional_args[1],
+    maaslin3(input_data = positional_args[1],
       input_metadata = positional_args[2],
       output = positional_args[3],
       min_abundance = current_args$min_abundance,
@@ -2095,9 +2280,10 @@ if (identical(environment(), globalenv()) &&
       max_pngs = current_args$max_pngs,
       save_models = current_args$save_models,
       augment = current_args$augment,
+      evaluate_only = current_args$evaluate_only,
       reference = current_args$reference,
       unscaled_abundance = current_args$unscaled_abundance
-    ))
+    )
 }
 
 

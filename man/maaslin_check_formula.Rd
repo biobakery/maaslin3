@@ -4,28 +4,25 @@
 Check a MaAsLin 3 formula to ensure a proper MaAsLin 3 run.
 }
 \description{
-Ensure that the formula provided as part of the \code{param_list} is valid. Only one of \code{maaslin_compute_formula} or \code{maaslin_check_formula} should be used.
+Ensure that the formula provided is valid. Only one of \code{maaslin_compute_formula} or \code{maaslin_check_formula} should be used.
 }
 \usage{
-maaslin_check_formula(params_and_data)
+maaslin_check_formula(data,
+                      metadata,
+                      input_formula = NULL,
+                      feature_specific_covariate_name = NULL)
 }
 \arguments{
-    \item{params_and_data}{
-    The results of \code{maaslin_reorder_data} or a list containing the following named items:
-    \describe{
-      \item{(1)}{\code{param_list}: The parameter list with \code{unscaled_abundance} trimmed of samples with missing abundances or metadata and a \code{formula} specified.}
-      \item{(2)}{\code{data}: A data frame of feature abundances trimmed of samples with missing abundances or metadata.}
-      \item{(3)}{\code{metadata}: A data frame of metadata trimmed of samples with missing abundances or metadata.}
-    }
-}
+    \item{data}{A data frame of feature abundances. It should be formatted with features as columns and samples as rows. The column and row names should be the feature names and sample names respectively.}
+    \item{metadata}{A data frame of per-sample metadata. It should be formatted with variables as columns and samples as rows. The column and row names should be the variable names and sample names respectively.}
+    \item{input_formula}{A formula in \code{lme4} format. Random effects, interactions, and functions of the metadata can be included (note that these functions will be applied after standardization if \code{standardize=TRUE}). Group, ordered, and strata variables can be specified as: \code{group(grouping_variable)}, \code{ordered(ordered_variable)} and \code{strata(strata_variable)}. The other variable options below will not be considered if a formula is set.}
+    \item{feature_specific_covariate_name}{The name for the feature-specific covariates when fitting the models.}
 }
 \value{
 A list containing the following named items:
     \describe{
-      \item{(1)}{\code{param_list}: The same input parameter list.}
-      \item{(2)}{\code{data}: The same input data data frame.}
-      \item{(3)}{\code{metadata}: The same input metadata data frame.}
-      \item{(4)}{\code{formula}: A list with the named items \code{formula} as a computed formula object and \code{random_effects_formula} as the random effects component of the formula.}
+      \item{(1)}{\code{formula}: The constructed formula.}
+      \item{(2)}{\code{random_effects_formula}: A formula for the random effects.}
     }
 }
 \author{
@@ -49,22 +46,31 @@ A list containing the following named items:
   metadata$antibiotics <- 
     factor(metadata$antibiotics, levels = c('No', 'Yes'))
   
-  # Prepare parameter lists 
-  param_list <- list(input_data = taxa_table, 
-                     input_metadata = metadata, 
-                     output = 'output', 
-                     formula = '~ diagnosis + dysbiosis_state + 
-                        antibiotics + age + reads', 
-                     plot_summary_plot = FALSE, 
-                     plot_associations = FALSE)
-  
   #Run MaAsLin3
-  param_list <- 
-    maaslin3::maaslin_log_arguments(param_list)
-  params_and_data <- 
-    maaslin3::maaslin_read_data(param_list)
-  params_and_data <- 
-    maaslin3::maaslin_reorder_data(params_and_data)
-  params_and_data_and_formula <- 
-    maaslin3::maaslin_check_formula(params_and_data)
+  maaslin3::maaslin_log_arguments(
+    input_data = taxa_table, 
+    input_metadata = metadata, 
+    output = 'output', 
+    formula = '~ diagnosis + dysbiosis_state + antibiotics + 
+      age + reads', 
+    plot_summary_plot = FALSE, 
+    plot_associations = FALSE)
+  read_data_list <- maaslin3::maaslin_read_data(
+    taxa_table,
+    metadata)
+  read_data_list <- maaslin3::maaslin_reorder_data(
+    read_data_list$data,
+    read_data_list$metadata)
+    
+  data <- read_data_list$data
+  metadata <- read_data_list$metadata
+    
+  formulas <- maaslin3::maaslin_check_formula(
+    data,
+    metadata,
+    input_formula = '~ diagnosis + dysbiosis_state + antibiotics + 
+      age + reads')
+      
+  unlink('output')
+  logging::logReset()
 }

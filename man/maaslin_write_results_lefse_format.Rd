@@ -7,23 +7,14 @@ Write the results from a MaAsLin 3 run in LEfSe format.
 Write the results from a MaAsLin 3 run to the output folder in LEfSe format.
 }
 \usage{
-maaslin_write_results_lefse_format(params_data_formula_fit)
+maaslin_write_results_lefse_format(output,
+                                   fit_data_abundance,
+                                   fit_data_prevalence)
 }
 \arguments{
-    \item{params_data_formula_fit}{
-    The results of \code{maaslin_fit} or a list containing the following named items:
-    \describe{
-      \item{(1)}{\code{param_list}: An input parameter list.}
-      \item{(2)}{\code{data}: The input data dataframe.}
-      \item{(3)}{\code{filtered_data}: The abundance data dataframe after filtering.}
-      \item{(4)}{\code{filtered_data_norm}: The abundance data after filtering and normalization.}
-      \item{(5)}{\code{unfiltered_metadata}: The input metadata dataframe.}
-      \item{(6)}{\code{metadata}: The metadata dataframe after filtering.}
-      \item{(7)}{\code{formula}: A list with the named items \code{formula} as a computed formula object and \code{random_effects_formula} as the random effects component of the formula.}
-      \item{(8)}{\code{fit_data_abundance}: The results from the fit abundance models.}
-      \item{(9)}{\code{fit_data_prevalence}: The results from the fit prevalence models.}
-    }
-  }
+    \item{output}{The output folder to write results.}
+    \item{fit_data_abundance}{The abundance outputs of \code{\link{maaslin_fit}}.}
+    \item{fit_data_prevalence}{The prevalence outputs of \code{\link{maaslin_fit}}.}
 }
 \value{
 Results will be written to the \code{lefse_style_results_abundance.res} file in the folder \code{output}. No value is returned.
@@ -49,32 +40,60 @@ Results will be written to the \code{lefse_style_results_abundance.res} file in 
   metadata$antibiotics <- 
     factor(metadata$antibiotics, levels = c('No', 'Yes'))
   
-  # Prepare parameter lists 
-  param_list <- list(input_data = taxa_table, 
-                     input_metadata = metadata, 
-                     output = 'output', 
-                     formula = '~ diagnosis + dysbiosis_state + 
-                        antibiotics + age + reads', 
-                     plot_summary_plot = FALSE, 
-                     plot_associations = FALSE)
-  
   #Run MaAsLin3
-  param_list <- 
-    maaslin3::maaslin_log_arguments(param_list)
-  params_and_data <- 
-    maaslin3::maaslin_read_data(param_list)
-  params_and_data <- 
-    maaslin3::maaslin_reorder_data(params_and_data)
-  params_and_data_and_formula <- 
-    maaslin3::maaslin_check_formula(params_and_data)
-  params_and_data_and_formula <- 
-    maaslin3::maaslin_filter_and_standardize(params_and_data_and_formula)
-  params_and_data_and_formula <- 
-    maaslin3::maaslin_normalize(params_and_data_and_formula)
-  params_and_data_and_formula <- 
-    maaslin3::maaslin_transform(params_and_data_and_formula)
-  params_data_formula_fit <- 
-    maaslin3::maaslin_fit(params_and_data_and_formula)
+  maaslin3::maaslin_log_arguments(
+    input_data = taxa_table, 
+    input_metadata = metadata, 
+    output = 'output', 
+    formula = '~ diagnosis + dysbiosis_state + antibiotics + 
+      age + reads', 
+    plot_summary_plot = FALSE, 
+    plot_associations = FALSE)
+    
+  read_data_list <- maaslin3::maaslin_read_data(
+    taxa_table,
+    metadata)
+  read_data_list <- maaslin3::maaslin_reorder_data(
+    read_data_list$data,
+    read_data_list$metadata)
+    
+  data <- read_data_list$data
+  metadata <- read_data_list$metadata
+    
+  formulas <- maaslin3::maaslin_check_formula(
+    data,
+    metadata,
+    input_formula = '~ diagnosis + dysbiosis_state + antibiotics + 
+      age + reads')
+      
+  formula <- formulas$formula
+  random_effects_formula <- formulas$random_effects_formula
+      
+  normalized_data = maaslin3::maaslin_normalize(data,
+                                      output = 'output')
+                                      
+  filtered_data = maaslin3::maaslin_filter(normalized_data,
+                                      output = 'output')
+                                      
+  transformed_data = maaslin3::maaslin_filter(filtered_data,
+                                      output = 'output')
+                                      
+  standardized_metadata = maaslin3::maaslin_process_metadata(
+    metadata,
+    formula = formula)
+    
+  maaslin_results = maaslin3::maaslin_fit(
+    filtered_data,
+    transformed_data,
+    standardized_metadata,
+    formula,
+    random_effects_formula)
+    
   maaslin3::maaslin_write_results_lefse_format(
-    params_data_formula_fit)
+    output = 'output',
+    maaslin_results$fit_data_abundance,
+    maaslin_results$fit_data_prevalence)
+
+  unlink('output')
+  logging::logReset()
 }

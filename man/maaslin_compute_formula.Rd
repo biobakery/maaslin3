@@ -7,25 +7,30 @@ Compute a formula for a MaAsLin 3 run based on the specified effects.
 Compute a formula using variables provided through \code{fixed_effects}, \code{random_effects}, \code{group_effects}, \code{ordered_effects}, and \code{strata_effects}. Only one of \code{maaslin_compute_formula} or \code{maaslin_check_formula} should be used.
 }
 \usage{
-maaslin_compute_formula(params_and_data)
+maaslin_compute_formula(data,
+                        metadata,
+                        fixed_effects = NULL,
+                        random_effects = NULL,
+                        group_effects = NULL,
+                        ordered_effects = NULL,
+                        strata_effects = NULL,
+                        feature_specific_covariate_name = NULL)
 }
 \arguments{
-    \item{params_and_data}{
-    The results of \code{maaslin_reorder_data} or a list containing the following named items:
-    \describe{
-      \item{(1)}{\code{param_list}: The parameter list with \code{unscaled_abundance} trimmed of samples with missing abundances or metadata and \code{fixed_effects}, \code{random_effects}, \code{group_effects}, \code{ordered_effects}, or \code{strata_effects} specified.}
-      \item{(2)}{\code{data}: A data frame of feature abundances trimmed of samples with missing abundances or metadata.}
-      \item{(3)}{\code{metadata}: A data frame of metadata trimmed of samples with missing abundances or metadata.}
-    }
-}
+    \item{data}{A data frame of feature abundances. It should be formatted with features as columns and samples as rows. The column and row names should be the feature names and sample names respectively.}
+    \item{metadata}{A data frame of per-sample metadata. It should be formatted with variables as columns and samples as rows. The column and row names should be the variable names and sample names respectively.}
+    \item{fixed_effects}{A vector of variable names to be included as fixed effects.}
+    \item{random_effects}{A vector of variable names to be included as random intercepts.}
+    \item{group_effects}{A factored categorical variable to be included for group testing. An ANOVA-style test will be performed to assess whether any of the variable's levels are significant, and no coefficients or individual p-values will be returned.}
+    \item{ordered_effects}{A factored categorical variable to be included. Consecutive levels will be tested for significance against each other, and the resulting associations will correspond to effect sizes, standard errors, and significances of each level versus the previous.}
+    \item{strata_effects}{A vector with one variable name to be included as the strata variable in case-control studies. Strata cannot be combined with random effects.}
+    \item{feature_specific_covariate_name}{The name for the feature-specific covariates when fitting the models.}
 }
 \value{
 A list containing the following named items:
     \describe{
-      \item{(1)}{\code{param_list}: The same input parameter list.}
-      \item{(2)}{\code{data}: The same input data data frame.}
-      \item{(3)}{\code{metadata}: The same input metadata data frame.}
-      \item{(4)}{\code{formula}: A list with the named items \code{formula} as a computed formula object and \code{random_effects_formula} as the random effects component of the formula.}
+      \item{(1)}{\code{formula}: The constructed formula.}
+      \item{(2)}{\code{random_effects_formula}: A formula for the random effects.}
     }
 }
 \author{
@@ -49,23 +54,33 @@ A list containing the following named items:
   metadata$antibiotics <- 
     factor(metadata$antibiotics, levels = c('No', 'Yes'))
   
-  # Prepare parameter lists 
-  param_list <- list(input_data = taxa_table, 
-                     input_metadata = metadata, 
-                     output = 'output', 
-                     fixed_effects = c('diagnosis', 'dysbiosis_state', 'antibiotics',
-                      'age', 'reads'), 
-                     random_effects = c('participant_id'),
-                     plot_summary_plot = FALSE, 
-                     plot_associations = FALSE)
-  
   #Run MaAsLin3
-  param_list <- 
-    maaslin3::maaslin_log_arguments(param_list)
-  params_and_data <- 
-    maaslin3::maaslin_read_data(param_list)
-  params_and_data <- 
-    maaslin3::maaslin_reorder_data(params_and_data)
-  params_and_data_and_formula <- 
-    maaslin3::maaslin_compute_formula(params_and_data)
+  maaslin3::maaslin_log_arguments(
+    input_data = taxa_table, 
+    input_metadata = metadata, 
+    output = 'output', 
+    fixed_effects = c('diagnosis', 'dysbiosis_state', 'antibiotics',
+                      'age', 'reads'), 
+    random_effects = c('participant_id'),
+    plot_summary_plot = FALSE, 
+    plot_associations = FALSE)
+  read_data_list <- maaslin3::maaslin_read_data(
+    taxa_table,
+    metadata)
+  read_data_list <- maaslin3::maaslin_reorder_data(
+    read_data_list$data,
+    read_data_list$metadata)
+    
+  data <- read_data_list$data
+  metadata <- read_data_list$metadata
+    
+  formulas <- maaslin3::maaslin_compute_formula(
+    data,
+    metadata,
+    fixed_effects = c('diagnosis', 'dysbiosis_state', 'antibiotics',
+                      'age', 'reads'), 
+    random_effects = c('participant_id'))
+    
+  unlink('output')
+  logging::logReset()
 }

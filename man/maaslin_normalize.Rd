@@ -7,32 +7,21 @@ Normalize abundance data for MaAsLin 3 model fitting.
 Normalize the abundance data according to the \code{normalization} parameter. If \code{unscaled_abundance} is specified, compute the absolute abundances.
 }
 \usage{
-maaslin_normalize(params_and_data_and_formula)
+maaslin_normalize(data,
+                  output,
+                  zero_threshold = 0,
+                  normalization = 'TSS',
+                  unscaled_abundance = NULL)
 }
 \arguments{
-    \item{params_and_data_and_formula}{
-    The results of \code{maaslin_filter_and_standardize} or a list containing the following named items:
-    \describe{
-      \item{(1)}{\code{param_list}: An input parameter list with \code{normalization}.}
-      \item{(2)}{\code{data}: The input data data frame.}
-      \item{(3)}{\code{filtered_data}: The abundance data data frame after filtering.}
-      \item{(4)}{\code{unfiltered_metadata}: The input metadata data frame.}
-      \item{(5)}{\code{metadata}: The metadata data frame after filtering.}
-      \item{(6)}{\code{formula}: A list with the named items \code{formula} as a computed formula object and \code{random_effects_formula} as the random effects component of the formula.}
-    }
-}
+    \item{data}{A data frame of feature abundances. It should be formatted with features as columns and samples as rows. The column and row names should be the feature names and sample names respectively.}
+    \item{output}{The output folder to write results.}
+    \item{zero_threshold}{Abundances less than or equal to \code{zero_threshold} will be treated as zeros. This is primarily to be used when the abundance table has likely low-abundance false positives.}
+    \item{normalization}{The normalization to apply to the features before transformation and analysis. The option \code{TSS} (total sum scaling) is recommended, but \code{CLR} (centered log ratio) and \code{NONE} can also be used.}
+    \item{unscaled_abundance}{A data frame with a single column of absolute abundances. The row names should match the names of the samples in \code{input_data} and \code{input_metadata}. When using spike-ins, the single column should have the same name as one of the features in \code{input_data}, and the \code{unscaled_abundance} should correspond to the absolute quantity of the spike-in. When using total abundance scaling, the single column should have the name 'total', and the \code{unscaled_abundance} should correspond to the total abundance of each sample.}
 }
 \value{
-A list containing the following named items:
-    \describe{
-      \item{(1)}{\code{param_list}: An input parameter list with \code{normalization}.}
-      \item{(2)}{\code{data}: The input data data frame.}
-      \item{(3)}{\code{filtered_data}: The abundance data data frame after filtering.}
-      \item{(4)}{\code{filtered_data_norm}: The abundance data after filtering and normalization.}
-      \item{(5)}{\code{unfiltered_metadata}: The input metadata data frame.}
-      \item{(6)}{\code{metadata}: The metadata data frame after filtering.}
-      \item{(7)}{\code{formula}: A list with the named items \code{formula} as a computed formula object and \code{random_effects_formula} as the random effects component of the formula.}
-    }
+A dataframe of normalized features (features are columns; samples are rows).
 }
 \author{
     William Nickols<willnickols@g.harvard.edu>,\cr
@@ -55,26 +44,35 @@ A list containing the following named items:
   metadata$antibiotics <- 
     factor(metadata$antibiotics, levels = c('No', 'Yes'))
   
-  # Prepare parameter lists 
-  param_list <- list(input_data = taxa_table, 
-                     input_metadata = metadata, 
-                     output = 'output', 
-                     formula = '~ diagnosis + dysbiosis_state + 
-                        antibiotics + age + reads', 
-                     plot_summary_plot = FALSE, 
-                     plot_associations = FALSE)
-  
   #Run MaAsLin3
-  param_list <- 
-    maaslin3::maaslin_log_arguments(param_list)
-  params_and_data <- 
-    maaslin3::maaslin_read_data(param_list)
-  params_and_data <- 
-    maaslin3::maaslin_reorder_data(params_and_data)
-  params_and_data_and_formula <- 
-    maaslin3::maaslin_check_formula(params_and_data)
-  params_and_data_and_formula <- 
-    maaslin3::maaslin_filter_and_standardize(params_and_data_and_formula)
-  params_and_data_and_formula <- 
-    maaslin3::maaslin_normalize(params_and_data_and_formula)
+  maaslin3::maaslin_log_arguments(
+    input_data = taxa_table, 
+    input_metadata = metadata, 
+    output = 'output', 
+    formula = '~ diagnosis + dysbiosis_state + antibiotics + 
+      age + reads', 
+    plot_summary_plot = FALSE, 
+    plot_associations = FALSE)
+    
+  read_data_list <- maaslin3::maaslin_read_data(
+    taxa_table,
+    metadata)
+  read_data_list <- maaslin3::maaslin_reorder_data(
+    read_data_list$data,
+    read_data_list$metadata)
+    
+  data <- read_data_list$data
+  metadata <- read_data_list$metadata
+    
+  formulas <- maaslin3::maaslin_check_formula(
+    data,
+    metadata,
+    input_formula = '~ diagnosis + dysbiosis_state + antibiotics + 
+      age + reads')
+      
+  normalized_data = maaslin3::maaslin_normalize(data,
+                                      output = 'output')
+
+  unlink('output')
+  logging::logReset()
 }

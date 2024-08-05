@@ -7,24 +7,24 @@ Reorder the abundance data and metadata.
 Reorder the abundance data and metadata to ensure samples are rows and remove any samples without abundances or metadata.
 }
 \usage{
-maaslin_reorder_data(params_and_data)
+maaslin_reorder_data(data,
+                     metadata,
+                     feature_specific_covariate = NULL,
+                     unscaled_abundance = NULL)
 }
 \arguments{
-    \item{params_and_data}{
-    The results of \code{maaslin_read_data} or a list containing the following named items:
-    \describe{
-      \item{(1)}{\code{param_list}: The parameter list with \code{unscaled_abundance} replaced by a data frame of absolute abundances if specified.}
-      \item{(2)}{\code{data}: A data frame of feature abundances.}
-      \item{(3)}{\code{metadata}: A data frame of metadata.}
-    }
-}
+    \item{data}{A data frame of feature abundances or read counts. It should be formatted with features as columns and samples as rows (or the transpose). The column and row names should be the feature names and sample names respectively.}
+    \item{metadata}{A data frame of per-sample metadata. It should be formatted with variables as columns and samples as rows (or the transpose). The column and row names should be the variable names and sample names respectively.}
+    \item{feature_specific_covariate}{A table of feature-specific covariates. It should be formatted with features as columns and samples as rows (or the transpose). The row names and column names should be the same as those of the \code{input_data}: the column and row names should be the feature names and sample names respectively.}
+    \item{unscaled_abundance}{A data frame with a single column of absolute abundances. The row names should match the names of the samples in \code{input_data} and \code{input_metadata}. When using spike-ins, the single column should have the same name as one of the features in \code{input_data}, and the \code{unscaled_abundance} should correspond to the absolute quantity of the spike-in. When using total abundance scaling, the single column should have the name 'total', and the \code{unscaled_abundance} should correspond to the total abundance of each sample.}
 }
 \value{
-    A list containing the following named items:
+    A list containing the following items:
     \describe{
-      \item{(1)}{\code{param_list}: The parameter list with \code{unscaled_abundance} trimmed of samples with missing abundances or metadata.}
-      \item{(2)}{\code{data}: A data frame of feature abundances trimmed of samples with missing abundances or metadata.}
-      \item{(3)}{\code{metadata}: A data frame of metadata trimmed of samples with missing abundances or metadata.}
+      \item{(1)}{\code{data}: A data frame of feature abundances.}
+      \item{(2)}{\code{metadata}: A data frame of metadata.}
+      \item{(3)}{\code{feature_specific_covariate}: A data frame of feature specific covariates.}
+      \item{(4)}{\code{unscaled_abundance}: A data frame of unscaled abundances.}
     }
 }
 \author{
@@ -48,20 +48,22 @@ maaslin_reorder_data(params_and_data)
   metadata$antibiotics <- 
     factor(metadata$antibiotics, levels = c('No', 'Yes'))
   
-  # Prepare parameter lists 
-  param_list <- list(input_data = taxa_table, 
-                     input_metadata = metadata, 
-                     output = 'output', 
-                     formula = '~ diagnosis + dysbiosis_state + 
-                        antibiotics + age + reads', 
-                     plot_summary_plot = FALSE, 
-                     plot_associations = FALSE)
-  
   #Run MaAsLin3
-  param_list <- 
-    maaslin3::maaslin_log_arguments(param_list)
-  params_and_data <- 
-    maaslin3::maaslin_read_data(param_list)
-  params_and_data <- 
-    maaslin3::maaslin_reorder_data(params_and_data)
+  maaslin3::maaslin_log_arguments(
+    input_data = taxa_table, 
+    input_metadata = metadata, 
+    output = 'output', 
+    formula = '~ diagnosis + dysbiosis_state + antibiotics + 
+      age + reads', 
+    plot_summary_plot = FALSE, 
+    plot_associations = FALSE)
+  read_data_list <- maaslin3::maaslin_read_data(
+    taxa_table,
+    metadata)
+  read_data_list <- maaslin3::maaslin_reorder_data(
+    taxa_table,
+    metadata)
+
+  unlink('output')
+  logging::logReset()
 }

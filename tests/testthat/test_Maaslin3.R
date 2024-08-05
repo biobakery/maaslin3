@@ -10,10 +10,11 @@ metadata$diagnosis <- factor(metadata$diagnosis, levels = c('nonIBD', 'UC', 'CD'
 metadata$dysbiosis_state <- factor(metadata$dysbiosis_state, levels = c('none', 'dysbiosis_UC', 'dysbiosis_CD'))
 metadata$antibiotics <- factor(metadata$antibiotics, levels = c('No', 'Yes'))
 
-#Prepare parameter lists 
-param_list <- list(input_data = taxa_table, 
+# Run MaAsLin 3
+output_tmp <- tempfile()
+fit_out <- maaslin3::maaslin3(input_data = taxa_table, 
                    input_metadata = metadata, 
-                   output = 'output', 
+                   output = output_tmp, 
                    normalization = 'TSS', 
                    transform = 'LOG', 
                    formula = '~ diagnosis + dysbiosis_state + antibiotics + age + reads', 
@@ -26,9 +27,6 @@ param_list <- list(input_data = taxa_table,
                    median_comparison_prevalence = FALSE, 
                    cores=1)
 
-#Run MaAsLin3
-fit_out <- maaslin3::maaslin3(param_list)
-
 maaslin_results = read.table(file.path("output","significant_results.tsv"), header = TRUE, stringsAsFactors=FALSE)
 
 expect_that(expected_results_run1$metadata[1:50],equals(maaslin_results$metadata[1:50]))
@@ -38,4 +36,4 @@ expect_that(expected_results_run1$N.not.0[1:50],equals(maaslin_results$N.not.0[1
 expect_that(round(as.numeric(expected_results_run1$pval.value[1:50]),10),equals(round(as.numeric(maaslin_results$pval.value[1:50]),10)))
 expect_that(round(as.numeric(expected_results_run1$qval.value[1:50]),10),equals(round(as.numeric(maaslin_results$qval.value[1:50]),10)))
 
-unlink('output', recursive = T)
+unlink(output_tmp, recursive = T)

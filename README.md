@@ -258,13 +258,13 @@ Particularly for use in metatranscriptomics workflows, a table of feature-specif
 
 #### Analysis options ####
 
-* `min_abundance` (default `0`): Features with abundances of at least `min_abundance` in `min_prevalence` of the samples will be included for analysis. The threshold is applied before normalization and transformation. **The options `min_abundance` and `min_prevalence` should usually be 0 since MaAsLin 3 is designed to model sparsity.**
-* `min_prevalence` (default `0`): See above.
+* `min_abundance` (default `0`): Features with abundances more than `min_abundance` in `min_prevalence` of the samples will be included for analysis. The threshold is applied after normalization and before transformation.
+* `min_prevalence` (default `0.1`): See above.
 * `zero_threshold` (default `0`): Abundances less than or equal to `zero_threshold` will be treated as zeros. This is primarily to be used when the abundance table has likely low-abundance false positives.
 * `min_variance` (default `0`): Features with abundance variances less than or equal to `min_variance` will be dropped. This is primarily used for dropping features that are entirely zero.
 * `max_significance` (default `0.1`): The FDR corrected q-value threshold for significance used in selecting which associations to write as significant and to plot.
-* `normalization` (default `TSS`): The normalization to apply to the features before transformation and analysis. The option `TSS` is recommended, but `CLR`, `CSS`, `NONE`, and `TMM` can also be used.
-* `transform` (default `LOG`): The transformation to apply to the features after normalization and before analysis. The option `LOG` is recommended, but `LOGIT`, `AST`, and `NONE` can also be used.
+* `normalization` (default `TSS`): The normalization to apply to the features before transformation and analysis. The option `TSS` (total-sum scaling) is recommended, but `CLR` (centered log ratio) and `NONE` can also be used.
+* `transform` (default `LOG`, base 2): The transformation to apply to the features after normalization and before analysis. The option `LOG` is recommended, but `PLOG` (pseudo-log) and `NONE` can also be used.
 * `correction` (default `BH`): The correction to obtain FDR-corrected q-values from raw p-values. Any valid options for `p.adjust` can be used.
 * `standardize` (default `TRUE`): Whether to apply z-scores to continuous metadata variables so they are on the same scale. This is recommended in order to compare coefficients across metadata variables, but note that functions of the metadata specified in the `formula` will apply after standardization.
 

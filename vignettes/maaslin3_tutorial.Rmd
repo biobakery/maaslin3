@@ -57,7 +57,7 @@ You can download and install the free R software environment [here](https://clou
 
 If you already have R installed, then it is possible that the R version you have does not support MaAsLin 3. The easiest way to check this is to launch R/RStudio, and in the console ("Console" pane in RStudio), type in the following command (without the `>` symbol):
 
-```{R, eval=F, cache = F}
+```{R, eval=FALSE, cache = FALSE}
 sessionInfo()
 ```
 
@@ -74,7 +74,11 @@ For MaAsLin 3 to install, you will need R >= 4.3. If your version is older than 
 
 The latest development version of MaAsLin 3 can be installed from GitHub using the `devtools` package.
 
-```{r, eval=FALSE, cache = F}
+```{r, eval=FALSE, cache = FALSE}
+if (!require('kableExtra', character.only = TRUE)) {
+  install.packages('kableExtra')
+}
+
 # Install devtools if not present
 if (!require('devtools', character.only = TRUE)) {
   install.packages('devtools')
@@ -85,7 +89,7 @@ library("devtools")
 install_github("biobakery/maaslin3")
 ```
 
-```{r, eval=T, cache = F, echo=F}
+```{r, eval=TRUE, cache = FALSE, echo=FALSE}
 for (lib in c('maaslin3', 'dplyr', 'ggplot2', 'knitr', 'kableExtra')) {
     suppressPackageStartupMessages(require(lib, character.only = TRUE))
 }
@@ -117,7 +121,7 @@ Example input files can be found in the ``inst/extdata`` folder of the MaAsLin 3
 * ``HMP2_taxonomy.tsv``: a tab-delimited file with samples as rows and species as columns. It is a subset of the full HMP2 taxonomy that includes just some of the the species abundances.
 * ``HMP2_metadata.tsv``: a tab-delimited file with samples as rows and metadata as columns. It is a subset of the full HMP2 metadata that includes just some of the fields.
 
-```{R, cache = F}   
+```{R, cache = FALSE}   
 # Read abundance table
 taxa_table_name <- system.file("extdata", "HMP2_taxonomy.tsv", package = "maaslin3")
 taxa_table <- read.csv(taxa_table_name, sep = '\t')
@@ -155,7 +159,7 @@ versus IBD diagnosis and [dysbiosis scores](https://www.nature.com/articles/s415
 
 To show one of each type of plot (see below), the maximum number of significant associations to plot has been increased with `max_pngs=100` (default `30`). All other parameters beyond the first four are the default parameters but are still included for clarity:
 
-* Total sum scaling (`normalization = 'TSS'`) with a log transformation (`'transform = 'LOG'`) afterwards will be used. These are almost always the recommended choices (and all MaAsLin 3 evaluations were performed with these options), but other normalizations and transformations are allowed (see `normalization` and `transform` in `?maaslin3`). 
+* Total sum scaling (`normalization = 'TSS'`) with a log transformation (`'transform = 'LOG'`, base 2) afterwards will be used. These are almost always the recommended choices (and all MaAsLin 3 evaluations were performed with these options), but other normalizations and transformations are allowed (see `normalization` and `transform` in `?maaslin3`). 
 * A data augmentation procedure is used to avoid linear separability in the logistic regressions (`augment = TRUE`). This is almost always recommended, though it can be turned off (see `augment` in the manual). 
 * Continuous metadatum variables are z-score standardized (subtract the mean, divide by the standard deviation) with `standardize = TRUE` so that the coefficients will be on the same scale (improving visualization).
 * A nominal FDR level of 0.1 (`max_significance = 0.1`) determines which associations are significant, but this can also be changed (see `max_significance` in the manual). 
@@ -164,22 +168,20 @@ To show one of each type of plot (see below), the maximum number of significant 
 
 The abundance, prevalence, and variance filtering parameters are not included, and they are 0 by default. **Different from other differential abundance tools, low prevalence features should not be filtered out** since the prevalence modeling in MaAsLin 3 already accounts for high proportions of zeros.
 
-```{R, echo = T, results = 'hide', warning = FALSE, cache = F}
-param_list <- list(input_data = taxa_table, 
-                   input_metadata = metadata, 
-                   output = 'hmp2_output', 
-                   formula = '~ diagnosis + dysbiosis_state + antibiotics + age + reads',
-                   normalization = 'TSS', 
-                   transform = 'LOG', 
-                   augment = TRUE, 
-                   standardize = TRUE,
-                   max_significance = 0.1, 
-                   median_comparison_abundance = TRUE, 
-                   median_comparison_prevalence = FALSE, 
-                   max_pngs = 100,
-                   cores = 1)
-
-fit_out <- maaslin3(param_list)
+```{R, echo = TRUE, results = 'hide', warning = FALSE, cache = FALSE}
+fit_out <- maaslin3(input_data = taxa_table, 
+                    input_metadata = metadata, 
+                    output = 'hmp2_output', 
+                    formula = '~ diagnosis + dysbiosis_state + antibiotics + age + reads',
+                    normalization = 'TSS', 
+                    transform = 'LOG', 
+                    augment = TRUE, 
+                    standardize = TRUE,
+                    max_significance = 0.1, 
+                    median_comparison_abundance = TRUE, 
+                    median_comparison_prevalence = FALSE, 
+                    max_pngs = 100,
+                    cores = 1)
 ```
 
 #### Median comparisons
@@ -205,7 +207,7 @@ threshold, ordered by increasing joint q-value. The format is:
   * `N` and `N.not.zero` are the total number of data points and the total number of non-zero data points for the feature.
   * `pval_joint` and `qval_joint` are the p-value and q-value of the joint prevalence and abundance association. The p-value comes from plugging in the minimum of the association's abundance and prevalence p-values into the Beta(1,2) CDF. It is interpreted as the probability that either the abundance or prevalence association would be as extreme as observed if there was neither an abundance nor prevalence association between the feature and metadatum.
   
-```{r, echo = F, cache = F}
+```{r, echo = FALSE, cache = FALSE}
 signif_results <- read.csv('hmp2_output/significant_results.tsv', sep='\t')
 signif_results %>% 
   dplyr::mutate_if(is.numeric, .funs = function(x){(as.character(signif(x, 3)))}) %>%
@@ -242,7 +244,7 @@ MaAsLin 3 generates two types of output files explained below: data and visualiz
 2. Visualization output files
     * ``summary_plot.pdf``
         * This file contain a combined coefficient plot and heatmap of the most significant associations. In the heatmap, one star indicates the individual q-value is below the parameter `max_significance`, and two stars indicate the individual q-value is below `max_significance` divided by 10. (Make sure to set `include=T` to view the plots when knitting the Rmd.)
-```{r, out.width='100%', echo=F, cache = F, include=F}
+```{r, out.width='100%', echo=FALSE, cache = FALSE, include=FALSE}
 # Rename summary plot to avoid knitting issues later
 quiet_out <- file.rename('hmp2_output/figures/summary_plot.png', 
             'hmp2_output/figures/summary_plot_first.png')
@@ -256,11 +258,11 @@ knitr::include_graphics("hmp2_output/figures/summary_plot_first.png")
         * Box plots are used for continuous data prevalence associations.
         * Grids are used for categorical data prevalence associations.
         * Data points plotted are after filtering, normalization, and transformation so that the scale in the plot is the scale that was used in fitting.
-```{r, echo=FALSE,out.width="49%",out.height="20%",fig.cap="The four types of association plots",fig.show='hold',fig.align='center', cache = F, include=F}
-knitr::include_graphics(c("hmp2_output/figures/association_plots/age_Faecalibacterium_prausnitzii_LM.png",
-                          "hmp2_output/figures/association_plots/dysbiosis_state_Escherichia_coli_LM.png",
-                          "hmp2_output/figures/association_plots/age_Bifidobacterium_longum_logistic.png",
-                          "hmp2_output/figures/association_plots/dysbiosis_state_Faecalibacterium_prausnitzii_logistic.png"))
+```{r, echo=FALSE,out.width="49%",out.height="20%",fig.cap="The four types of association plots",fig.show='hold',fig.align='center', cache = FALSE, include=FALSE}
+knitr::include_graphics(c("hmp2_output/figures/association_plots/age/LM/age_Faecalibacterium_prausnitzii_LM.png",
+                          "hmp2_output/figures/association_plots/dysbiosis_state/LM/dysbiosis_state_Escherichia_coli_LM.png",
+                          "hmp2_output/figures/association_plots/age/logistic/age_Bifidobacterium_longum_logistic.png",
+                          "hmp2_output/figures/association_plots/dysbiosis_state/logistic/dysbiosis_state_Faecalibacterium_prausnitzii_logistic.png"))
 ```
 
 At the top right of each association plot is the name of the significant association in the results file, the FDR corrected q-value for the individual association, the number of samples in the dataset, and the number of samples with non-zero abundances for the feature. In the plots with categorical metadata variables, the reference category is on the left, and the significant q-values and coefficients in the top right are in the order of the values specified above. Because the displayed coefficients correspond to the full fit model with (possibly) scaled metadata variables, the marginal association plotted might not match the coefficient displayed. However, the plots are intended to provide an interpretable visual while usually agreeing with the full model.
@@ -283,7 +285,7 @@ There are a few common issues to check for in the results:
 
 Once `maaslin3` has been run once, `maaslin_plot_results_from_output` can be run with the same `param_list` as the original `maaslin3` run to (re-)create the plots. This allows the user to plot the associations even without having the R object returned by `maaslin_fit` or `maaslin3` (e.g., if fitting models through the command line). It is recommended to fit models with simple variables names that are robust to formula plotting and then convert these into proper names for plotting. Likewise, `heatmap_vars` and `coef_plot_vars` can be specified in the `param_list` at any point, but it is usually easier to see how the names come out first and then choose which metadata variables will go in the coefficient plot and which will go in the heatmap afterwards with `maaslin_plot_results_from_output`.
 
-```{R, echo = T, results = 'hide', warning = FALSE, cache = F}
+```{R, echo = TRUE, results = 'hide', warning = FALSEALSE, cache = FALSE}
 # This section is necessary for updating the summary plot and the association plots
 
 # Rename results file with clean titles
@@ -304,35 +306,37 @@ all_results <- all_results %>%
            gsub(pattern = 'sp ', replacement = 'sp. '))
 
 # Write results
-write.table(all_results, 'hmp2_output/all_results.tsv', sep='\t', row.names = F)
+write.table(all_results, 'hmp2_output/all_results.tsv', sep='\t')
 
 # Set the new heatmap and coefficient plot variables and order them
-param_list$heatmap_vars = c('Dysbiosis UC', 'Diagnosis UC', 'Abx Used', 'Age', 'Read depth')
-param_list$coef_plot_vars = c('Dysbiosis CD', 'Diagnosis CD')
+heatmap_vars = c('Dysbiosis UC', 'Diagnosis UC', 'Abx Used', 'Age', 'Read depth')
+coef_plot_vars = c('Dysbiosis CD', 'Diagnosis CD')
 
 # This section is necessary for updating the association plots
-colnames(param_list$input_data) <- gsub('_', ' ', colnames(param_list$input_data)) %>%
+taxa_table_copy <- taxa_table
+colnames(taxa_table_copy) <- gsub('_', ' ', colnames(taxa_table_copy)) %>%
   gsub(pattern = 'sp ', replacement = 'sp. ')
 
 # Rename the features in the norm transformed data file
-filtered_data_norm_transformed <- 
-  read.csv('hmp2_output/features/filtered_data_norm_transformed.tsv', sep='\t')
-colnames(filtered_data_norm_transformed) <- 
-  gsub('_', ' ', colnames(filtered_data_norm_transformed)) %>%
+data_transformed <- 
+  read.csv('hmp2_output/features/data_transformed.tsv', sep='\t')
+colnames(data_transformed) <- 
+  gsub('_', ' ', colnames(data_transformed)) %>%
   gsub(pattern = 'sp ', replacement = 'sp. ')
-write.table(filtered_data_norm_transformed, 
-            'hmp2_output/features/filtered_data_norm_transformed.tsv', 
-            sep='\t', row.names = F)
+write.table(data_transformed, 
+            'hmp2_output/features/data_transformed.tsv', 
+            sep='\t', row.names = FALSE)
 
 # Rename the metadata like in the outputs table
-colnames(param_list$input_metadata) <- 
-  case_when(colnames(param_list$input_metadata) == 'age' ~ 'Age',
-            colnames(param_list$input_metadata) == 'antibiotics' ~ 'Abx',
-            colnames(param_list$input_metadata) == 'diagnosis' ~ 'Diagnosis',
-            colnames(param_list$input_metadata) == 'dysbiosis_state' ~ 'Dysbiosis',
-            colnames(param_list$input_metadata) == 'reads' ~ 'Read depth',
-            TRUE ~ colnames(param_list$input_metadata))
-param_list$input_metadata <- param_list$input_metadata %>%
+metadata_copy <- metadata
+colnames(metadata_copy) <- 
+  case_when(colnames(metadata_copy) == 'age' ~ 'Age',
+            colnames(metadata_copy) == 'antibiotics' ~ 'Abx',
+            colnames(metadata_copy) == 'diagnosis' ~ 'Diagnosis',
+            colnames(metadata_copy) == 'dysbiosis_state' ~ 'Dysbiosis',
+            colnames(metadata_copy) == 'reads' ~ 'Read depth',
+            TRUE ~ colnames(metadata_copy))
+metadata_copy <- metadata_copy %>%
   mutate(Dysbiosis = case_when(Dysbiosis == 'dysbiosis_UC' ~ 'UC',
                                Dysbiosis == 'dysbiosis_CD' ~ 'CD',
                                Dysbiosis == 'none' ~ 'None') %>%
@@ -345,20 +349,28 @@ param_list$input_metadata <- param_list$input_metadata %>%
            factor(levels = c('non-IBD', 'UC', 'CD')))
 
 # Recreate the plots
-scatter_plots <- maaslin_plot_results_from_output(param_list)
+scatter_plots <- maaslin_plot_results_from_output(
+  output = 'hmp2_output', 
+  metadata_copy,
+  normalization = "TSS",
+  transform = "LOG",
+  median_comparison_abundance = TRUE,
+  median_comparison_prevalence = FALSE,
+  max_significance = 0.1,
+  max_pngs = 100)
 ```
 
 In the new summary plot below, we can see that the feature names are cleaned up, the metadata names are cleaned up, the set of metadata variables used in the coefficient plot is different, and the metadata used in the heatmap is reordered.
-```{r, out.width='100%', echo=F, cache = F, include=F}
+```{r, out.width='100%', echo=FALSE, cache = FALSE, include=FALSE}
 knitr::include_graphics("hmp2_output/figures/summary_plot.png")
 ```
 
 In the association plots, the taxa and metadata have been renamed to be consistent with the results file from earlier.
-```{r, echo=FALSE,out.width="49%",out.height="20%",fig.cap="The four types of association plots",fig.show='hold',fig.align='center', cache = F, include=F}
-knitr::include_graphics(c("hmp2_output/figures/association_plots/Age_Faecalibacterium prausnitzii_LM.png",
-                          "hmp2_output/figures/association_plots/Dysbiosis_Escherichia coli_LM.png",
-                          "hmp2_output/figures/association_plots/Age_Bifidobacterium longum_logistic.png",
-                          "hmp2_output/figures/association_plots/Dysbiosis_Faecalibacterium prausnitzii_logistic.png"))
+```{r, echo=FALSE,out.width="49%",out.height="20%",fig.cap="The four types of association plots",fig.show='hold',fig.align='center', cache = FALSE, include=FALSE}
+knitr::include_graphics(c("hmp2_output/figures/association_plots/age/LM/Age_Faecalibacterium prausnitzii_LM.png",
+                          "hmp2_output/figures/association_plots/Dysbiosis/LM/Dysbiosis_Escherichia coli_LM.png",
+                          "hmp2_output/figures/association_plots/age/logistic/Age_Bifidobacterium longum_logistic.png",
+                          "hmp2_output/figures/association_plots/Dysbiosis/logistic/Dysbiosis_Faecalibacterium prausnitzii_logistic.png"))
 ```
 
 ## 4. Advanced Topics {#advanced-topics}
@@ -374,7 +386,7 @@ $$\textrm{Absolute abundance microbe}=(\textrm{Total absolute abundance})\cdot(\
 
 The following section shows a synthetic spike-in procedure with simulated data from SparseDOSSA2. The abundance table is like any other abundance table input to MaAsLin 3 except that 'Feature101' is the spike-in (which must be present in every sample). The scaling factor data frame has 'Feature101' as its only column name with the absolute abundance of the spike-in for each sample (rownames). If the same quantity of the spike-in was added to all samples, this column could be entirely 1 (or any other arbitrary value). When using a spike-in procedure, the scaling factor data frame should have a single column named the same as one of the features in the abundance table, which will be used as the spike-in.
 
-```{R, cache = F}
+```{R, cache = FALSE}
 # Abundance table
 taxa_table_name <- system.file("extdata", "abundance_spike_in_ex.tsv", package = "maaslin3")
 spike_in_taxa_table <- read.csv(taxa_table_name, sep = '\t')
@@ -392,27 +404,26 @@ spike_in_unscaled <- read.csv(unscaled_name, sep = '\t')
 
 spike_in_taxa_table[c(1:5, 101),1:5]
 spike_in_metadata[1:5,]
-spike_in_unscaled[1:5, , drop=F]
+spike_in_unscaled[1:5, , drop=FALSE]
 ```
 
 The following code fits the absolute abundance model. Note that the normalization must be set to `TSS` since the procedure involves scaling the relative abundance ratios. Also, `median_comparison_abundance` is now set to `FALSE` since we want to test the absolute coefficients against zero. The data frame of absolute abundances is included as the `unscaled_abundance` parameter, and the spike-in strategy will automatically be detected based on the column name.
 
-```{R, echo = T, results = 'hide', warning = FALSE, cache = F}
-param_list <- list(input_data = spike_in_taxa_table, 
-                   input_metadata = spike_in_metadata, 
-                   output = 'spike_in_demo', 
-                   formula = '~ Metadata_1 + Metadata_2 + Metadata_3 + Metadata_4 + Metadata_5',
-                   normalization = 'TSS', 
-                   transform = 'LOG', 
-                   median_comparison_abundance = FALSE, 
-                   unscaled_abundance = spike_in_unscaled)
-
-fit_out <- maaslin3(param_list)
+```{R, echo = TRUE, results = 'hide', warning = FALSE, cache = FALSE}
+fit_out <- maaslin3(
+  input_data = spike_in_taxa_table, 
+  input_metadata = spike_in_metadata, 
+  output = 'spike_in_demo', 
+  formula = '~ Metadata_1 + Metadata_2 + Metadata_3 + Metadata_4 + Metadata_5',
+  normalization = 'TSS', 
+  transform = 'LOG', 
+  median_comparison_abundance = FALSE, 
+  unscaled_abundance = spike_in_unscaled)
 ```
 
 The absolute abundance coefficients can be inspected:
 
-```{R, cache = F}
+```{R, cache = FALSE}
 rownames(fit_out$fit_data_abundance$results) <- NULL
 fit_out$fit_data_abundance$results %>% 
   dplyr::mutate_if(is.numeric, .funs = function(x){(as.character(signif(x, 3)))}) %>%
@@ -425,7 +436,7 @@ fit_out$fit_data_abundance$results %>%
 
 The following section shows a synthetic total abundance scaling procedure with simulated data from SparseDOSSA2. The abundance table is like any other abundance table input to MaAsLin 3 without any extra features. The scaling factor data frame has 'total' as its only column name with the total absolute abundance for each sample (rownames).
 
-```{r, cache = F}
+```{r, cache = FALSE}
 # Abundance table
 taxa_table_name <- system.file("extdata", "abundance_total_ex.tsv", package = "maaslin3")
 total_scaling_taxa_table <- read.csv(taxa_table_name, sep = '\t')
@@ -443,27 +454,26 @@ total_scaling_unscaled <- read.csv(unscaled_name, sep = '\t')
 
 total_scaling_taxa_table[1:5, 1:5]
 total_scaling_metadata[1:5,]
-total_scaling_unscaled[1:5, , drop=F]
+total_scaling_unscaled[1:5, , drop=FALSE]
 ```
 
 The following code fits the absolute abundance model. As before, `TSS` must be set to `TRUE`, `median_comparison_abundance` is set to `FALSE`, and the data frame of absolute abundances is included as the `unscaled_abundance` parameter. The total abundance scaling procedure will be detected based on the column name.
 
-```{R, echo = T, results = 'hide', warning = FALSE, cache = F}
-param_list <- list(input_data = total_scaling_taxa_table, 
-                   input_metadata = total_scaling_metadata, 
-                   output = 'total_scaling_demo', 
-                   formula = '~ Metadata_1 + Metadata_2 + Metadata_3 + Metadata_4 + Metadata_5',
-                   normalization = 'TSS', 
-                   transform = 'LOG', 
-                   median_comparison_abundance = FALSE, 
-                   unscaled_abundance = total_scaling_unscaled)
-
-fit_out <- maaslin3(param_list)
+```{R, echo = TRUE, results = 'hide', warning = FALSE, cache = FALSE}
+fit_out <- maaslin3(
+  input_data = total_scaling_taxa_table, 
+  input_metadata = total_scaling_metadata, 
+  output = 'total_scaling_demo', 
+  formula = '~ Metadata_1 + Metadata_2 + Metadata_3 + Metadata_4 + Metadata_5',
+  normalization = 'TSS', 
+  transform = 'LOG', 
+  median_comparison_abundance = FALSE, 
+  unscaled_abundance = total_scaling_unscaled)
 ```
 
 The absolute abundance coefficients can be inspected:
 
-```{R, cache = F}
+```{R, cache = FALSE}
 rownames(fit_out$fit_data_abundance$results) <- NULL
 fit_out$fit_data_abundance$results %>% 
   dplyr::mutate_if(is.numeric, .funs = function(x){(as.character(signif(x, 3)))}) %>%
@@ -476,19 +486,18 @@ fit_out$fit_data_abundance$results %>%
 
 Certain studies have a natural "grouping" of sample observations, such as by subject in longitudinal designs or by family in family designs. It is  important for statistic analysis to address the non-independence between samples belonging to the same group. MaAsLin 3 provides a simple interface for this with random effects, where the user can specify the grouping variable to run a [mixed effect model](https://cran.r-project.org/web/packages/lme4/index.html). This grouping variable can be provided with the `random_effects` parameter or specified in the model with `(1|grouping_variable)`. This will add in a "random intercept," a per-group adjustment to the model intercept. More complicated random effects can be specified in the formula in accordance with `lme4` formula parsing. For example, HMP2 has a longitudinal design where the same subject (column `participant_id`) can have multiple samples. We thus use `participant_id` as a random effect grouping variable in the model. 
 
-```{R, echo = T, results = 'hide', warning = FALSE, cache = T}
+```{R, echo = TRUE, results = 'hide', warning = FALSE, cache = TRUE}
 # Subset to only CD cases for time; taxa are subset automatically
-param_list <- list(input_data = taxa_table, 
-                   input_metadata = metadata[metadata$diagnosis == 'CD',], 
-                   output = 'random_effects_output', 
-                   formula = '~ dysbiosis_state + antibiotics + age + reads + (1|participant_id)',
-                   plot_summary_plot = F,
-                   plot_associations = F)
-
-fit_out <- maaslin3(param_list)
+fit_out <- maaslin3(
+  input_data = taxa_table, 
+  input_metadata = metadata[metadata$diagnosis == 'CD',], 
+  output = 'random_effects_output', 
+  formula = '~ dysbiosis_state + antibiotics + age + reads + (1|participant_id)',
+  plot_summary_plot = FALSE,
+  plot_associations = FALSE)
 ```
 
-```{r, echo = F, cache = F}
+```{r, echo = FALSE, cache = FALSE}
 signif_results <- read.csv('random_effects_output/significant_results.tsv', sep='\t')
 signif_results %>% 
   dplyr::mutate_if(is.numeric, .funs = function(x){(as.character(signif(x, 3)))}) %>%
@@ -505,20 +514,19 @@ Mixed effects models take longer to fit because of their complexity, and the fit
 
 One of the benefits of MaAsLin 3's formula mode is the ability to include interaction terms. Mathematically, an interaction term corresponds to the product of two columns in the design matrix. When a continuous variable is interacted with a categorical term, the interaction term corresponds to the change in the continuous variable's slope between the categories. For two categorical variables interacted, see below; it is better explained through an example. In the formula, interactions can be specified with the `:` symbol to include only the interaction term(s) or the `*` symbol to include both the interaction term and the non-interacted terms (i.e., `a*b` adds the terms `a`, `b`, and `a:b`).
 
-```{R, echo = T, results = 'hide', warning = FALSE, cache = F}
+```{R, echo = TRUE, results = 'hide', warning = FALSE, cache = FALSE}
 metadata <- metadata %>%
   mutate(dysbiosis_general = ifelse(dysbiosis_state != 'none', 'dysbiosis', 'none')) %>%
   mutate(dysbiosis_general = factor(dysbiosis_general, levels = c('none', 'dysbiosis')))
 
-param_list <- list(input_data = taxa_table, 
-                   input_metadata = metadata, 
-                   output = 'interaction_output', 
-                   formula = '~ diagnosis + diagnosis:dysbiosis_general + antibiotics + age + reads')
-
-fit_out <- maaslin3(param_list)
+fit_out <- maaslin3(
+  input_data = taxa_table, 
+  input_metadata = metadata, 
+  output = 'interaction_output', 
+  formula = '~ diagnosis + diagnosis:dysbiosis_general + antibiotics + age + reads')
 ```
 
-```{R, cache = F}
+```{R, cache = FALSE}
 full_results <- rbind(fit_out$fit_data_abundance$results, 
       fit_out$fit_data_prevalence$results)
 full_results <- full_results %>%
@@ -545,7 +553,7 @@ Since we have effectively fit the original model in a different way, this output
 
 Another feature of MaAsLin 3 is the ability to test for level-versus-level differences in ordered predictors with contrast tests. Ordered predictors are categorical variables with a natural ordering such as cancer stage, consumption frequency of a dietary factor, or dosage group. Here, we assess how microbial abundances and prevalences are associated with eating red meat by including `ordered(red_meat)` in the formula. This will perform a contrast test for whether there is a difference between each pair of subsequent levels (e.g., "Yesterday, 3 or more times" versus "Yesterday, 1 to 2 times") rather than whether there are differences between the levels and the baseline (e.g., "Yesterday, 3 or more times" versus "Not in the last 7 days"). The coefficient, standard error, and p-value all correspond to the difference between the level in `value` and the previous level. Ordered predictors should only be included as fixed effects (i.e., no ordered predictors as random effects etc.).
 
-```{R, echo = T, results = 'hide', warning = FALSE, cache = F}
+```{R, echo = TRUE, results = 'hide', warning = FALSE, cache = FALSE}
 # Put the red meat consumption responses in order
 metadata <- metadata %>%
   mutate(red_meat = ifelse(red_meat == 'No, I did not consume these products in the last 7 days',
@@ -559,28 +567,27 @@ metadata <- metadata %>%
          )
 
 # Create the model with only non-IBD subjects
-param_list <- list(input_data = taxa_table, 
-                   input_metadata = metadata[metadata$diagnosis == 'nonIBD',],
-                   output = 'ordered_outputs', 
-                   formula = '~ ordered(red_meat) + antibiotics + age + reads',
-                   plot_summary_plot = T,
-                   plot_associations = T,
-                   heatmap_vars = c('red_meat Within the past 4 to 7 days', 
-                                       'red_meat Within the past 2 to 3 days',
-                                       'red_meat Yesterday, 1 to 2 times',
-                                       'red_meat Yesterday, 3 or more times'),
-                   max_pngs = 30)
-
-fit_out <- maaslin3(param_list)
+fit_out <- maaslin3(
+  input_data = taxa_table, 
+  input_metadata = metadata[metadata$diagnosis == 'nonIBD',],
+  output = 'ordered_outputs', 
+  formula = '~ ordered(red_meat) + antibiotics + age + reads',
+  plot_summary_plot = TRUE,
+  plot_associations = TRUE,
+  heatmap_vars = c('red_meat Within the past 4 to 7 days', 
+                     'red_meat Within the past 2 to 3 days',
+                     'red_meat Yesterday, 1 to 2 times',
+                     'red_meat Yesterday, 3 or more times'),
+  max_pngs = 30)
 ```
 
-```{r, out.width='100%', echo=F, cache = F, include=F}
+```{r, out.width='100%', echo=FALSE, cache = FALSE, include=FALSE}
 knitr::include_graphics("ordered_outputs/figures/summary_plot.png")
 ```
 
 If we look at the resulting heatmap, we can identify the *Alistipes shahii* prevalence association as potentially interesting since it increases in prevalence with more meat consumption in all but one level-versus-level comparison.
 
-```{r, echo = F, cache = F}
+```{r, echo = FALSE, cache = FALSE}
 full_results <- rbind(fit_out$fit_data_abundance$results, 
       fit_out$fit_data_prevalence$results)
 full_results <- full_results %>%
@@ -605,25 +612,24 @@ full_results %>%
 
 The last feature of MaAsLin 3 highlighted here is the ability to test for group-wise differences in categorical predictors using an ANOVA or ANOVA-like procedure. Group-wise predictors are categorical variables with or without an ordering such as race, country, or consumption frequency of a dietary factor. When performing a group-wise difference test, we are not comparing any two particular levels; rather, we are investigating whether abundances and prevalences are the same for all levels. Therefore, no coefficient is returned, only a p-value. Here, we test whether there are differences in microbial abundances and prevalences across people with different levels of red meat consumption by including `group(red_meat)`. Group-wise predictors should only be included as fixed effects (i.e., no group-wise predictors as random effects etc.).
 
-```{R, echo = T, results = 'hide', warning = FALSE, cache = F}
-param_list <- list(input_data = taxa_table, 
-                   input_metadata = metadata[metadata$diagnosis == 'nonIBD',],
-                   output = 'group_outputs', 
-                   formula = '~ group(red_meat) + antibiotics + age + reads',
-                   plot_summary_plot = T,
-                   plot_associations = T,
-                   heatmap_vars = c('red_meat Within the past 4 to 7 days', 
-                                       'red_meat Within the past 2 to 3 days',
-                                       'red_meat Yesterday, 1 to 2 times',
-                                       'red_meat Yesterday, 3 or more times'),
-                   max_pngs = 200)
-
-fit_out <- maaslin3(param_list)
+```{R, echo = T, results = 'hide', warning = FALSE, cache = FALSE}
+fit_out <- maaslin3(
+  input_data = taxa_table, 
+  input_metadata = metadata[metadata$diagnosis == 'nonIBD',],
+  output = 'group_outputs', 
+  formula = '~ group(red_meat) + antibiotics + age + reads',
+  plot_summary_plot = TRUE,
+  plot_associations = TRUE,
+  heatmap_vars = c('red_meat Within the past 4 to 7 days', 
+                     'red_meat Within the past 2 to 3 days',
+                     'red_meat Yesterday, 1 to 2 times',
+                     'red_meat Yesterday, 3 or more times'),
+  max_pngs = 200)
 ```
 
 If we look at the same *Alistipes shahii* association from before, we see that no coefficient or standard error is returned for a group predictor, but the q-value is very low. This corroborates the observation earlier that there are differences in *Alistipes shahii* prevalence with red meat consumption.
 
-```{r, echo = F, cache = F}
+```{r, echo = FALSE, cache = FALSE}
 full_results <- rbind(fit_out$fit_data_abundance$results, 
       fit_out$fit_data_prevalence$results)
 full_results <- full_results %>%
@@ -648,7 +654,7 @@ full_results %>%
 
 MaAsLin 3 can also be run with a command line interface. For example, the first HMP2 analysis can be performed with:
 
-```{r, engine = 'bash', eval = FALSE, cache = F}
+```{r, engine = 'bash', eval = FALSE, cache = FALSE}
 ./R/maaslin3.R inst/extdata/HMP2_taxonomy.tsv inst/extdata/HMP2_metadata.tsv command_line_output --formula='~ diagnosis + dysbiosis_state + antibiotics + age + reads' --reference='diagnosis,nonIBD;dysbiosis_state,none;antibiotics,No'
 ```
 
@@ -657,3 +663,7 @@ MaAsLin 3 can also be run with a command line interface. For example, the first 
     * ``inst/extdata/HMP2_taxonomy.tsv`` is the path to your data (or features) file
     * ``inst/extdata/HMP2_metadata.tsv`` is the path to your metadata file
     * ``command_line_output`` is the path to the folder to write the output
+
+```{R}
+sessionInfo()
+```

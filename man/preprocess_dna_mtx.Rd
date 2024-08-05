@@ -31,3 +31,23 @@ A list containing the following named items:
     Jacob Nearing<nearing@broadinstitute.org>,\cr
     Maintainers: Lauren McIver<lauren.j.mciver@gmail.com>,\cr
 }
+\examples{
+  input_data <- system.file(
+  'extdata','HMP2_pwyRNA.tsv', package="maaslin3")
+  df_input_data = read.table(file = input_data,
+                             header = TRUE,
+                             sep = "\t", 
+                             row.names = 1,
+                             stringsAsFactors = FALSE)
+
+  input_dnadata <- system.file('extdata','HMP2_pwyDNA.tsv', package="maaslin3")
+  df_input_dnadata = read.table(file             = input_dnadata,
+                                 header           = TRUE,
+                                 sep              = "\t", 
+                                 row.names        = 1,
+                                 stringsAsFactors = FALSE)
+
+
+  preprocess_out <- preprocess_dna_mtx(df_input_dnadata, df_input_data)
+
+}

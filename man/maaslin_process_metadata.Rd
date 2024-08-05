@@ -1,29 +1,29 @@
-\name{maaslin_write_results}
-\alias{maaslin_write_results}
+\name{maaslin_process_metadata}
+\alias{maaslin_process_metadata}
 \title{
-Write the results from a MaAsLin 3 run.
+Process metadata before MaAsLin 3 model fitting.
 }
 \description{
-Write the results from a MaAsLin 3 run to the output folder as a TSV.
+Check that references are set properly if the metadata variables are categorical and provided through \code{fixed_effects}. Standardize the continuous metadata variables as a z-score (subtract the mean, divide by the standard deviation) if \code{standardize} is set.
 }
 \usage{
-maaslin_write_results(output,
-                      fit_data_abundance,
-                      fit_data_prevalence,
-                      random_effects_formula = NULL,
-                      max_significance = 0.1,
-                      save_models = FALSE)
+maaslin_process_metadata(metadata,
+                         formula = NULL,
+                         fixed_effects = NULL,
+                         reference = NULL,
+                         feature_specific_covariate_name = NULL,
+                         standardize = TRUE)
 }
 \arguments{
-    \item{output}{The output folder to write results.}
-    \item{fit_data_abundance}{The abundance outputs of \code{\link{maaslin_fit}}.}
-    \item{fit_data_prevalence}{The prevalence outputs of \code{\link{maaslin_fit}}.}
-    \item{random_effects_formula}{A formula in \code{lme4} format as from \code{\link{maaslin_check_formula}}.}
-    \item{max_significance}{The FDR corrected q-value threshold for significance used in selecting which associations to write as significant and to plot.}
-    \item{save_models}{Whether to return the fit models and save them to an RData file.}
+    \item{metadata}{A data frame of per-sample metadata. It should be formatted with variables as columns and samples as rows. The column and row names should be the variable names and sample names respectively.}
+    \item{formula}{A formula in \code{lme4} format. Random effects, interactions, and functions of the metadata can be included (note that these functions will be applied after standardization if \code{standardize=TRUE}). Group, ordered, and strata variables can be specified as: \code{group(grouping_variable)}, \code{ordered(ordered_variable)} and \code{strata(strata_variable)}. The other variable options below will not be considered if a formula is set.}
+    \item{fixed_effects}{A vector of variable names to be included as fixed effects.}
+    \item{reference}{For a variable with more than two levels supplied with \code{fixed_effects}, the factor to use as a reference provided as a string of 'variable,reference' semi-colon delimited for multiple variables.}
+    \item{feature_specific_covariate_name}{The name for the feature-specific covariates when fitting the models.}
+    \item{standardize}{Whether to apply z-scores to continuous metadata variables so they are on the same scale. This is recommended in order to compare coefficients across metadata variables, but note that functions of the metadata specified in the \code{formula} will apply after standardization.}
 }
 \value{
-Results will be written to the \code{all_results.tsv} and \code{significant_results.tsv} files in the folder \code{output}. The file \code{all_results.tsv} will contain all results in the \code{fit_data_abundance} and \code{fit_data_prevalence} items of the input list (with 'LM' and 'logistic' replaced by 'abundance' and 'prevalence' in the \code{model} column). The file \code{significant_results.tsv} will contain all results with joint q-values below the `max_significance` parameter and only `NA` in the `error` column of the results (the `error` column is subsequently dropped). No value is returned.
+The processed metadata.
 }
 \author{
     William Nickols<willnickols@g.harvard.edu>,\cr
@@ -81,26 +81,10 @@ Results will be written to the \code{all_results.tsv} and \code{significant_resu
   filtered_data = maaslin3::maaslin_filter(normalized_data,
                                       output = 'output')
                                       
-  transformed_data = maaslin3::maaslin_filter(filtered_data,
-                                      output = 'output')
-                                      
   standardized_metadata = maaslin3::maaslin_process_metadata(
     metadata,
     formula = formula)
-    
-  maaslin_results = maaslin3::maaslin_fit(
-    filtered_data,
-    transformed_data,
-    standardized_metadata,
-    formula,
-    random_effects_formula)
-    
-  maaslin3::maaslin_write_results(
-    output = 'output',
-    maaslin_results$fit_data_abundance,
-    maaslin_results$fit_data_prevalence,
-    random_effects_formula)
-    
+
   unlink('output')
   logging::logReset()
 }

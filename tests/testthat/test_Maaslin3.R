@@ -13,21 +13,21 @@ metadata$antibiotics <- factor(metadata$antibiotics, levels = c('No', 'Yes'))
 # Run MaAsLin 3
 output_tmp <- tempfile()
 fit_out <- maaslin3::maaslin3(input_data = taxa_table, 
-                   input_metadata = metadata, 
-                   output = output_tmp, 
-                   normalization = 'TSS', 
-                   transform = 'LOG', 
-                   formula = '~ diagnosis + dysbiosis_state + antibiotics + age + reads', 
-                   save_models = FALSE, 
-                   plot_summary_plot = T, 
-                   plot_associations = T, 
-                   max_significance = 0.1, 
-                   augment = TRUE, 
-                   median_comparison_abundance = TRUE, 
-                   median_comparison_prevalence = FALSE, 
-                   cores=1)
+                            input_metadata = metadata, 
+                            output = output_tmp, 
+                            normalization = 'TSS', 
+                            transform = 'LOG', 
+                            formula = '~ diagnosis + dysbiosis_state + antibiotics + age + reads', 
+                            save_models = FALSE, 
+                            plot_summary_plot = T, 
+                            plot_associations = T, 
+                            max_significance = 0.1, 
+                            augment = TRUE, 
+                            median_comparison_abundance = TRUE, 
+                            median_comparison_prevalence = FALSE, 
+                            cores=1)
 
-maaslin_results = read.table(file.path("output","significant_results.tsv"), header = TRUE, stringsAsFactors=FALSE)
+maaslin_results = read.table(file.path(output_tmp, "significant_results.tsv"), header = TRUE, stringsAsFactors=FALSE)
 
 expect_that(expected_results_run1$metadata[1:50],equals(maaslin_results$metadata[1:50]))
 expect_that(expected_results_run1$feature[1:50],equals(maaslin_results$feature[1:50]))

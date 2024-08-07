@@ -917,21 +917,6 @@ maaslin_read_data <- function(input_data,
     )
 }
 
-maaslin_read_summarized_experiment_data <- function(summarized_experiment) {
-    if (!inherits(summarized_experiment, "SummarizedExperiment")) {
-        stop("Input must be a SummarizedExperiment object")
-    }
-    
-    data <- as.data.frame(t(SummarizedExperiment::assay(summarized_experiment)))
-    metadata <- as.data.frame(
-        SummarizedExperiment::colData(summarized_experiment))
-
-    return(list(
-        "data" = data,
-        "metadata" = metadata
-    ))
-}
-
 ###############################################################
 # Determine orientation of data in input and reorder to match #
 ###############################################################
@@ -2619,6 +2604,7 @@ maaslin3 <- function(input_data,
 # this evaluates to true if script is being called directly as an executable
 if (identical(environment(), globalenv()) &&
     !length(grep("^source\\(", sys.calls()))) {
+
     # get command line options and positional arguments
     parsed_arguments <- optparse::parse_args(options,
                                             positional_arguments = TRUE)

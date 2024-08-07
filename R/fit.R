@@ -453,6 +453,7 @@ choose_ranef_model_summary_funs_logistic <- function(random_effects_formula,
                     },
                     list(strata = strata)
                 )
+                model_function <- eval(model_function)
             } else {
                 model_function <-
                     function(formula,

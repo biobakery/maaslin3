@@ -181,8 +181,8 @@ write_fits <- function(output,
     }
     
     
-    for (model_type in c('LM', 'logistic')) {
-        if (model_type == 'LM') {
+    for (model_type in c('linear', 'logistic')) {
+        if (model_type == 'linear') {
             fit_data <- fit_data_abundance
         } else {
             fit_data <- fit_data_prevalence
@@ -273,7 +273,7 @@ write_results <- function(output,
     
     fit_data$model <-
         dplyr::case_when(
-            fit_data$model == 'LM' ~ 'abundance',
+            fit_data$model == 'linear' ~ 'abundance',
             fit_data$model == 'logistic' ~ 'prevalence',
             TRUE ~ NA
         )
@@ -366,6 +366,204 @@ write_results_in_lefse_format <-
         
         writeLines(sort(lines_vec), con = output_file_name)
     }
+
+####################
+# Contrast testing #
+####################
+
+maaslin_contrast_test <- function(fits,
+                                contrast_mat,
+                                rhs) {
+    
+    if (any(unlist(lapply(fits, FUN = function(x){is(x,"lm")})))) {
+        model <- "abundance"
+        uses_random_effects <- FALSE
+    } else if (any(unlist(lapply(fits, FUN = function(x){is(x,"glm")})))) {
+        model <- "prevalence"
+        uses_random_effects <- FALSE
+    } else if (any(unlist(lapply(fits, FUN = function(x){is(x,"lmerMod")})))) {
+        model <- "abundance"
+        uses_random_effects <- TRUE
+    } else if (any(unlist(lapply(fits, FUN = function(x){is(x,"glmerMod")})))) {
+        model <- "prevalence"
+        uses_random_effects <- TRUE
+    } else if (any(unlist(lapply(fits, FUN = function(x){is(x,"coxph")})))) {
+        model <- "prevalence"
+        uses_random_effects <- FALSE
+    }
+    
+    if (nrow(contrast_mat) != length(rhs)) {
+        stop("Number of rows in contrast matrix must equal the length of rhs")
+    }
+    
+    pvals_new <- vector(length = length(fits) * nrow(contrast_mat))
+    coefs_new <- vector(length = length(fits) * nrow(contrast_mat))
+    sigmas_new <- vector(length = length(fits) * nrow(contrast_mat))
+    errors <- vector(length = length(fits) * nrow(contrast_mat))
+    
+    for (fit_index in seq_along(fits)) {
+        fit <- fits[[fit_index]]
+        if (!is(fit, 'lmerMod') & !is(fit, 'glmerMod') & !is(fit, "coxph")) {
+            if (all(is.na(fit))) {
+                pvals_new[((fit_index - 1) * nrow(contrast_mat) + 1):
+                            ((fit_index) * nrow(contrast_mat))] <- NA
+                coefs_new[((fit_index - 1) * nrow(contrast_mat) + 1):
+                            ((fit_index) * nrow(contrast_mat))] <- NA
+                sigmas_new[((fit_index - 1) * nrow(contrast_mat) + 1):
+                            ((fit_index) * nrow(contrast_mat))] <- NA
+                errors[((fit_index - 1) * nrow(contrast_mat) + 1):
+                        ((fit_index) * nrow(contrast_mat))] <- "Fit is NA"
+                next
+            }
+        }
+        
+        if (uses_random_effects) {
+            included_coefs <- names(lme4::fixef(fit))
+        } else {
+            included_coefs <- names(coef(fit, complete = FALSE))
+        }
+        contrast_mat_cols <- colnames(contrast_mat)
+        contrast_mat_tmp <- contrast_mat
+        contrast_mat_tmp <- cbind(contrast_mat_tmp, 
+                                matrix(0, 
+                                        nrow = nrow(contrast_mat_tmp),
+                                        ncol = length(
+                                            setdiff(included_coefs,
+                                                    contrast_mat_cols))))
+        colnames(contrast_mat_tmp) <- c(contrast_mat_cols,
+                                        setdiff(included_coefs,
+                                                contrast_mat_cols))
+        if (any(contrast_mat_tmp[,setdiff(contrast_mat_cols, 
+                                        included_coefs)] != 0)) {
+            pvals_new[((fit_index - 1) * nrow(contrast_mat) + 1):
+                        ((fit_index) * nrow(contrast_mat))] <- NA
+            coefs_new[((fit_index - 1) * nrow(contrast_mat) + 1):
+                        ((fit_index) * nrow(contrast_mat))] <- NA
+            sigmas_new[((fit_index - 1) * nrow(contrast_mat) + 1):
+                        ((fit_index) * nrow(contrast_mat))] <- NA
+            errors[((fit_index - 1) * nrow(contrast_mat) + 1):
+                    ((fit_index) * nrow(contrast_mat))] <- 
+                "Predictors not in the model had non-zero contrast values"
+            next
+        }
+        
+        contrast_mat_tmp <- contrast_mat_tmp[,included_coefs]
+        
+        if (!uses_random_effects | model == 'prevalence') {
+            for (row_num in seq(nrow(contrast_mat))) {
+                contrast_vec <- t(matrix(contrast_mat_tmp[row_num,]))
+                
+                error_message <- NA
+                calling_env <- environment()
+                test_out <- tryCatch({
+                    if (!uses_random_effects) {
+                        summary_out <- summary(multcomp::glht(
+                            fit,
+                            linfct = contrast_vec,
+                            rhs = rhs[row_num],
+                            coef. = function(x) {
+                                coef(x, complete = FALSE)
+                            }
+                        )
+                        )$test
+                    } else {
+                        summary_out <- summary(multcomp::glht(
+                            fit,
+                            linfct = contrast_vec,
+                            rhs = rhs[row_num],
+                        )
+                        )$test
+                    }
+                    
+                    c(summary_out$pvalues,
+                    summary_out$coefficients,
+                    summary_out$sigma)
+                }, warning = function(w) {
+                    message(sprintf("Feature %s : %s", 
+                                    names(fit), w))
+                    
+                    assign("error_message",
+                        conditionMessage(w),
+                        envir = calling_env)
+                    invokeRestart("muffleWarning")
+                },
+                error = function(err) {
+                    assign("error_message", err$message, envir = calling_env)
+                    error_obj <- c(NA, NA, NA)
+                    return(error_obj)
+                })
+                pvals_new[((fit_index - 1) * nrow(contrast_mat) + row_num)] <- 
+                    test_out[1]
+                coefs_new[((fit_index - 1) * nrow(contrast_mat) + row_num)] <- 
+                    test_out[2]
+                sigmas_new[((fit_index - 1) * nrow(contrast_mat) + row_num)] <- 
+                    test_out[3] 
+                errors[((fit_index - 1) * nrow(contrast_mat) + row_num)] <- 
+                    error_message
+            }
+        } else {
+            for (row_num in seq(nrow(contrast_mat))) {
+                contrast_vec <- t(matrix(contrast_mat_tmp[row_num,]))
+                
+                error_message <- NA
+                calling_env <- environment()
+                test_out <- tryCatch({
+                    pval <- lmerTest::contest(fit,
+                                            matrix(
+                                                contrast_vec,
+                                                TRUE
+                                            ), rhs = rhs[row_num])[['Pr(>F)']]
+                    coef <- contrast_vec %*% lme4::fixef(fit)
+                    sigma <- sqrt((contrast_vec %*% vcov(fit) %*% 
+                                    t(contrast_vec))[1, 1])
+                    c(pval,
+                    coef,
+                    sigma)
+                }, warning = function(w) {
+                    message(sprintf("Feature %s : %s", 
+                                    names(fit), w))
+                    
+                    assign("error_message",
+                        conditionMessage(w),
+                        envir = calling_env)
+                    invokeRestart("muffleWarning")
+                },
+                error = function(err) {
+                    assign("error_message", err$message, envir = calling_env)
+                    error_obj <- c(NA, NA, NA)
+                    return(error_obj)
+                })
+                pvals_new[((fit_index - 1) * nrow(contrast_mat) + row_num)] <- 
+                    test_out[1]
+                coefs_new[((fit_index - 1) * nrow(contrast_mat) + row_num)] <- 
+                    test_out[2]
+                sigmas_new[((fit_index - 1) * nrow(contrast_mat) + row_num)] <- 
+                    test_out[3] 
+                errors[((fit_index - 1) * nrow(contrast_mat) + row_num)] <- 
+                    error_message
+            }
+        }
+    }
+    
+    if (all(is.null(rownames(contrast_mat)))) {
+        test_names <- seq(nrow(contrast_mat))
+    } else {
+        test_names <- rownames(contrast_mat)
+    }
+    
+    paras <- data.frame(
+        feature = rep(names(fits), each = nrow(contrast_mat)),
+        test = rep(test_names, length(fits)),
+        coef = coefs_new,
+        rhs = rep(rhs, length(fits)),
+        stderr = sigmas_new,
+        pval_individual = pvals_new,
+        error = errors,
+        model = model
+    )
+    
+    return(paras)
+}
 
 ##############################
 # DNA pre-processing for MTX #

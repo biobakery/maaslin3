@@ -66,6 +66,6 @@ maaslin_read_summarized_experiment_data(summarized_experiment)
     # This replaces maaslin_read_data above
     read_data_list <- maaslin_read_summarized_experiment_data(se)
     
-    unlink('output')
+    unlink('output', recursive=TRUE)
     logging::logReset()
 }

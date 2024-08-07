@@ -15,10 +15,10 @@ export(maaslin_write_results)
 export(maaslin_write_results_lefse_format)
 export(maaslin_plot_results)
 export(maaslin_plot_results_from_output)
+export(maaslin_contrast_test)
 export(preprocess_dna_mtx)
 
 import("optparse")
-importFrom("grDevices", "colorRampPalette", "dev.off", "pdf", "jpeg","png")
 importFrom("stats", "as.formula", "coef", "glm", "lm", "na.exclude",
     "p.adjust", "update", "relevel", "anova", "approx", "filter", "median",    "model.matrix", "pbeta", "quantile", "terms",    "update.formula", "var", "vcov")
 importFrom("utils", "capture.output", "read.table", "write.table")

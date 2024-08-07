@@ -202,15 +202,15 @@ contains all the data and results (see `?maaslin_fit`).
         * These steps are performed sequentially in the above order.
         * If an option is set such that a step does not change the data, the
         resulting table will still be output.
-    * ``models_LM.rds`` and ``models_logistic.rds``
-        * These files contain a list with every model fit object (`LM` for
+    * ``models_linear.rds`` and ``models_logistic.rds``
+        * These files contain a list with every model fit object (`linear` for
         linear models, `logistic` for logistic models).
         * It will only be generated if `save_models` is set to TRUE.
-    * ``residuals_LM.rds`` and ``residuals_logstic.rds``
+    * ``residuals_linear.rds`` and ``residuals_logstic.rds``
         * These files contain a data frame with residuals for each feature.
-    * ``fitted_LM.rds`` and ``fitted_logistic.rds``
+    * ``fitted_linear.rds`` and ``fitted_logistic.rds``
         * These files contain a data frame with fitted values for each feature.
-    * ``ranef_LM.rds`` and ``ranef_logistic.rds``
+    * ``ranef_linear.rds`` and ``ranef_logistic.rds``
         * These files contain a data frame with extracted random effects for
         each feature (when random effects are specified).
     * ``maaslin3.log``
@@ -512,12 +512,10 @@ knitr::include_graphics("hmp2_output/figures/summary_plot.png")
 
 In the association plots, the taxa and metadata have been renamed to be
 consistent with the results file from earlier.
-```{r, echo=FALSE,out.width="49%",out.height="20%",
-    fig.cap="The four types of association plots",fig.show='hold',
-    fig.align='center', cache = FALSE, include=FALSE}
+```{r, echo=FALSE, fig.show='hold', cache = FALSE, include=FALSE}
 prefix <- "hmp2_output/figures/association_plots"
-plot_vec <- c("/age/LM/Age_Faecalibacterium prausnitzii_LM.png",
-            "/Dysbiosis/LM/Dysbiosis_Escherichia coli_LM.png",
+plot_vec <- c("/age/linear/Age_Faecalibacterium prausnitzii_linear.png",
+            "/Dysbiosis/linear/Dysbiosis_Escherichia coli_linear.png",
             "/age/logistic/Age_Bifidobacterium longum_logistic.png",
             paste0("/Dysbiosis/logistic/",
                 "Dysbiosis_Faecalibacterium prausnitzii_logistic.png"
@@ -863,3 +861,9 @@ this?
 ```{R}
 sessionInfo()
 ```
+
+```{R}
+# Clean-up generated outputs
+unlink('hmp2_output', recursive = TRUE)
+```
+

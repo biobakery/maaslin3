@@ -88,6 +88,6 @@ maaslin_read_data(input_data,
         taxa_table,
         metadata)
     
-    unlink('output')
+    unlink('output', recursive=TRUE)
     logging::logReset()
 }

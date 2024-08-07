@@ -134,7 +134,7 @@ association (row):
     \item{(9)}{\code{qval_individual}: The FDR corrected q-value of the
     association. FDR correction is performed over all associations in the
     abundance and prevalence modeling separately.}
-    \item{(10)}{\code{model}: \code{LM} for the abundance models and
+    \item{(10)}{\code{model}: \code{linear} for the abundance models and
     \code{logistic} for the prevalence models.}
     \item{(11)}{\code{N}: The number of data points for the association's
     feature.}
@@ -208,7 +208,7 @@ association (row):
     filtered_data = maaslin3::maaslin_filter(normalized_data,
                                     output = 'output')
                                     
-    transformed_data = maaslin3::maaslin_filter(filtered_data,
+    transformed_data = maaslin3::maaslin_transform(filtered_data,
                                     output = 'output')
                                     
     standardized_metadata = maaslin3::maaslin_process_metadata(
@@ -222,6 +222,6 @@ association (row):
         formula,
         random_effects_formula)
     
-    unlink('output')
+    unlink('output', recursive=TRUE)
     logging::logReset()
 }

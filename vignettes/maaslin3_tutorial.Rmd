@@ -396,15 +396,15 @@ visualizations. In addition, the object returned from `maaslin3`
         * These steps are performed sequentially in the above order.
         * If an option is set such that a step does not change the data, the
         resulting table will still be output.
-    * ``models_LM.rds`` and ``models_logistic.rds``
-        * These files contain a list with every model fit object (`LM` for
+    * ``models_linear.rds`` and ``models_logistic.rds``
+        * These files contain a list with every model fit object (`linear` for
         linear models, `logistic` for logistic models).
         * It will only be generated if `save_models` is set to TRUE.
-    * ``residuals_LM.rds`` and ``residuals_logstic.rds``
+    * ``residuals_linear.rds`` and ``residuals_logstic.rds``
         * These files contain a data frame with residuals for each feature.
-    * ``fitted_LM.rds`` and ``fitted_logistic.rds``
+    * ``fitted_linear.rds`` and ``fitted_logistic.rds``
         * These files contain a data frame with fitted values for each feature.
-    * ``ranef_LM.rds`` and ``ranef_logistic.rds``
+    * ``ranef_linear.rds`` and ``ranef_logistic.rds``
         * These files contain a data frame with extracted random effects for
         each feature (when random effects are specified).
     * ``maaslin3.log``
@@ -434,16 +434,15 @@ knitr::include_graphics("hmp2_output/figures/summary_plot_first.png")
         * Data points plotted are after filtering, normalization, and
         transformation so that the scale in the plot is the scale that was used
         in fitting.
-```{r, echo=FALSE,out.width="49%",out.height="20%",
-    fig.cap="The four types of association plots",
-    fig.show='hold',fig.align='center', cache = FALSE, include=FALSE}
+```{r, echo=FALSE, fig.show='hold',include=FALSE}
 prefix <- "hmp2_output/figures/association_plots"
-plot_vec <- c("/age/LM/age_Faecalibacterium_prausnitzii_LM.png",
-            "/dysbiosis_state/LM/dysbiosis_state_Escherichia_coli_LM.png",
-            "/age/logistic/age_Bifidobacterium_longum_logistic.png",
-            paste0("/dysbiosis_state/logistic/",
-                "dysbiosis_state_Faecalibacterium_prausnitzii_logistic.png"
-                ))
+plot_vec <- 
+    c("/age/linear/age_Faecalibacterium_prausnitzii_linear.png",
+    "/dysbiosis_state/linear/dysbiosis_state_Escherichia_coli_linear.png",
+    "/age/logistic/age_Bifidobacterium_longum_logistic.png",
+    paste0("/dysbiosis_state/logistic/",
+        "dysbiosis_state_Faecalibacterium_prausnitzii_logistic.png"
+        ))
 knitr::include_graphics(paste0(prefix, plot_vec))
 ```
 
@@ -579,7 +578,7 @@ metadata_copy <- metadata_copy %>%
 # Recreate the plots
 scatter_plots <- maaslin_plot_results_from_output(
     output = 'hmp2_output',
-    metadata_copy,
+    metadata = metadata_copy,
     normalization = "TSS",
     transform = "LOG",
     median_comparison_abundance = TRUE,
@@ -598,12 +597,10 @@ knitr::include_graphics("hmp2_output/figures/summary_plot.png")
 
 In the association plots, the taxa and metadata have been renamed to be
 consistent with the results file from earlier.
-```{r, echo=FALSE,out.width="49%",out.height="20%",
-    fig.cap="The four types of association plots",fig.show='hold',
-    fig.align='center', cache = FALSE, include=FALSE}
+```{r, echo=FALSE, fig.show='hold', cache = FALSE, include=FALSE}
 prefix <- "hmp2_output/figures/association_plots"
-plot_vec <- c("/age/LM/Age_Faecalibacterium prausnitzii_LM.png",
-            "/Dysbiosis/LM/Dysbiosis_Escherichia coli_LM.png",
+plot_vec <- c("/age/linear/Age_Faecalibacterium prausnitzii_linear.png",
+            "/Dysbiosis/linear/Dysbiosis_Escherichia coli_linear.png",
             "/age/logistic/Age_Bifidobacterium longum_logistic.png",
             paste0("/Dysbiosis/logistic/",
                 "Dysbiosis_Faecalibacterium prausnitzii_logistic.png"
@@ -1071,4 +1068,15 @@ the first HMP2 analysis can be performed with the following command (the
 
 ```{R}
 sessionInfo()
+```
+
+```{R}
+# Clean-up
+unlink('hmp2_output', recursive = TRUE)
+unlink('spike_in_demo', recursive = TRUE)
+unlink('total_scaling_demo', recursive = TRUE)
+unlink('random_effects_output', recursive = TRUE)
+unlink('interaction_output', recursive = TRUE)
+unlink('ordered_outputs', recursive = TRUE)
+unlink('group_outputs', recursive = TRUE)
 ```

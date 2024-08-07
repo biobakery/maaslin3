@@ -89,6 +89,6 @@ A list containing the following named items:
         input_formula = '~ diagnosis + dysbiosis_state + antibiotics +
         age + reads')
     
-    unlink('output')
+    unlink('output', recursive=TRUE)
     logging::logReset()
 }

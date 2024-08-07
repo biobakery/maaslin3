@@ -38,27 +38,29 @@ if (identical(environment(), globalenv()) &&
         sub("--file=", "", script_options[grep("--file=", script_options)])
     script_dir <- dirname(script_path)
     script_name <- basename(script_path)
-    R_files <- c("fit.R", "utility_scripts.R", "vis.R")
+    R_files <- c("fit.R", "utility_scripts.R", "viz.R")
+    `%>%` <- dplyr::`%>%`
+    
     # load in the required libraries, report an error if they are not installed
-    for (lib in c(
-        'optparse',
-        'logging',
-        'data.table',
-        'dplyr',
-        'pbapply',
-        'lmerTest',
-        'parallel',
-        'lme4',
-        'multcomp',
-        'ggplot2',
-        'viridis',
-        "grid",
-        'RColorBrewer',
-        'patchwork',
-        'scales'
-    )) {
-        suppressPackageStartupMessages(require(lib, character.only = TRUE))
-    }
+    # for (lib in c(
+    #     'optparse',
+    #     'logging',
+    #     'data.table',
+    #     'dplyr',
+    #     'pbapply',
+    #     'lmerTest',
+    #     'parallel',
+    #     'lme4',
+    #     'multcomp',
+    #     'ggplot2',
+    #     'viridis',
+    #     "grid",
+    #     'RColorBrewer',
+    #     'patchwork',
+    #     'scales'
+    # )) {
+    #     suppressPackageStartupMessages(require(lib, character.only = TRUE))
+    # }
     for (R_file in R_files)
     {
         if (!(R_file == script_name))
@@ -443,7 +445,7 @@ options <-
         help = paste(
             "Whether to evaluate just the abundnace or 
             prevalence models [ Default: %default ] [ Choices:",
-            c("abundance", "prevalence"),
+            toString(c("abundance", "prevalence"),),
             "]"
         )
         
@@ -738,6 +740,7 @@ maaslin_log_arguments <- function(input_data,
         unlink(log_file)
     }
     
+    logging::logReset()
     logging::basicConfig(level = 'FINEST')
     logging::addHandler(logging::writeToFile,
                         file = log_file, level = "DEBUG")
@@ -830,15 +833,9 @@ maaslin_read_data <- function(input_data,
     # if a character string then this is a file name, else it
     # is a data frame
     if (is.character(input_data) && file.exists(input_data)) {
-        data <-
-            data.frame(data.table::fread(input_data, header = TRUE, sep = "\t"),
-                    row.names = 1)
-        if (nrow(data) == 1) {
-            # read again to get row name
-            data <- read.table(input_data,
-                            header = TRUE,
-                            row.names = 1)
-        }
+        data <- read.table(input_data,
+                        header = TRUE,
+                        row.names = 1)
     } else if (is.data.frame(input_data)) {
         if (!tibble::has_rownames(input_data)) {
             stop("If supplying input_data as a data frame, 
@@ -856,15 +853,9 @@ maaslin_read_data <- function(input_data,
     
     if (is.character(input_metadata) &&
         file.exists(input_metadata)) {
-        metadata <-
-            data.frame(data.table::fread(input_metadata, 
-                                        header = TRUE, sep = "\t"),
-                    row.names = 1)
-        if (nrow(metadata) == 1) {
-            metadata <- read.table(input_metadata,
-                                header = TRUE,
-                                row.names = 1)
-        }
+        metadata <- read.table(input_metadata,
+                            header = TRUE,
+                            row.names = 1)
     } else if (is.data.frame(input_metadata)) {
         if (!tibble::has_rownames(input_metadata)) {
             stop(
@@ -881,12 +872,9 @@ maaslin_read_data <- function(input_data,
     if (is.character(unscaled_abundance) &&
         file.exists(unscaled_abundance)) {
         unscaled_abundance <-
-            data.frame(data.table::fread(
-                unscaled_abundance,
-                header = TRUE,
-                sep = "\t"
-            ),
-            row.names = 1)
+            read.table(unscaled_abundance,
+                    header = TRUE,
+                    row.names = 1)
     } else if (is.data.frame(unscaled_abundance)) {
         if (!tibble::has_rownames(unscaled_abundance)) {
             stop(
@@ -903,14 +891,9 @@ maaslin_read_data <- function(input_data,
     if (is.character(feature_specific_covariate) &&
         file.exists(feature_specific_covariate)) {
         feature_specific_covariate <-
-            data.frame(
-                data.table::fread(
-                    feature_specific_covariate,
+            read.table(feature_specific_covariate,
                     header = TRUE,
-                    sep = "\t"
-                ),
-                row.names = 1
-            )
+                    row.names = 1)
     } else if (is.data.frame(feature_specific_covariate)) {
         if (!tibble::has_rownames(feature_specific_covariate)) {
             stop(
@@ -1312,7 +1295,7 @@ maaslin_compute_formula <- function(data,
         if (length(to_remove) > 0) {
             logging::logerror(
                 paste(
-                    "Feature name not found in metadata",
+                    "Effect name not found in metadata",
                     "so not applied to formula as random effect: %s"
                 ),
                 paste(to_remove, collapse = " , ")
@@ -1376,7 +1359,7 @@ maaslin_compute_formula <- function(data,
         to_remove <- setdiff(multi_effects, colnames(metadata))
         if (length(to_remove) > 0) {
             logging::logerror(paste0(
-                "Feature name not found in metadata: ",
+                "Effect name not found in metadata: ",
                 paste0(to_remove, collapse = ", ")
             ))
             stop()
@@ -1509,8 +1492,8 @@ maaslin_check_formula <- function(data,
     to_remove <- setdiff(formula_terms, colnames(metadata))
     if (length(to_remove) > 0) {
         logging::logerror(
-            paste("Feature name not found in metadata: %s"),
-            paste(to_remove, collapse = " , ")
+            paste("Effect name not found in metadata: %s"),
+            paste(to_remove, collapse = ", ")
         )
         stop()
     }
@@ -1714,8 +1697,12 @@ maaslin_process_metadata <- function(metadata,
         tmp_formula <-
             formula(paste0("~ ", paste0(term_labels, collapse = " + ")))
         formula_terms <- all.vars(tmp_formula)
-        fixed_effects <-
-            formula_terms[formula_terms != feature_specific_covariate_name]
+        if (is.null(feature_specific_covariate_name)) {
+            fixed_effects <- formula_terms
+        } else {
+            fixed_effects <-
+                formula_terms[formula_terms != feature_specific_covariate_name]
+        }
     }
     
     # for each fixed effect, check that a 
@@ -1747,7 +1734,7 @@ maaslin_process_metadata <- function(metadata,
         # get reference level for variable being considered, 
         # returns NA if not found
         ref <- split_reference[match(i, split_reference) + 1]
-        
+
         # if metadata has 2 levels, allow but don't require 
         # setting reference level, otherwise require it
         if ((length(mlevels) == 2)) {
@@ -1832,9 +1819,9 @@ maaslin_transform <- function(filtered_data,
     return(features)
 }
 
-##########
-# Fit LM #
-##########
+##############
+# Fit linear #
+##############
 
 maaslin_fit <- function(filtered_data,
                         transformed_data,
@@ -1854,7 +1841,7 @@ maaslin_fit <- function(filtered_data,
                         evaluate_only = NULL,
                         cores = 1,
                         save_models = FALSE) {
-    logging::loginfo("Running the linear model (LM) component")
+    logging::loginfo("Running the linear model component")
     
     if (!is.null(feature_specific_covariate)) {
         tryCatch({
@@ -1882,7 +1869,7 @@ maaslin_fit <- function(filtered_data,
             fit.model(
                 features = transformed_data,
                 metadata = metadata,
-                model = 'LM',
+                model = 'linear',
                 formula = formula,
                 random_effects_formula = random_effects_formula,
                 correction = correction,
@@ -1974,7 +1961,7 @@ maaslin_fit <- function(filtered_data,
         results <-
             add_joint_signif(fit_data_abundance,
                             fit_data_prevalence,
-                            'LM',
+                            'linear',
                             correction)
         fit_data_abundance$results <- results[[1]]
         fit_data_prevalence$results <- results[[2]]
@@ -2260,6 +2247,7 @@ maaslin_plot_results_from_output <- function(output,
                                             heatmap_vars = NULL,
                                             plot_associations = TRUE,
                                             max_pngs = 30) {
+    
     # create an output folder and figures folder if it does not exist
     if (!file.exists(output)) {
         logging::loginfo("Creating output folder")
@@ -2283,7 +2271,7 @@ maaslin_plot_results_from_output <- function(output,
     }
     merged_results <- utils::read.csv(all_results_file, sep = '\t')
     merged_results$model[merged_results$model == 'abundance'] <-
-        'LM'
+        'linear'
     merged_results$model[merged_results$model == 'prevalence'] <-
         'logistic'
     

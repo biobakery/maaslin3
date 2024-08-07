@@ -94,6 +94,6 @@ rows).
     normalized_data = maaslin3::maaslin_normalize(data,
                                     output = 'output')
     
-    unlink('output')
+    unlink('output', recursive=TRUE)
     logging::logReset()
 }

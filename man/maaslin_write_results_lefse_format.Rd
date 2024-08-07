@@ -82,7 +82,7 @@ file in the folder \code{output}. No value is returned.
     filtered_data = maaslin3::maaslin_filter(normalized_data,
                                     output = 'output')
                                     
-    transformed_data = maaslin3::maaslin_filter(filtered_data,
+    transformed_data = maaslin3::maaslin_transform(filtered_data,
                                     output = 'output')
                                     
     standardized_metadata = maaslin3::maaslin_process_metadata(
@@ -101,6 +101,6 @@ file in the folder \code{output}. No value is returned.
         maaslin_results$fit_data_abundance,
         maaslin_results$fit_data_prevalence)
     
-    unlink('output')
+    unlink('output', recursive=TRUE)
     logging::logReset()
 }

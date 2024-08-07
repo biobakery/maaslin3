@@ -109,14 +109,14 @@ MaAsLin 3 generates two types of output files explained below: data and visualiz
         * This folder includes the filtered, normalized, and transformed versions of the input feature table.
         * These steps are performed sequentially in the above order.
         * If an option is set such that a step does not change the data, the resulting table will still be output.
-    * ``models_LM.rds`` and ``models_logistic.rds``
-        * These files contain a list with every model fit object (`LM` for linear models, `logistic` for logistic models).
+    * ``models_linear.rds`` and ``models_logistic.rds``
+        * These files contain a list with every model fit object (`linear` for linear models, `logistic` for logistic models).
         * It will only be generated if `save_models` is set to TRUE.
-    * ``residuals_LM.rds`` and ``residuals_logstic.rds``
+    * ``residuals_linear.rds`` and ``residuals_logstic.rds``
         * These files contain a data frame with residuals for each feature.
-    * ``fitted_LM.rds`` and ``fitted_logistic.rds``
+    * ``fitted_linear.rds`` and ``fitted_logistic.rds``
         * These files contain a data frame with fitted values for each feature.
-    * ``ranef_LM.rds`` and ``ranef_logistic.rds``
+    * ``ranef_linear.rds`` and ``ranef_logistic.rds``
         * These files contain a data frame with extracted random effects for each feature (when random effects are specified).
     * ``maaslin3.log``
         * This file contains all log information for the run.

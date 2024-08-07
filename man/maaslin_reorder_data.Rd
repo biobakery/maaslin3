@@ -88,6 +88,6 @@ maaslin_reorder_data(data,
         taxa_table,
         metadata)
     
-    unlink('output')
+    unlink('output', recursive=TRUE)
     logging::logReset()
 }

@@ -422,7 +422,7 @@ results = rbind(results_rna, results_rna_dna, results_rna_ratio)
 # subset to just the top features in the MaAsLin 3 DNA covariate model
 results = results[results$feature %in% top_pathways, ]
 # Rename abundance/prevalence
-results$model <- ifelse(results$model == 'LM', 'Abundance',
+results$model <- ifelse(results$model == 'linear', 'Abundance',
 'Prevalence')
 
 # Plot significant CD dysbiosis associations
@@ -445,3 +445,11 @@ particularly for the prevalence models.
 ```{R}
 sessionInfo()
 ```
+
+```{R}
+# Clean-up
+unlink('demo_output_rna', recursive = TRUE)
+unlink('demo_output_ratio', recursive = TRUE)
+unlink('demo_output_mtx_mgx', recursive = TRUE)
+```
+

@@ -95,6 +95,6 @@ rows).
     filtered_data = maaslin3::maaslin_filter(normalized_data,
                                     output = 'output')
     
-    unlink('output')
+    unlink('output', recursive=TRUE)
     logging::logReset()
 }

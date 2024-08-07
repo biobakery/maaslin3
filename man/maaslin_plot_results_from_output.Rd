@@ -152,7 +152,7 @@ corresponds to the user-set \code{max_signifiance} divided by 10.
     filtered_data = maaslin3::maaslin_filter(normalized_data,
                                 output = 'output')
                                 
-    transformed_data = maaslin3::maaslin_filter(filtered_data,
+    transformed_data = maaslin3::maaslin_transform(filtered_data,
                                 output = 'output')
                                 
     standardized_metadata = maaslin3::maaslin_process_metadata(
@@ -178,6 +178,6 @@ corresponds to the user-set \code{max_signifiance} divided by 10.
         normalization = "TSS",
         transform = "LOG")
     
-    unlink('output')
+    unlink('output', recursive=TRUE)
     logging::logReset()
 }

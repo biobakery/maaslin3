@@ -33,7 +33,7 @@ Results will be written to the \code{all_results.tsv} and
 \code{significant_results.tsv} files in the folder \code{output}. The
 file \code{all_results.tsv} will contain all results in the
 \code{fit_data_abundance} and \code{fit_data_prevalence} items of the
-input list (with 'LM' and 'logistic' replaced by 'abundance' and
+input list (with 'linear' and 'logistic' replaced by 'abundance' and
 'prevalence' in the \code{model} column). The file
 \code{significant_results.tsv} will contain all results with joint
 q-values below the `max_significance` parameter and only `NA` in the
@@ -99,7 +99,7 @@ dropped). No value is returned.
     filtered_data = maaslin3::maaslin_filter(normalized_data,
                                                 output = 'output')
                                     
-    transformed_data = maaslin3::maaslin_filter(filtered_data,
+    transformed_data = maaslin3::maaslin_transform(filtered_data,
                                                 output = 'output')
                                     
     standardized_metadata = maaslin3::maaslin_process_metadata(
@@ -119,6 +119,6 @@ dropped). No value is returned.
         maaslin_results$fit_data_prevalence,
         random_effects_formula)
     
-    unlink('output')
+    unlink('output', recursive=TRUE)
     logging::logReset()
 }

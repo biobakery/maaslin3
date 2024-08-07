@@ -67,6 +67,381 @@ nature_theme <- function(x_axis_labels, y_label) {
     )
 }
 
+preprocess_merged_results <- function(merged_results) {
+    merged_results <-
+        merged_results[is.na(merged_results$error) &
+                        !is.na(merged_results$qval_individual) &
+                        !is.na(merged_results$coef),]
+    
+    if (nrow(merged_results) == 0) {
+        logging::loginfo(paste(
+            "No associations were without errors. 
+                No summary plot generated."
+        ))
+        return(NULL)
+    }
+    merged_results$model <-
+        ifelse(merged_results$model == 'linear', 'Abundance', 'Prevalence')
+    merged_results$full_metadata_name <-
+        ifelse(
+            merged_results$metadata == merged_results$value,
+            merged_results$metadata,
+            paste0(merged_results$metadata, ' ', merged_results$value)
+        )
+    return(merged_results)
+}
+
+make_coef_plot <- function(merged_results_sig, 
+                        coef_plot_vars,
+                        max_significance,
+                        median_comparison_prevalence,
+                        median_comparison_abundance,
+                        median_df) {
+    coef_plot_data <-
+        merged_results_sig[merged_results_sig$full_metadata_name %in% 
+                            coef_plot_vars,]
+    
+    quantile_df <- coef_plot_data %>%
+        dplyr::group_by(.data$full_metadata_name) %>%
+        dplyr::summarise(
+            lower_q = median(.data$coef) - 10 * 
+                (median(.data$coef) - quantile(.data$coef, 0.25)),
+            upper_q = median(.data$coef) + 10 * 
+                (quantile(.data$coef, 0.75) - median(.data$coef))
+        ) %>%
+        data.frame()
+    rownames(quantile_df) <- quantile_df$full_metadata_name
+    
+    # Make sure insignificant coefficients don't distort the plot
+    coef_plot_data <-
+        coef_plot_data[coef_plot_data$qval_individual < 
+                        max_significance |
+                        (coef_plot_data$coef > quantile_df[
+                            coef_plot_data$full_metadata_name, 
+                            'lower_q'] &
+                                coef_plot_data$coef < quantile_df[
+                                    coef_plot_data$full_metadata_name, 
+                                    'upper_q']),]
+    
+    custom_break_fun <- function(n) {
+        return(function(x) {
+            extended_breaks <- scales::breaks_extended(n)(x)
+            if (max(x) > 0) {
+                extended_breaks <- extended_breaks[
+                    extended_breaks <= max(x) * 0.9]
+            } else {
+                extended_breaks <- extended_breaks[
+                    extended_breaks <= max(x) * 1.1]
+            }
+            if (min(x) > 0) {
+                extended_breaks <- extended_breaks[
+                    extended_breaks >= min(x) * 1.1]
+            } else {
+                extended_breaks <- extended_breaks[
+                    extended_breaks >= min(x) * 0.9]
+            }
+            extended_breaks
+        })
+    }
+    
+    # Create plot
+    p1 <-
+        ggplot2::ggplot(coef_plot_data,
+                        ggplot2::aes(x = .data$coef, y = .data$feature))
+    
+    if (median_comparison_prevalence |
+        median_comparison_abundance) {
+        p1 <- p1 +
+            ggplot2::guides(linetype = ggplot2::guide_legend(
+                title = 'Null hypothesis', order = 1),
+            ) +
+            ggplot2::geom_vline(
+                data = median_df[median_df$full_metadata_name %in% 
+                                    coef_plot_vars,],
+                ggplot2::aes(
+                    xintercept = .data$median_val,
+                    linetype = .data$model
+                ),
+                color = "darkgray"
+            ) +
+            ggplot2::scale_linetype_manual(values = c("Prevalence" = 
+                                                        "dashed", 
+                                                    "Abundance" = 
+                                                        "solid"))
+    } else {
+        p1 <- p1 +
+            ggplot2::geom_vline(
+                ggplot2::aes(xintercept = 0),
+                color = "darkgray",
+                linetype = 'dashed'
+            )
+    }
+    
+    scale_fill_gradient_limits <-
+        c(min(max_significance, 10 ^ floor(log10(
+            min(coef_plot_data$qval_individual)
+        ))), 1)
+    if (min(coef_plot_data$qval_individual) < max_significance) {
+        scale_fill_gradient_breaks <-
+            c(10 ^ floor(log10(
+                min(coef_plot_data$qval_individual)
+            )), max_significance, 1)
+    } else {
+        scale_fill_gradient_breaks <- c(max_significance, 1)
+    }
+    if (min(coef_plot_data$qval_individual) < max_significance) {
+        scale_fill_gradient_labels <-
+            c(paste0("1e", floor(log10(
+                min(coef_plot_data$qval_individual)
+            ))),
+            paste0(max_significance),
+            "1")
+    } else {
+        scale_fill_gradient_labels <- c(paste0(max_significance),
+                                        "1")
+    }
+    
+    
+    p1 <- p1 +
+        ggplot2::geom_errorbar(
+            ggplot2::aes(
+                xmin = .data$coef - .data$stderr,
+                xmax = .data$coef + .data$stderr
+            ),
+            width = 0.2
+        ) +
+        ggplot2::geom_point(
+            data = coef_plot_data[coef_plot_data$model == 
+                                    'Prevalence',],
+            ggplot2::aes(
+                shape = .data$model,
+                fill = .data$qval_individual
+            ),
+            size = 4.5,
+            color = "black"
+        ) +
+        ggplot2::scale_fill_gradient(
+            low = "#008B8B",
+            high = "white",
+            limits = scale_fill_gradient_limits,
+            breaks = scale_fill_gradient_breaks,
+            labels = scale_fill_gradient_labels,
+            transform = scales::pseudo_log_trans(sigma = 0.001),
+            name = bquote("Prevalence" ~ P["FDR"])
+        ) +
+        ggnewscale::new_scale_fill() +
+        ggplot2::geom_point(
+            data = coef_plot_data[coef_plot_data$model == 'Abundance',],
+            ggplot2::aes(
+                shape = .data$model,
+                fill = .data$qval_individual
+            ),
+            size = 4.5,
+            color = "black"
+        ) +
+        ggplot2::scale_fill_gradient(
+            low = "#8B008B",
+            high = "white",
+            limits = scale_fill_gradient_limits,
+            breaks = scale_fill_gradient_breaks,
+            labels = scale_fill_gradient_labels,
+            transform = scales::pseudo_log_trans(sigma = 0.001),
+            name = bquote("Abundance" ~ P["FDR"])
+        ) +
+        ggplot2::scale_x_continuous(
+            breaks = custom_break_fun(n = 6),
+            limits = c(
+                min(coef_plot_data$coef) - 
+                    quantile(coef_plot_data$stderr, 0.8),
+                max(coef_plot_data$coef) + 
+                    quantile(coef_plot_data$stderr, 0.8)
+            )
+        ) +
+        ggplot2::scale_shape_manual(name = "Association", values =
+                                        c(21, 24)) +
+        ggplot2::guides(shape = ggplot2::guide_legend(order = 2), ) +
+        ggplot2::labs(x = expression(paste(beta, " coefficient")),  
+                    y = "Feature") +
+        ggplot2::theme_bw() +
+        ggplot2::theme(
+            axis.title = ggplot2::element_text(size = 16),
+            axis.text.y = ggplot2::element_text(size = 14),
+            axis.text.x = ggplot2::element_text(size = 14),
+            legend.title = ggplot2::element_text(size = 16),
+            legend.text = ggplot2::element_text(size = 14, 
+                                                face = "plain"),
+            legend.position = "right",
+            legend.background = ggplot2::element_rect(
+                fill = "transparent"),
+            panel.spacing = ggplot2::unit(0, "lines"),
+            panel.grid.minor = ggplot2::element_blank(),
+            strip.text = ggplot2::element_text(size = 14),
+            strip.background = ggplot2::element_rect(
+                fill = "transparent")
+        ) +
+        ggplot2::facet_wrap(
+            ~ factor(full_metadata_name, 
+                    levels = unique(coef_plot_vars)),
+            scales = 'free_x',
+            ncol = length(coef_plot_vars)
+        )
+    return(p1)
+}
+
+make_heatmap_plot <- function(merged_results_sig,
+                            heatmap_vars,
+                            max_significance,
+                            median_comparison_prevalence,
+                            median_comparison_abundance) {
+    # Create column for significance star annotation
+    merged_results_sig$sig_star <-
+        cut(
+            merged_results_sig$qval_individual,
+            breaks = c(-Inf, max_significance / 10, max_significance, Inf),
+            label = c("**", "*", "")
+        )
+    
+    # Bin coefficients into categories
+    coefficient_thresh <-
+        round(max(abs(
+            quantile(merged_results_sig$coef, c(0.1, 0.9))
+        )) / 10, 1) * 5
+    if (coefficient_thresh == 0) {
+        coefficient_thresh <- 0.5
+    }
+    coef_breaks <-
+        c(
+            -coefficient_thresh,-coefficient_thresh / 2,
+            0,
+            coefficient_thresh / 2,
+            coefficient_thresh,
+            Inf
+        )
+    threshold_set <-
+        c(
+            paste0("(-Inf,", -1 * coefficient_thresh, "]"),
+            paste0(
+                "(",-1 * coefficient_thresh,
+                ",",-1 / 2 * coefficient_thresh,
+                "]"
+            ),
+            paste0("(", -1 / 2 * coefficient_thresh, ",0]"),
+            paste0("(0,", 1 / 2 * coefficient_thresh, "]"),
+            paste0(
+                "(",
+                1 / 2 * coefficient_thresh,
+                ",",
+                1 * coefficient_thresh,
+                "]"
+            ),
+            paste0("(", 1 * coefficient_thresh, ",Inf)")
+        )
+    
+    threshold_indices <-
+        vapply(merged_results_sig$coef, function(value) {
+            which(value < coef_breaks)[1]
+        }, FUN.VALUE = 0)
+    
+    merged_results_sig <- merged_results_sig %>%
+        dplyr::mutate(coef_cat = threshold_set[threshold_indices])
+    merged_results_sig$coef_cat <-
+        factor(merged_results_sig$coef_cat, levels = threshold_set)
+    
+    scale_fill_values <-
+        rev((RColorBrewer::brewer.pal(n = 6, name = "RdBu")))
+    names(scale_fill_values) <- threshold_set
+    
+    heatmap_data <-
+        merged_results_sig[merged_results_sig$full_metadata_name %in% 
+                            heatmap_vars,]
+    
+    grid <- expand.grid(
+        feature = unique(heatmap_data$feature),
+        full_metadata_name = unique(heatmap_data$full_metadata_name),
+        model = unique(heatmap_data$model)
+    )
+    heatmap_data <-
+        merge(
+            grid,
+            heatmap_data,
+            by = c("feature", "full_metadata_name", "model"),
+            all.x = TRUE
+        )
+    heatmap_data$coef[is.na(heatmap_data$coef)] <- NA
+    
+    p2 <-
+        ggplot2::ggplot(heatmap_data,
+                        ggplot2::aes(
+                            x = factor(.data$full_metadata_name, 
+                                    unique(heatmap_vars)),
+                            y = .data$feature
+                        )) +
+        ggplot2::geom_tile(
+            data = heatmap_data,
+            ggplot2::aes(fill = .data$coef_cat),
+            colour = "white",
+            linewidth = 0.2
+        ) +
+        ggplot2::scale_fill_manual(
+            name = "Beta coefficient",
+            na.value = "#EEEEEE",
+            values = scale_fill_values
+        ) +
+        ggplot2::geom_text(
+            ggplot2::aes(
+                label = .data$sig_star,
+                color = .data$sig_star
+            ),
+            size = 6,
+            vjust = 0.75,
+            hjust = 0.5,
+            key_glyph = ggplot2::draw_key_blank
+        ) +
+        ggplot2::scale_color_manual(
+            name = bquote("Covariates" ~ P["FDR"]),
+            breaks = c("*", "**", ""),
+            values = c("black", "black", "black"),
+            labels = c(paste0("* < ", round(
+                max_significance, 3
+            )), paste0(
+                "** < ", round(max_significance / 10, 5)
+            ), "")
+        ) +
+        ggplot2::labs(x = '',
+                    y = "Feature",
+                    caption = "") +
+        ggplot2::theme_bw() +
+        ggplot2::theme(
+            axis.title = ggplot2::element_text(size = 16),
+            axis.text.x = ggplot2::element_text(
+                size = 14,
+                angle = 90,
+                vjust = 0.5,
+                hjust = 1
+            ),
+            legend.title = ggplot2::element_text(size = 16),
+            legend.text = ggplot2::element_text(size = 14, 
+                                                face = "plain"),
+            legend.position = "right",
+            legend.background = ggplot2::element_rect(
+                fill = "transparent"),
+            panel.spacing = ggplot2::unit(0, "lines"),
+            panel.grid.minor = ggplot2::element_blank(),
+            strip.text = ggplot2::element_text(size = 14),
+            strip.background = ggplot2::element_rect(
+                fill = "transparent")
+        ) +
+        ggplot2::guides(
+            fill = ggplot2::guide_legend(order = 1),
+            color = ggplot2::guide_legend(order = 2),
+        ) +
+        ggplot2::facet_grid(~ model, labeller = ggplot2::labeller(
+            model = c("abundance" = "Abundance", 
+                    "prevalence" = "Prevalence")
+        ))
+    return(p2)
+}
+
 # MaAsLin3 summary_plot function for overall view of associations
 maaslin3_summary_plot <-
     function(merged_results,
@@ -88,27 +463,7 @@ maaslin3_summary_plot <-
             return()
         }
         
-        # Preprocessing
-        merged_results <-
-            merged_results[is.na(merged_results$error) &
-                            !is.na(merged_results$qval_individual) &
-                            !is.na(merged_results$coef),]
-        
-        if (nrow(merged_results) == 0) {
-            logging::loginfo(paste(
-                "No associations were without errors. 
-                No summary plot generated."
-            ))
-            return(NULL)
-        }
-        merged_results$model <-
-            ifelse(merged_results$model == 'LM', 'Abundance', 'Prevalence')
-        merged_results$full_metadata_name <-
-            ifelse(
-                merged_results$metadata == merged_results$value,
-                merged_results$metadata,
-                paste0(merged_results$metadata, ' ', merged_results$value)
-            )
+        merged_results <- preprocess_merged_results(merged_results)
         
         median_df <- merged_results %>%
             dplyr::group_by(.data$full_metadata_name, .data$model) %>%
@@ -206,347 +561,25 @@ maaslin3_summary_plot <-
         if (length(coef_plot_vars) > 0 &
             sum(merged_results_sig$full_metadata_name %in% 
                 coef_plot_vars) >= 1) {
-            coef_plot_data <-
-                merged_results_sig[merged_results_sig$full_metadata_name %in% 
-                                    coef_plot_vars,]
-            
-            quantile_df <- coef_plot_data %>%
-                dplyr::group_by(.data$full_metadata_name) %>%
-                dplyr::summarise(
-                    lower_q = median(.data$coef) - 10 * 
-                        (median(.data$coef) - quantile(.data$coef, 0.25)),
-                    upper_q = median(.data$coef) + 10 * 
-                        (quantile(.data$coef, 0.75) - median(.data$coef))
-                ) %>%
-                data.frame()
-            rownames(quantile_df) <- quantile_df$full_metadata_name
-            
-            # Make sure insignificant coefficients don't distort the plot
-            coef_plot_data <-
-                coef_plot_data[coef_plot_data$qval_individual < 
-                                max_significance |
-                                (coef_plot_data$coef > quantile_df[
-                                    coef_plot_data$full_metadata_name, 
-                                    'lower_q'] &
-                                        coef_plot_data$coef < quantile_df[
-                                            coef_plot_data$full_metadata_name, 
-                                            'upper_q']),]
-            
-            custom_break_fun <- function(n) {
-                return(function(x) {
-                    extended_breaks <- scales::breaks_extended(n)(x)
-                    if (max(x) > 0) {
-                        extended_breaks <- extended_breaks[
-                            extended_breaks <= max(x) * 0.9]
-                    } else {
-                        extended_breaks <- extended_breaks[
-                            extended_breaks <= max(x) * 1.1]
-                    }
-                    if (min(x) > 0) {
-                        extended_breaks <- extended_breaks[
-                            extended_breaks >= min(x) * 1.1]
-                    } else {
-                        extended_breaks <- extended_breaks[
-                            extended_breaks >= min(x) * 0.9]
-                    }
-                    extended_breaks
-                })
-            }
-            
-            # Create plot
-            p1 <-
-                ggplot2::ggplot(coef_plot_data,
-                                ggplot2::aes(x = .data$coef, y = .data$feature))
-            
-            if (median_comparison_prevalence |
-                median_comparison_abundance) {
-                p1 <- p1 +
-                    ggplot2::guides(linetype = ggplot2::guide_legend(
-                        title = 'Null hypothesis', order = 1),
-                    ) +
-                    ggplot2::geom_vline(
-                        data = median_df[median_df$full_metadata_name %in% 
-                                            coef_plot_vars,],
-                        ggplot2::aes(
-                            xintercept = .data$median_val,
-                            linetype = .data$model
-                        ),
-                        color = "darkgray"
-                    ) +
-                    ggplot2::scale_linetype_manual(values = c("Prevalence" = 
-                                                                "dashed", 
-                                                            "Abundance" = 
-                                                                "solid"))
-            } else {
-                p1 <- p1 +
-                    ggplot2::geom_vline(
-                        ggplot2::aes(xintercept = 0),
-                        color = "darkgray",
-                        linetype = 'dashed'
-                    )
-            }
-            
-            scale_fill_gradient_limits <-
-                c(min(max_significance, 10 ^ floor(log10(
-                    min(coef_plot_data$qval_individual)
-                ))), 1)
-            if (min(coef_plot_data$qval_individual) < max_significance) {
-                scale_fill_gradient_breaks <-
-                    c(10 ^ floor(log10(
-                        min(coef_plot_data$qval_individual)
-                    )), max_significance, 1)
-            } else {
-                scale_fill_gradient_breaks <- c(max_significance, 1)
-            }
-            if (min(coef_plot_data$qval_individual) < max_significance) {
-                scale_fill_gradient_labels <-
-                    c(paste0("1e", floor(log10(
-                        min(coef_plot_data$qval_individual)
-                    ))),
-                    paste0(max_significance),
-                    "1")
-            } else {
-                scale_fill_gradient_labels <- c(paste0(max_significance),
-                                                "1")
-            }
-            
-            
-            p1 <- p1 +
-                ggplot2::geom_errorbar(
-                    ggplot2::aes(
-                        xmin = .data$coef - .data$stderr,
-                        xmax = .data$coef + .data$stderr
-                    ),
-                    width = 0.2
-                ) +
-                ggplot2::geom_point(
-                    data = coef_plot_data[coef_plot_data$model == 
-                                            'Prevalence',],
-                    ggplot2::aes(
-                        shape = .data$model,
-                        fill = .data$qval_individual
-                    ),
-                    size = 4.5,
-                    color = "black"
-                ) +
-                ggplot2::scale_fill_gradient(
-                    low = "#008B8B",
-                    high = "white",
-                    limits = scale_fill_gradient_limits,
-                    breaks = scale_fill_gradient_breaks,
-                    labels = scale_fill_gradient_labels,
-                    transform = scales::pseudo_log_trans(sigma = 0.001),
-                    name = bquote("Prevalence" ~ P["FDR"])
-                ) +
-                ggnewscale::new_scale_fill() +
-                ggplot2::geom_point(
-                    data = coef_plot_data[coef_plot_data$model == 'Abundance',],
-                    ggplot2::aes(
-                        shape = .data$model,
-                        fill = .data$qval_individual
-                    ),
-                    size = 4.5,
-                    color = "black"
-                ) +
-                ggplot2::scale_fill_gradient(
-                    low = "#8B008B",
-                    high = "white",
-                    limits = scale_fill_gradient_limits,
-                    breaks = scale_fill_gradient_breaks,
-                    labels = scale_fill_gradient_labels,
-                    transform = scales::pseudo_log_trans(sigma = 0.001),
-                    name = bquote("Abundance" ~ P["FDR"])
-                ) +
-                ggplot2::scale_x_continuous(
-                    breaks = custom_break_fun(n = 6),
-                    limits = c(
-                        min(coef_plot_data$coef) - 
-                            quantile(coef_plot_data$stderr, 0.8),
-                        max(coef_plot_data$coef) + 
-                            quantile(coef_plot_data$stderr, 0.8)
-                    )
-                ) +
-                ggplot2::scale_shape_manual(name = "Association", values =
-                                                c(21, 24)) +
-                ggplot2::guides(shape = ggplot2::guide_legend(order = 2), ) +
-                ggplot2::labs(x = expression(paste(beta, " coefficient")),  
-                            y = "Feature") +
-                ggplot2::theme_bw() +
-                ggplot2::theme(
-                    axis.title = ggplot2::element_text(size = 16),
-                    axis.text.y = ggplot2::element_text(size = 14),
-                    axis.text.x = ggplot2::element_text(size = 14),
-                    legend.title = ggplot2::element_text(size = 16),
-                    legend.text = ggplot2::element_text(size = 14, 
-                                                        face = "plain"),
-                    legend.position = "right",
-                    legend.background = ggplot2::element_rect(
-                        fill = "transparent"),
-                    panel.spacing = ggplot2::unit(0, "lines"),
-                    panel.grid.minor = ggplot2::element_blank(),
-                    strip.text = ggplot2::element_text(size = 14),
-                    strip.background = ggplot2::element_rect(
-                        fill = "transparent")
-                ) +
-                ggplot2::facet_wrap(
-                    ~ factor(full_metadata_name, 
-                            levels = unique(coef_plot_vars)),
-                    scales = 'free_x',
-                    ncol = length(coef_plot_vars)
-                )
+            p1 <- make_coef_plot(merged_results_sig, 
+                                coef_plot_vars,
+                                max_significance,
+                                median_comparison_prevalence,
+                                median_comparison_abundance,
+                                median_df)
             
         } else {
             p1 <- NULL
         }
         
-        # Create column for significance star annotation
-        merged_results_sig$sig_star <-
-            cut(
-                merged_results_sig$qval_individual,
-                breaks = c(-Inf, max_significance / 10, max_significance, Inf),
-                label = c("**", "*", "")
-            )
-        
-        # Bin coefficients into categories
-        coefficient_thresh <-
-            round(max(abs(
-                quantile(merged_results_sig$coef, c(0.1, 0.9))
-            )) / 10, 1) * 5
-        if (coefficient_thresh == 0) {
-            coefficient_thresh <- 0.5
-        }
-        coef_breaks <-
-            c(
-                -coefficient_thresh,-coefficient_thresh / 2,
-                0,
-                coefficient_thresh / 2,
-                coefficient_thresh,
-                Inf
-            )
-        threshold_set <-
-            c(
-                paste0("(-Inf,", -1 * coefficient_thresh, "]"),
-                paste0(
-                    "(",-1 * coefficient_thresh,
-                    ",",-1 / 2 * coefficient_thresh,
-                    "]"
-                ),
-                paste0("(", -1 / 2 * coefficient_thresh, ",0]"),
-                paste0("(0,", 1 / 2 * coefficient_thresh, "]"),
-                paste0(
-                    "(",
-                    1 / 2 * coefficient_thresh,
-                    ",",
-                    1 * coefficient_thresh,
-                    "]"
-                ),
-                paste0("(", 1 * coefficient_thresh, ",Inf)")
-            )
-        
-        threshold_indices <-
-            vapply(merged_results_sig$coef, function(value) {
-                which(value < coef_breaks)[1]
-            }, FUN.VALUE = 0)
-        
-        merged_results_sig <- merged_results_sig %>%
-            dplyr::mutate(coef_cat = threshold_set[threshold_indices])
-        merged_results_sig$coef_cat <-
-            factor(merged_results_sig$coef_cat, levels = threshold_set)
-        
-        scale_fill_values <-
-            rev((RColorBrewer::brewer.pal(n = 6, name = "RdBu")))
-        names(scale_fill_values) <- threshold_set
-        
         if (length(heatmap_vars) > 0 &
             sum(merged_results_sig$full_metadata_name %in% heatmap_vars) >= 1) {
-            heatmap_data <-
-                merged_results_sig[merged_results_sig$full_metadata_name %in% 
-                                    heatmap_vars,]
             
-            grid <- expand.grid(
-                feature = unique(heatmap_data$feature),
-                full_metadata_name = unique(heatmap_data$full_metadata_name),
-                model = unique(heatmap_data$model)
-            )
-            heatmap_data <-
-                merge(
-                    grid,
-                    heatmap_data,
-                    by = c("feature", "full_metadata_name", "model"),
-                    all.x = TRUE
-                )
-            heatmap_data$coef[is.na(heatmap_data$coef)] <- NA
-            
-            p2 <-
-                ggplot2::ggplot(heatmap_data,
-                                ggplot2::aes(
-                                    x = factor(.data$full_metadata_name, 
-                                            unique(heatmap_vars)),
-                                    y = .data$feature
-                                )) +
-                ggplot2::geom_tile(
-                    data = heatmap_data,
-                    ggplot2::aes(fill = .data$coef_cat),
-                    colour = "white",
-                    linewidth = 0.2
-                ) +
-                ggplot2::scale_fill_manual(
-                    name = "Beta coefficient",
-                    na.value = "#EEEEEE",
-                    values = scale_fill_values
-                ) +
-                ggplot2::geom_text(
-                    ggplot2::aes(
-                        label = .data$sig_star,
-                        color = .data$sig_star
-                    ),
-                    size = 6,
-                    vjust = 0.75,
-                    hjust = 0.5,
-                    key_glyph = ggplot2::draw_key_blank
-                ) +
-                ggplot2::scale_color_manual(
-                    name = bquote("Covariates" ~ P["FDR"]),
-                    breaks = c("*", "**", ""),
-                    values = c("black", "black", "black"),
-                    labels = c(paste0("* < ", round(
-                        max_significance, 3
-                    )), paste0(
-                        "** < ", round(max_significance / 10, 5)
-                    ), "")
-                ) +
-                ggplot2::labs(x = '',
-                            y = "Feature",
-                            caption = "") +
-                ggplot2::theme_bw() +
-                ggplot2::theme(
-                    axis.title = ggplot2::element_text(size = 16),
-                    axis.text.x = ggplot2::element_text(
-                        size = 14,
-                        angle = 90,
-                        vjust = 0.5,
-                        hjust = 1
-                    ),
-                    legend.title = ggplot2::element_text(size = 16),
-                    legend.text = ggplot2::element_text(size = 14, 
-                                                        face = "plain"),
-                    legend.position = "right",
-                    legend.background = ggplot2::element_rect(
-                        fill = "transparent"),
-                    panel.spacing = ggplot2::unit(0, "lines"),
-                    panel.grid.minor = ggplot2::element_blank(),
-                    strip.text = ggplot2::element_text(size = 14),
-                    strip.background = ggplot2::element_rect(
-                        fill = "transparent")
-                ) +
-                ggplot2::guides(
-                    fill = ggplot2::guide_legend(order = 1),
-                    color = ggplot2::guide_legend(order = 2),
-                ) +
-                ggplot2::facet_grid(~ model, labeller = ggplot2::labeller(
-                    model = c("abundance" = "Abundance", 
-                            "prevalence" = "Prevalence")
-                ))
+            p2 <- make_heatmap_plot(merged_results_sig, 
+                                    heatmap_vars,
+                                    max_significance,
+                                    median_comparison_prevalence,
+                                    median_comparison_abundance)
             
             if (!is.null(p1)) {
                 p2 <- p2 + ggplot2::theme(
@@ -612,6 +645,637 @@ maaslin3_summary_plot <-
         }
     }
 
+make_scatterplot <- function(joined_features_metadata_abun,
+                            metadata_name,
+                            feature_name,
+                            normalization,
+                            transformation,
+                            coef_val,
+                            qval,
+                            N_nonzero,
+                            N_total,
+                            results_value) {
+    temp_plot <-
+        ggplot2::ggplot(data = joined_features_metadata_abun,
+                        ggplot2::aes(
+                            as.numeric(.data$metadata),
+                            as.numeric(.data$feature_abun)
+                        )) +
+        ggplot2::geom_point(
+            fill = 'darkolivegreen4',
+            color = 'black',
+            alpha = .5,
+            shape = 21,
+            size = 1,
+            stroke = 0.15
+        ) +
+        ggplot2::scale_x_continuous(limits = c(
+            min(joined_features_metadata_abun['metadata']),
+            max(joined_features_metadata_abun['metadata'])
+        )) +
+        ggplot2::scale_y_continuous(
+            limits = c(
+                min(joined_features_metadata_abun[
+                    'feature_abun']),
+                max(joined_features_metadata_abun[
+                    'feature_abun'])
+            ),
+            expand = ggplot2::expansion(mult = c(0, 0.2))
+        ) +
+        ggplot2::stat_smooth(
+            method = "glm",
+            formula = 'y ~ x',
+            linewidth = 0.5,
+            color = 'blue',
+            na.rm = TRUE
+        ) +
+        ggplot2::guides(alpha = 'none') +
+        ggplot2::labs("") +
+        ggplot2::xlab(metadata_name) +
+        ggplot2::ylab(
+            paste0(
+                feature_name,
+                '\n(Normalization: ',
+                normalization,
+                ', Transformation: ',
+                transformation,
+                ')'
+            )
+        ) +
+        nature_theme(
+            joined_features_metadata_abun['metadata'],
+            paste0(
+                feature_name,
+                '\n(Normalization: ',
+                normalization,
+                ', Transformation: ',
+                transformation,
+                ')'
+            )
+        ) +
+        ggplot2::annotate(
+            geom = "text",
+            x = Inf,
+            y = Inf,
+            hjust = 1,
+            vjust = 1,
+            label = sprintf(
+            "FDR: %s\nCoefficient (in full model): %sN: %s\nN (not zero): %s",
+                formatC(qval, format = "e", digits = 1),
+                formatC(
+                    coef_val,
+                    format = "e",
+                    digits = 1
+                ),
+                formatC(
+                    N_total,
+                    format = 'f',
+                    digits = 0
+                ),
+                formatC(
+                    N_nonzero,
+                    format = 'f',
+                    digits = 0
+                )
+            ) ,
+            color = "black",
+            size = 2,
+            fontface = "italic"
+        )
+    return(temp_plot)
+}
+
+make_boxplot_lm <- function(joined_features_metadata_abun,
+                            metadata_name,
+                            feature_name,
+                            normalization,
+                            transformation,
+                            coef_val,
+                            qval,
+                            N_nonzero,
+                            N_total,
+                            results_value) {
+    temp_plot <-
+        ggplot2::ggplot(data = joined_features_metadata_abun,
+                        ggplot2::aes(.data$metadata, 
+                                    .data$feature_abun)) +
+        ggplot2::geom_boxplot(
+            ggplot2::aes(fill = .data$metadata),
+            outlier.alpha = 0.0,
+            na.rm = TRUE,
+            alpha = .5,
+            show.legend = FALSE
+        ) +
+        ggplot2::geom_point(
+            ggplot2::aes(fill = .data$metadata),
+            alpha = 0.75 ,
+            size = 1,
+            shape = 21,
+            stroke = 0.15,
+            color = 'black',
+            position = ggplot2::position_jitterdodge()
+        ) +
+        ggplot2::scale_fill_brewer(palette = "Spectral") +
+        ggplot2::scale_y_continuous(
+            expand = ggplot2::expansion(mult = c(0, 0.2)))
+    
+    temp_plot <- temp_plot +
+        nature_theme(
+            as.character(
+                joined_features_metadata_abun$metadata),
+            paste0(
+                feature_name,
+                '\n(Normalization: ',
+                normalization,
+                ', Transformation: ',
+                transformation,
+                ')'
+            )
+        ) +
+        ggplot2::theme(
+            panel.grid.major = ggplot2::element_blank(),
+            panel.grid.minor = ggplot2::element_blank(),
+            panel.background = ggplot2::element_blank(),
+            axis.line = ggplot2::element_line(colour = "black")
+        ) +
+        ggplot2::xlab(metadata_name) +
+        ggplot2::ylab(
+            paste0(
+                feature_name,
+                '\n(Normalization: ',
+                normalization,
+                ', Transformation: ',
+                transformation,
+                ')'
+            )
+        ) +
+        ggplot2::theme(legend.position = "none") +
+        ggplot2::annotate(
+            geom = "text",
+            x = Inf,
+            y = Inf,
+            hjust = 1,
+            vjust = 1,
+            label = sprintf(
+                "Value: %s\nFDR: %s\nCoefficient (in full model): %s",
+                paste0(results_value, collapse = ', '),
+                paste0(
+                    formatC(qval, format = "e", digits = 1),
+                    collapse = ', '
+                ),
+                paste0(
+                    formatC(
+                        coef_val,
+                        format = "e",
+                        digits = 1
+                    ),
+                    collapse = ', '
+                )
+            ) ,
+            color = "black",
+            size = 2,
+            fontface = "italic"
+        )
+    return(temp_plot)
+}
+
+make_lm_plot <- function(this_signif_association,
+                        joined_features_metadata,
+                        metadata,
+                        metadata_name,
+                        feature_name,
+                        normalization,
+                        transformation,
+                        feature_specific_covariate_name,
+                        feature_specific_covariate) {
+
+    coef_val <-
+        this_signif_association[
+            this_signif_association$model == 'linear',]$coef
+    qval <-
+        this_signif_association[
+            this_signif_association$model == 'linear',]$qval_individual
+    N_nonzero <-
+        this_signif_association[
+            this_signif_association$model == 'linear',]$N.not.zero
+    N_total <-
+        this_signif_association[
+            this_signif_association$model == 'linear',]$N
+    results_value <-
+        this_signif_association[
+            this_signif_association$model == 'linear',]$value
+    
+    joined_features_metadata_abun <-
+        joined_features_metadata[
+            !is.na(joined_features_metadata$feature_abun),]
+    if (is.numeric(joined_features_metadata_abun$metadata) &
+        length(unique(
+            joined_features_metadata_abun$metadata)) > 1) {
+        logging::loginfo(
+            "Creating scatter plot for continuous 
+                        data (linear), %s vs %s",
+            metadata_name,
+            feature_name
+        )
+        temp_plot <- make_scatterplot(joined_features_metadata_abun,
+                                    metadata_name,
+                                    feature_name,
+                                    normalization,
+                                    transformation,
+                                    coef_val,
+                                    qval,
+                                    N_nonzero,
+                                    N_total,
+                                    results_value)
+    } else {
+        x_axis_label_names <- 
+            unique(joined_features_metadata_abun$metadata)
+        
+        sorted_fixed_order <-
+            order(match(results_value, levels(x_axis_label_names)))
+        coef_val <- coef_val[sorted_fixed_order]
+        qval <- qval[sorted_fixed_order]
+        N_nonzero <- N_nonzero[sorted_fixed_order]
+        N_total <- N_total[sorted_fixed_order]
+        results_value <-
+            results_value[sorted_fixed_order]
+        
+        if (!is.null(feature_specific_covariate_name)) {
+            if (metadata_name == feature_specific_covariate_name) {
+                renamed_levels <-
+                    as.character(levels(
+                        feature_specific_covariate[, feature_name]))
+            } else {
+                renamed_levels <- as.character(
+                    levels(metadata[, metadata_name]))
+            }
+        } else {
+            renamed_levels <- as.character(
+                levels(metadata[, metadata_name]))
+        }
+        
+        if (length(renamed_levels) == 0) {
+            renamed_levels <- x_axis_label_names
+        }
+        for (name in x_axis_label_names) {
+            total <-
+                length(which(
+                    joined_features_metadata_abun$metadata == name
+                ))
+            new_n <-
+                paste(name, " (n=", total, ")", sep = "")
+            levels(joined_features_metadata_abun[, 'metadata'])[
+                levels(
+                    joined_features_metadata_abun[, 'metadata']) == 
+                    name] <-
+                new_n
+            renamed_levels <-
+                replace(renamed_levels,
+                        renamed_levels == name,
+                        new_n)
+        }
+        
+        logging::loginfo(
+            "Creating box plot for categorical data (linear), 
+                        %s vs %s",
+            metadata_name,
+            feature_name
+        )
+        
+        temp_plot <- make_boxplot_lm(joined_features_metadata_abun,
+                                    metadata_name,
+                                    feature_name,
+                                    normalization,
+                                    transformation,
+                                    coef_val,
+                                    qval,
+                                    N_nonzero,
+                                    N_total,
+                                    results_value)
+    }
+    return(temp_plot)
+}
+
+make_boxplot_logistic <- function(joined_features_metadata_prev,
+                                metadata_name,
+                                feature_name,
+                                normalization,
+                                transformation,
+                                coef_val,
+                                qval,
+                                N_nonzero,
+                                N_total,
+                                results_value) {
+    temp_plot <-
+        ggplot2::ggplot(data = joined_features_metadata_prev,
+                        ggplot2::aes(.data$feature_abun, 
+                                    .data$metadata)) +
+        ggplot2::geom_boxplot(
+            ggplot2::aes(fill = .data$feature_abun),
+            outlier.alpha = 0.0,
+            na.rm = TRUE,
+            alpha = .5,
+            show.legend = FALSE
+        ) +
+        ggplot2::geom_point(
+            ggplot2::aes(fill = .data$feature_abun),
+            alpha = 0.75 ,
+            size = 1,
+            shape = 21,
+            stroke = 0.15,
+            color = 'black',
+            position = ggplot2::position_jitterdodge()
+        ) +
+        ggplot2::scale_fill_brewer(palette = "Spectral") +
+        ggplot2::scale_x_discrete(
+            expand = ggplot2::expansion(mult = c(0, 0.7)))
+    
+    temp_plot <- temp_plot +
+        nature_theme(metadata_name,
+                    joined_features_metadata_prev[
+                        'feature_abun']) +
+        ggplot2::theme(
+            panel.grid.major = ggplot2::element_blank(),
+            panel.grid.minor = ggplot2::element_blank(),
+            panel.background = ggplot2::element_blank(),
+            axis.line = ggplot2::element_line(colour = "black")
+        ) +
+        ggplot2::xlab(feature_name) +
+        ggplot2::ylab(metadata_name) +
+        ggplot2::theme(legend.position = "none") +
+        ggplot2::annotate(
+            geom = "text",
+            x = Inf,
+            y = Inf,
+            hjust = 1,
+            vjust = 1,
+            label = sprintf(
+            "FDR: %s\nCoefficient (in full model): %s\nN: %s\nN (not zero): %s",
+                formatC(qval, format = "e", digits = 1),
+                formatC(
+                    coef_val,
+                    format = "e",
+                    digits = 1
+                ),
+                formatC(
+                    N_total,
+                    format = 'f',
+                    digits = 0
+                ),
+                formatC(
+                    N_nonzero,
+                    format = 'f',
+                    digits = 0
+                )
+            ) ,
+            color = "black",
+            size = 2,
+            fontface = "italic"
+        ) +
+        ggplot2::coord_flip()
+    return(temp_plot)
+}
+
+make_tile_plot <- function(joined_features_metadata_prev,
+                        metadata_name,
+                        feature_name,
+                        normalization,
+                        transformation,
+                        coef_val,
+                        qval,
+                        N_nonzero,
+                        N_total,
+                        results_value) {
+    count_df <- joined_features_metadata_prev %>%
+        dplyr::group_by(.data$feature_abun, .data$metadata) %>%
+        dplyr::summarise(count = dplyr::n(), .groups = 'drop')
+    
+    x_vals <-
+        unique(joined_features_metadata_prev$feature_abun)
+    y_vals <-
+        unique(joined_features_metadata_prev$metadata)
+    complete_grid <-
+        expand.grid(feature_abun = x_vals,
+                    metadata = y_vals)
+    
+    table_df <- complete_grid %>%
+        dplyr::left_join(count_df, by = 
+                            c("feature_abun", "metadata")) %>%
+        dplyr::mutate(count = ifelse(
+            is.na(.data$count), 0, .data$count))
+    
+    temp_plot <-
+        ggplot2::ggplot(table_df,
+                        ggplot2::aes(
+                            x = .data$metadata,
+                            y = .data$feature_abun
+                        )) +
+        ggplot2::geom_tile(
+            ggplot2::aes(fill = .data$count),
+            color = "white",
+            lwd = 1.5,
+            linetype = 1
+        ) +
+        ggplot2::geom_text(
+            ggplot2::aes(label = .data$count),
+            color = "black",
+            size = 32 / nrow(table_df)
+        ) +
+        ggplot2::coord_fixed(ratio = 0.5) +
+        ggplot2::scale_fill_gradient2(
+            low = "#075AFF",
+            mid = "#FFFFCC",
+            high = "#FF0000"
+        ) +
+        ggplot2::scale_y_discrete(
+            expand = ggplot2::expansion(mult = c(0, 1 + nrow(
+                table_df
+            ) / 6))) +
+        ggplot2::theme(
+            panel.background = ggplot2::element_blank(),
+            legend.position = "none"
+        )
+    
+    temp_plot <- temp_plot +
+        nature_theme(as.character(table_df$metadata),
+                    joined_features_metadata_prev[
+                        'feature_abun']) +
+        ggplot2::theme(
+            panel.grid.major = ggplot2::element_blank(),
+            panel.grid.minor = ggplot2::element_blank(),
+            panel.background = ggplot2::element_blank(),
+            axis.line = ggplot2::element_line(colour = "black")
+        ) +
+        ggplot2::xlab(metadata_name) +
+        ggplot2::ylab(feature_name) +
+        ggplot2::theme(legend.position = "none") +
+        ggplot2::annotate(
+            geom = "text",
+            x = Inf,
+            y = Inf,
+            hjust = 1,
+            vjust = 1,
+            label = sprintf(
+                "Value: %s\nFDR: %s\nCoefficient (in full model): %s",
+                paste0(results_value, collapse = ', '),
+                paste0(
+                    formatC(qval, format = "e", digits = 1),
+                    collapse = ', '
+                ),
+                paste0(
+                    formatC(
+                        coef_val,
+                        format = "e",
+                        digits = 1
+                    ),
+                    collapse = ', '
+                )
+            ) ,
+            color = "black",
+            size = 2,
+            fontface = "italic"
+        )
+    return(temp_plot)
+}
+
+make_logistic_plot <- function(this_signif_association,
+                            joined_features_metadata,
+                            metadata,
+                            metadata_name,
+                            feature_name,
+                            normalization,
+                            transformation,
+                            feature_specific_covariate_name,
+                            feature_specific_covariate) {
+    coef_val <-
+        this_signif_association[
+            this_signif_association$model == 'logistic',]$coef
+    qval <-
+        this_signif_association[
+            this_signif_association$model == 'logistic',
+        ]$qval_individual
+    N_nonzero <-
+        this_signif_association[
+            this_signif_association$model == 'logistic',]$N.not.zero
+    N_total <-
+        this_signif_association[
+            this_signif_association$model == 'logistic',]$N
+    results_value <-
+        this_signif_association[
+            this_signif_association$model == 'logistic',]$value
+    
+    joined_features_metadata_prev <-
+        joined_features_metadata
+    joined_features_metadata_prev$feature_abun <-
+        ifelse(
+            is.na(joined_features_metadata_prev$feature_abun),
+            'Absent',
+            'Present'
+        )
+    
+    joined_features_metadata_prev$feature_abun <-
+        factor(
+            joined_features_metadata_prev$feature_abun,
+            levels = c('Present', 'Absent')
+        )
+    
+    if (is.numeric(joined_features_metadata_prev$metadata) &
+        length(unique(
+            joined_features_metadata_prev$metadata)) > 1) {
+        logging::loginfo(
+            "Creating boxplot for continuous data (logistic), %s vs %s",
+            metadata_name,
+            feature_name
+        )
+        temp_plot <- make_boxplot_logistic(joined_features_metadata_prev,
+                                        metadata_name,
+                                        feature_name,
+                                        normalization,
+                                        transformation,
+                                        coef_val,
+                                        qval,
+                                        N_nonzero,
+                                        N_total,
+                                        results_value)
+        
+    } else {
+        joined_features_metadata_prev$feature_abun <-
+            factor(
+                joined_features_metadata_prev$feature_abun,
+                levels = c('Absent', 'Present')
+            )
+        
+        x_axis_label_names <-
+            unique(joined_features_metadata_prev$metadata)
+        
+        sorted_fixed_order <-
+            order(match(results_value, levels(x_axis_label_names)))
+        coef_val <- coef_val[sorted_fixed_order]
+        qval <- qval[sorted_fixed_order]
+        N_nonzero <- N_nonzero[sorted_fixed_order]
+        N_total <- N_total[sorted_fixed_order]
+        results_value <-
+            results_value[sorted_fixed_order]
+        
+        if (!is.null(feature_specific_covariate_name)) {
+            if (metadata_name == feature_specific_covariate_name) {
+                renamed_levels <-
+                    as.character(levels(
+                        feature_specific_covariate[, feature_name]))
+            } else {
+                renamed_levels <- 
+                    as.character(levels(metadata[, metadata_name]))
+            }
+        } else {
+            renamed_levels <- 
+                as.character(levels(metadata[, metadata_name]))
+        }
+        
+        if (length(renamed_levels) == 0) {
+            renamed_levels <- x_axis_label_names
+        }
+        for (name in x_axis_label_names) {
+            mean_abun <- mean(
+                joined_features_metadata_prev$feature_abun[
+                    joined_features_metadata_prev$metadata == 
+                        name] == 'Present',
+                na.rm = TRUE
+            )
+            new_n <-
+                paste(name,
+                    " (p = ",
+                    round(mean_abun, 2) * 100,
+                    "%)",
+                    sep = "")
+            levels(joined_features_metadata_prev[, 'metadata'])[
+                levels(joined_features_metadata_prev[, 'metadata']) 
+                == name] <-
+                new_n
+            renamed_levels <-
+                replace(renamed_levels,
+                        renamed_levels == name,
+                        new_n)
+        }
+        
+        logging::loginfo(
+            "Creating tile plot for categorical data (logistic), %s vs %s",
+            metadata_name,
+            feature_name
+        )
+        temp_plot <- make_tile_plot(joined_features_metadata_prev,
+                                    metadata_name,
+                                    feature_name,
+                                    normalization,
+                                    transformation,
+                                    coef_val,
+                                    qval,
+                                    N_nonzero,
+                                    N_total,
+                                    results_value)
+    }
+    return(temp_plot)
+}
+
 maaslin3_association_plots <-
     function(merged_results,
             metadata,
@@ -624,6 +1288,7 @@ maaslin3_association_plots <-
             feature_specific_covariate = NULL,
             feature_specific_covariate_name = NULL,
             feature_specific_covariate_record = NULL) {
+        
         new_name_normalization <-
             c('Total sum scaling', 'Center log ratio', 'None')
         names(new_name_normalization) <- c("TSS", "CLR", "NONE")
@@ -666,8 +1331,7 @@ maaslin3_association_plots <-
             feature_abun <- data.frame(sample = rownames(features),
                                     feature_abun = features[, feature_name])
             
-            metadata_name <-
-                features_by_metadata[row_num, 'metadata']
+            metadata_name <- features_by_metadata[row_num, 'metadata']
             if (!is.null(feature_specific_covariate_name)) {
                 if (metadata_name == feature_specific_covariate_name) {
                     metadata_sub <-
@@ -695,526 +1359,28 @@ maaslin3_association_plots <-
                                 merged_results$metadata == metadata_name &
                                 merged_results$model == model_name,]
             
-            if ('LM' == model_name) {
-                coef_val <-
-                    this_signif_association[
-                        this_signif_association$model == 'LM',]$coef
-                qval <-
-                    this_signif_association[
-                        this_signif_association$model == 'LM',]$qval_individual
-                N_nonzero <-
-                    this_signif_association[
-                        this_signif_association$model == 'LM',]$N.not.zero
-                N_total <-
-                    this_signif_association[
-                        this_signif_association$model == 'LM',]$N
-                results_value <-
-                    this_signif_association[
-                        this_signif_association$model == 'LM',]$value
-                
-                joined_features_metadata_abun <-
-                    joined_features_metadata[
-                        !is.na(joined_features_metadata$feature_abun),]
-                if (is.numeric(joined_features_metadata_abun$metadata) &
-                    length(unique(
-                        joined_features_metadata_abun$metadata)) > 1) {
-                    logging::loginfo(
-                        "Creating scatter plot for continuous 
-                        data (linear), %s vs %s",
-                        metadata_name,
-                        feature_name
-                    )
-                    temp_plot <-
-                        ggplot2::ggplot(data = joined_features_metadata_abun,
-                                        ggplot2::aes(
-                                            as.numeric(.data$metadata),
-                                            as.numeric(.data$feature_abun)
-                                        )) +
-                        ggplot2::geom_point(
-                            fill = 'darkolivegreen4',
-                            color = 'black',
-                            alpha = .5,
-                            shape = 21,
-                            size = 1,
-                            stroke = 0.15
-                        ) +
-                        ggplot2::scale_x_continuous(limits = c(
-                            min(joined_features_metadata_abun['metadata']),
-                            max(joined_features_metadata_abun['metadata'])
-                        )) +
-                        ggplot2::scale_y_continuous(
-                            limits = c(
-                                min(joined_features_metadata_abun[
-                                    'feature_abun']),
-                                max(joined_features_metadata_abun[
-                                    'feature_abun'])
-                            ),
-                            expand = ggplot2::expansion(mult = c(0, 0.2))
-                        ) +
-                        ggplot2::stat_smooth(
-                            method = "glm",
-                            formula = 'y ~ x',
-                            linewidth = 0.5,
-                            color = 'blue',
-                            na.rm = TRUE
-                        ) +
-                        ggplot2::guides(alpha = 'none') +
-                        ggplot2::labs("") +
-                        ggplot2::xlab(metadata_name) +
-                        ggplot2::ylab(
-                            paste0(
-                                feature_name,
-                                '\n(Normalization: ',
-                                normalization,
-                                ', Transformation: ',
-                                transformation,
-                                ')'
-                            )
-                        ) +
-                        nature_theme(
-                            joined_features_metadata_abun['metadata'],
-                            paste0(
-                                feature_name,
-                                '\n(Normalization: ',
-                                normalization,
-                                ', Transformation: ',
-                                transformation,
-                                ')'
-                            )
-                        ) +
-                        ggplot2::annotate(
-                            geom = "text",
-                            x = Inf,
-                            y = Inf,
-                            hjust = 1,
-                            vjust = 1,
-                            label = sprintf(
-"FDR: %s\nCoefficient (in full model): %sN: %s\nN (not zero): %s",
-                                formatC(qval, format = "e", digits = 1),
-                                formatC(
-                                    coef_val,
-                                    format = "e",
-                                    digits = 1
-                                ),
-                                formatC(
-                                    N_total,
-                                    format = 'f',
-                                    digits = 0
-                                ),
-                                formatC(
-                                    N_nonzero,
-                                    format = 'f',
-                                    digits = 0
-                                )
-                            ) ,
-                            color = "black",
-                            size = 2,
-                            fontface = "italic"
-                        )
-                } else {
-                    x_axis_label_names <- 
-                        unique(joined_features_metadata_abun$metadata)
-                    
-                    sorted_fixed_order <-
-                        order(match(results_value, levels(x_axis_label_names)))
-                    coef_val <- coef_val[sorted_fixed_order]
-                    qval <- qval[sorted_fixed_order]
-                    N_nonzero <- N_nonzero[sorted_fixed_order]
-                    N_total <- N_total[sorted_fixed_order]
-                    results_value <-
-                        results_value[sorted_fixed_order]
-                    
-                    if (!is.null(feature_specific_covariate_name)) {
-                        if (metadata_name == feature_specific_covariate_name) {
-                            renamed_levels <-
-                                as.character(levels(
-                                    feature_specific_covariate[, feature_name]))
-                        } else {
-                            renamed_levels <- as.character(
-                                levels(metadata[, metadata_name]))
-                        }
-                    } else {
-                        renamed_levels <- as.character(
-                            levels(metadata[, metadata_name]))
-                    }
-                    
-                    if (length(renamed_levels) == 0) {
-                        renamed_levels <- x_axis_label_names
-                    }
-                    for (name in x_axis_label_names) {
-                        total <-
-                            length(which(
-                                joined_features_metadata_abun$metadata == name
-                            ))
-                        new_n <-
-                            paste(name, " (n=", total, ")", sep = "")
-                        levels(joined_features_metadata_abun[, 'metadata'])[
-                            levels(
-                                joined_features_metadata_abun[, 'metadata']) == 
-                                name] <-
-                            new_n
-                        renamed_levels <-
-                            replace(renamed_levels,
-                                    renamed_levels == name,
-                                    new_n)
-                    }
-                    
-                    logging::loginfo(
-                        "Creating box plot for categorical data (linear), 
-                        %s vs %s",
-                        metadata_name,
-                        feature_name
-                    )
-                    
-                    temp_plot <-
-                        ggplot2::ggplot(data = joined_features_metadata_abun,
-                                        ggplot2::aes(.data$metadata, 
-                                                    .data$feature_abun)) +
-                        ggplot2::geom_boxplot(
-                            ggplot2::aes(fill = .data$metadata),
-                            outlier.alpha = 0.0,
-                            na.rm = TRUE,
-                            alpha = .5,
-                            show.legend = FALSE
-                        ) +
-                        ggplot2::geom_point(
-                            ggplot2::aes(fill = .data$metadata),
-                            alpha = 0.75 ,
-                            size = 1,
-                            shape = 21,
-                            stroke = 0.15,
-                            color = 'black',
-                            position = ggplot2::position_jitterdodge()
-                        ) +
-                        ggplot2::scale_fill_brewer(palette = "Spectral") +
-                        ggplot2::scale_y_continuous(
-                            expand = ggplot2::expansion(mult = c(0, 0.2)))
-                    
-                    temp_plot <- temp_plot +
-                        nature_theme(
-                            as.character(
-                                joined_features_metadata_abun$metadata),
-                            paste0(
-                                feature_name,
-                                '\n(Normalization: ',
-                                normalization,
-                                ', Transformation: ',
-                                transformation,
-                                ')'
-                            )
-                        ) +
-                        ggplot2::theme(
-                            panel.grid.major = ggplot2::element_blank(),
-                            panel.grid.minor = ggplot2::element_blank(),
-                            panel.background = ggplot2::element_blank(),
-                            axis.line = ggplot2::element_line(colour = "black")
-                        ) +
-                        ggplot2::xlab(metadata_name) +
-                        ggplot2::ylab(
-                            paste0(
-                                feature_name,
-                                '\n(Normalization: ',
-                                normalization,
-                                ', Transformation: ',
-                                transformation,
-                                ')'
-                            )
-                        ) +
-                        ggplot2::theme(legend.position = "none") +
-                        ggplot2::annotate(
-                            geom = "text",
-                            x = Inf,
-                            y = Inf,
-                            hjust = 1,
-                            vjust = 1,
-                            label = sprintf(
-"Value: %s\nFDR: %s\nCoefficient (in full model): %s",
-                                paste0(results_value, collapse = ', '),
-                                paste0(
-                                    formatC(qval, format = "e", digits = 1),
-                                    collapse = ', '
-                                ),
-                                paste0(
-                                    formatC(
-                                        coef_val,
-                                        format = "e",
-                                        digits = 1
-                                    ),
-                                    collapse = ', '
-                                )
-                            ) ,
-                            color = "black",
-                            size = 2,
-                            fontface = "italic"
-                        )
-                }
+            if ('linear' == model_name) {
+                temp_plot <- make_lm_plot(this_signif_association,
+                                        joined_features_metadata,
+                                        metadata,
+                                        metadata_name,
+                                        feature_name,
+                                        normalization,
+                                        transformation,
+                                        feature_specific_covariate_name,
+                                        feature_specific_covariate)
             }
             
             if ('logistic' == model_name) {
-                coef_val <-
-                    this_signif_association[
-                        this_signif_association$model == 'logistic',]$coef
-                qval <-
-                    this_signif_association[
-                        this_signif_association$model == 'logistic',
-                        ]$qval_individual
-                N_nonzero <-
-                    this_signif_association[
-                        this_signif_association$model == 'logistic',]$N.not.zero
-                N_total <-
-                    this_signif_association[
-                        this_signif_association$model == 'logistic',]$N
-                results_value <-
-                    this_signif_association[
-                        this_signif_association$model == 'logistic',]$value
-                
-                joined_features_metadata_prev <-
-                    joined_features_metadata
-                joined_features_metadata_prev$feature_abun <-
-                    ifelse(
-                        is.na(joined_features_metadata_prev$feature_abun),
-                        'Absent',
-                        'Present'
-                    )
-                
-                joined_features_metadata_prev$feature_abun <-
-                    factor(
-                        joined_features_metadata_prev$feature_abun,
-                        levels = c('Present', 'Absent')
-                    )
-                
-                if (is.numeric(joined_features_metadata_prev$metadata) &
-                    length(unique(
-                        joined_features_metadata_prev$metadata)) > 1) {
-                    logging::loginfo(
-"Creating boxplot for continuous data (logistic), %s vs %s",
-                        metadata_name,
-                        feature_name
-                    )
-                    
-                    temp_plot <-
-                        ggplot2::ggplot(data = joined_features_metadata_prev,
-                                        ggplot2::aes(.data$feature_abun, 
-                                                    .data$metadata)) +
-                        ggplot2::geom_boxplot(
-                            ggplot2::aes(fill = .data$feature_abun),
-                            outlier.alpha = 0.0,
-                            na.rm = TRUE,
-                            alpha = .5,
-                            show.legend = FALSE
-                        ) +
-                        ggplot2::geom_point(
-                            ggplot2::aes(fill = .data$feature_abun),
-                            alpha = 0.75 ,
-                            size = 1,
-                            shape = 21,
-                            stroke = 0.15,
-                            color = 'black',
-                            position = ggplot2::position_jitterdodge()
-                        ) +
-                        ggplot2::scale_fill_brewer(palette = "Spectral") +
-                        ggplot2::scale_x_discrete(
-                            expand = ggplot2::expansion(mult = c(0, 0.7)))
-                    
-                    temp_plot <- temp_plot +
-                        nature_theme(metadata_name,
-                                    joined_features_metadata_prev[
-                                        'feature_abun']) +
-                        ggplot2::theme(
-                            panel.grid.major = ggplot2::element_blank(),
-                            panel.grid.minor = ggplot2::element_blank(),
-                            panel.background = ggplot2::element_blank(),
-                            axis.line = ggplot2::element_line(colour = "black")
-                        ) +
-                        ggplot2::xlab(feature_name) +
-                        ggplot2::ylab(metadata_name) +
-                        ggplot2::theme(legend.position = "none") +
-                        ggplot2::annotate(
-                            geom = "text",
-                            x = Inf,
-                            y = Inf,
-                            hjust = 1,
-                            vjust = 1,
-                            label = sprintf(
-"FDR: %s\nCoefficient (in full model): %s\nN: %s\nN (not zero): %s",
-                                formatC(qval, format = "e", digits = 1),
-                                formatC(
-                                    coef_val,
-                                    format = "e",
-                                    digits = 1
-                                ),
-                                formatC(
-                                    N_total,
-                                    format = 'f',
-                                    digits = 0
-                                ),
-                                formatC(
-                                    N_nonzero,
-                                    format = 'f',
-                                    digits = 0
-                                )
-                            ) ,
-                            color = "black",
-                            size = 2,
-                            fontface = "italic"
-                        ) +
-                        ggplot2::coord_flip()
-                    
-                } else {
-                    joined_features_metadata_prev$feature_abun <-
-                        factor(
-                            joined_features_metadata_prev$feature_abun,
-                            levels = c('Absent', 'Present')
-                        )
-                    
-                    x_axis_label_names <-
-                        unique(joined_features_metadata_prev$metadata)
-                    
-                    sorted_fixed_order <-
-                        order(match(results_value, levels(x_axis_label_names)))
-                    coef_val <- coef_val[sorted_fixed_order]
-                    qval <- qval[sorted_fixed_order]
-                    N_nonzero <- N_nonzero[sorted_fixed_order]
-                    N_total <- N_total[sorted_fixed_order]
-                    results_value <-
-                        results_value[sorted_fixed_order]
-                    
-                    if (!is.null(feature_specific_covariate_name)) {
-                        if (metadata_name == feature_specific_covariate_name) {
-                            renamed_levels <-
-                                as.character(levels(
-                                    feature_specific_covariate[, feature_name]))
-                        } else {
-                            renamed_levels <- 
-                                as.character(levels(metadata[, metadata_name]))
-                        }
-                    } else {
-                        renamed_levels <- 
-                            as.character(levels(metadata[, metadata_name]))
-                    }
-                    
-                    if (length(renamed_levels) == 0) {
-                        renamed_levels <- x_axis_label_names
-                    }
-                    for (name in x_axis_label_names) {
-                        mean_abun <- mean(
-                            joined_features_metadata_prev$feature_abun[
-                                joined_features_metadata_prev$metadata == 
-                                    name] == 'Present',
-                            na.rm = TRUE
-                        )
-                        new_n <-
-                            paste(name,
-                                " (p = ",
-                                round(mean_abun, 2) * 100,
-                                "%)",
-                                sep = "")
-                        levels(joined_features_metadata_prev[, 'metadata'])[
-                            levels(joined_features_metadata_prev[, 'metadata']) 
-                            == name] <-
-                            new_n
-                        renamed_levels <-
-                            replace(renamed_levels,
-                                    renamed_levels == name,
-                                    new_n)
-                    }
-                    
-                    logging::loginfo(
-"Creating tile plot for categorical data (logistic), %s vs %s",
-                        metadata_name,
-                        feature_name
-                    )
-                    
-                    count_df <- joined_features_metadata_prev %>%
-                        dplyr::group_by(.data$feature_abun, .data$metadata) %>%
-                        dplyr::summarise(count = dplyr::n(), .groups = 'drop')
-                    
-                    x_vals <-
-                        unique(joined_features_metadata_prev$feature_abun)
-                    y_vals <-
-                        unique(joined_features_metadata_prev$metadata)
-                    complete_grid <-
-                        expand.grid(feature_abun = x_vals,
-                                    metadata = y_vals)
-                    
-                    table_df <- complete_grid %>%
-                        dplyr::left_join(count_df, by = 
-                                            c("feature_abun", "metadata")) %>%
-                        dplyr::mutate(count = ifelse(
-                            is.na(.data$count), 0, .data$count))
-                    
-                    temp_plot <-
-                        ggplot2::ggplot(table_df,
-                                        ggplot2::aes(
-                                            x = .data$metadata,
-                                            y = .data$feature_abun
-                                        )) +
-                        ggplot2::geom_tile(
-                            ggplot2::aes(fill = .data$count),
-                            color = "white",
-                            lwd = 1.5,
-                            linetype = 1
-                        ) +
-                        ggplot2::geom_text(
-                            ggplot2::aes(label = .data$count),
-                            color = "black",
-                            size = 32 / nrow(table_df)
-                        ) +
-                        ggplot2::coord_fixed(ratio = 0.5) +
-                        ggplot2::scale_fill_gradient2(
-                            low = "#075AFF",
-                            mid = "#FFFFCC",
-                            high = "#FF0000"
-                        ) +
-                        ggplot2::scale_y_discrete(
-                            expand = ggplot2::expansion(mult = c(0, 1 + nrow(
-                            table_df
-                        ) / 6))) +
-                        ggplot2::theme(
-                            panel.background = ggplot2::element_blank(),
-                            legend.position = "none"
-                        )
-                    
-                    temp_plot <- temp_plot +
-                        nature_theme(as.character(table_df$metadata),
-                                    joined_features_metadata_prev[
-                                        'feature_abun']) +
-                        ggplot2::theme(
-                            panel.grid.major = ggplot2::element_blank(),
-                            panel.grid.minor = ggplot2::element_blank(),
-                            panel.background = ggplot2::element_blank(),
-                            axis.line = ggplot2::element_line(colour = "black")
-                        ) +
-                        ggplot2::xlab(metadata_name) +
-                        ggplot2::ylab(feature_name) +
-                        ggplot2::theme(legend.position = "none") +
-                        ggplot2::annotate(
-                            geom = "text",
-                            x = Inf,
-                            y = Inf,
-                            hjust = 1,
-                            vjust = 1,
-                            label = sprintf(
-"Value: %s\nFDR: %s\nCoefficient (in full model): %s",
-                                paste0(results_value, collapse = ', '),
-                                paste0(
-                                    formatC(qval, format = "e", digits = 1),
-                                    collapse = ', '
-                                ),
-                                paste0(
-                                    formatC(
-                                        coef_val,
-                                        format = "e",
-                                        digits = 1
-                                    ),
-                                    collapse = ', '
-                                )
-                            ) ,
-                            color = "black",
-                            size = 2,
-                            fontface = "italic"
-                        )
-                }
+                temp_plot <- make_logistic_plot(this_signif_association,
+                                                joined_features_metadata,
+                                                metadata,
+                                                metadata_name,
+                                                feature_name,
+                                                normalization,
+                                                transformation,
+                                                feature_specific_covariate_name,
+                                                feature_specific_covariate)
             }
             
             saved_plots[[metadata_name]][[feature_name]][[model_name]] <-

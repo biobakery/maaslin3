@@ -260,6 +260,6 @@ maaslin3(input_data,
                                 plot_summary_plot = FALSE,
                                 plot_associations = FALSE)
                                 
-    unlink('output')
+    unlink('output', recursive=TRUE)
     logging::logReset()
 }

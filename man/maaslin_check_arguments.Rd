@@ -93,6 +93,6 @@ maaslin_check_arguments(feature_specific_covariate = NULL,
                                     correction = 'BH',
                                     median_comparison_abundance = TRUE)
                                     
-    unlink('output')
+    unlink('output', recursive=TRUE)
     logging::logReset()
 }

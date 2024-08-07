@@ -103,6 +103,6 @@ A list containing the following named items:
                         'age', 'reads'),
         random_effects = c('participant_id'))
     
-    unlink('output')
+    unlink('output', recursive=TRUE)
     logging::logReset()
 }

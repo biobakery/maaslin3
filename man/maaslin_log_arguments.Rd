@@ -213,6 +213,6 @@ maaslin_log_arguments(input_data,
                         antibiotics + age + reads',
                     plot_summary_plot = FALSE,
                     plot_associations = FALSE)
-    unlink('output')
+    unlink('output', recursive=TRUE)
     logging::logReset()
 }

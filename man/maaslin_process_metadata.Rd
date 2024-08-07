@@ -109,6 +109,6 @@ The processed metadata.
         metadata,
         formula = formula)
     
-    unlink('output')
+    unlink('output', recursive=TRUE)
     logging::logReset()
 }

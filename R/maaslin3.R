@@ -83,7 +83,7 @@ args$input_metadata <- NULL
 args$output <- NULL
 args$min_abundance <- 0.0
 args$zero_threshold <- 0.0
-args$min_prevalence <- 0.1
+args$min_prevalence <- 0.0
 args$min_variance <- 0.0
 args$max_significance <- 0.1
 args$normalization <- normalization_choices[1]
@@ -687,7 +687,7 @@ maaslin_log_arguments <- function(input_data,
                                 feature_specific_covariate_name = NULL,
                                 feature_specific_covariate_record = NULL,
                                 min_abundance = 0,
-                                min_prevalence = 0.1,
+                                min_prevalence = 0.0,
                                 zero_threshold = 0,
                                 min_variance = 0,
                                 max_significance = 0.1,
@@ -1571,7 +1571,7 @@ maaslin_normalize <- function(data,
 maaslin_filter <- function(normalized_data,
                         output,
                         min_abundance = 0,
-                        min_prevalence = 0.1,
+                        min_prevalence = 0.0,
                         zero_threshold = 0,
                         min_variance = 0) {
     unfiltered_data <- normalized_data
@@ -1626,8 +1626,9 @@ maaslin_filter <- function(normalized_data,
         filtered_data[, which(vars > min_variance), drop = FALSE]
     variance_filtered_features <-
         ncol(filtered_data) - ncol(variance_filtered_data)
-    logging::loginfo("Total filtered features with variance filtering: %d",
-                    variance_filtered_features)
+    logging::loginfo(
+        "Total features filtered by non-zero variance filtering: %d",
+        variance_filtered_features)
     variance_filtered_feature_names <-
         setdiff(names(filtered_data), names(variance_filtered_data))
     logging::loginfo(
@@ -2380,7 +2381,7 @@ maaslin3 <- function(input_data,
                     feature_specific_covariate_name = NULL,
                     feature_specific_covariate_record = NULL,
                     min_abundance = 0,
-                    min_prevalence = 0.1,
+                    min_prevalence = 0.0,
                     zero_threshold = 0,
                     min_variance = 0,
                     max_significance = 0.1,

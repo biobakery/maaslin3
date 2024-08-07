@@ -400,7 +400,7 @@ choose_ranef_model_summary_funs_logistic <- function(random_effects_formula,
         ranef_function <- NULL
         if (length(strata) > 0) {
             if (augment) {
-                model_function <-
+                model_function <- substitute(
                     function(formula,
                             data,
                             weight_scheme = NULL,
@@ -450,7 +450,9 @@ choose_ranef_model_summary_funs_logistic <- function(random_effects_formula,
                         } else  {
                             return(clogit_out)
                         }
-                    }
+                    },
+                    list(strata = strata)
+                )
             } else {
                 model_function <-
                     function(formula,

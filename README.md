@@ -259,7 +259,7 @@ Particularly for use in metatranscriptomics workflows, a table of feature-specif
 #### Analysis options ####
 
 * `min_abundance` (default `0`): Features with abundances more than `min_abundance` in `min_prevalence` of the samples will be included for analysis. The threshold is applied after normalization and before transformation.
-* `min_prevalence` (default `0.1`): See above.
+* `min_prevalence` (default `0.0`): See above.
 * `zero_threshold` (default `0`): Abundances less than or equal to `zero_threshold` will be treated as zeros. This is primarily to be used when the abundance table has likely low-abundance false positives.
 * `min_variance` (default `0`): Features with abundance variances less than or equal to `min_variance` will be dropped. This is primarily used for dropping features that are entirely zero.
 * `max_significance` (default `0.1`): The FDR corrected q-value threshold for significance used in selecting which associations to write as significant and to plot.

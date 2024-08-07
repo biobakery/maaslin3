@@ -400,17 +400,6 @@ invisible(maaslin_plot_results(output = 'hmp2_output',
                             max_pngs = 100))
 ```
 
-A `SummarizedExperiment` object can also be provided as input:
-
-```{r}
-# Create example SE
-se <- SummarizedExperiment::SummarizedExperiment(assays = t(taxa_table), 
-                                                colData = metadata)
-
-# This replaces maaslin_read_data above
-read_data_list <- maaslin_read_summarized_experiment_data(se)
-```
-
 #### Replotting
 
 Once `maaslin3` has been run once, `maaslin_plot_results_from_output`
@@ -642,7 +631,7 @@ writing results, and displaying plots.
 `min_abundance` in `min_prevalence` of the samples will be included for
 analysis. The threshold is applied before normalization and
 transformation.
-* `min_prevalence` (default `0.1`): See above.
+* `min_prevalence` (default `0`): See above.
 * `zero_threshold` (default `0`): Abundances less than or equal to
 `zero_threshold` will be treated as zeros. This is primarily to be used
 when the abundance table has likely low-abundance false positives.

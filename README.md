@@ -1,4 +1,4 @@
-# MaAsLin 3#
+# MaAsLin 3
 
 [**MaAsLin 3**](http://huttenhower.sph.harvard.edu/MaAsLin3) is the next
 generation of **M**a**A**s**L**in (**M**icrobiome **M**ultivariable

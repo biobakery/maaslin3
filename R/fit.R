@@ -2004,7 +2004,7 @@ fit.model <- function(features,
         fun_list <- choose_ranef_model_summary_funs_logistic(
             random_effects_formula,
             strata = strata,
-            augment - augment)
+            augment = augment)
     }
     
     

@@ -964,8 +964,9 @@ maaslin_reorder_data <- function(data,
                         "as columns and metadata samples as columns"
                     )
                 )
-                data <- as.data.frame(t(data))
-                metadata <- type.convert(as.data.frame(t(metadata)))
+                data <- as.data.frame(BiocGenerics::t(data))
+                metadata <- type.convert(
+                    as.data.frame(BiocGenerics::t(metadata)))
                 logging::logdebug("Transformed data and metadata 
                                 so samples are rows")
             } else {
@@ -989,7 +990,7 @@ maaslin_reorder_data <- function(data,
                         )
                     )
                     metadata <-
-                        type.convert(as.data.frame(t(metadata)))
+                        type.convert(as.data.frame(BiocGenerics::t(metadata)))
                     logging::logdebug("Transformed metadata so 
                                     samples are rows")
                 } else {
@@ -1064,7 +1065,7 @@ maaslin_reorder_data <- function(data,
                 )
                 # transpose data frame so samples are rows
                 feature_specific_covariate <-
-                    as.data.frame(t(feature_specific_covariate))
+                    as.data.frame(BiocGenerics::t(feature_specific_covariate))
                 logging::logdebug("Transformed feature_specific_covariate 
                                 so samples are rows")
             } else {

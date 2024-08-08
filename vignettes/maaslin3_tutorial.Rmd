@@ -16,7 +16,7 @@ vignette: >
 
 ## Introduction ##
 
-[**MaAsLin3**](http://huttenhower.sph.harvard.edu/MaAsLin3) is the next
+[**MaAsLin 3**](http://huttenhower.sph.harvard.edu/MaAsLin3) is the next
 generation of **M**a**A**s**L**in (**M**icrobiome **M**ultivariable
 **A**ssociations with **L**inear Models). This comprehensive R package
 efficiently determines multivariable associations between clinical
@@ -45,15 +45,16 @@ Forum](https://forum.biobakery.org/c/Downstream-analysis-and-statistics/maaslin)
 * [2. Installing MaAsLin 3](#installing-maaslin-3)
 * [3. Microbiome association detection with MaAsLin
 3](#microbiome-association-detection-with-maaslin-3)
-* [3.1 MaAsLin 3 input](#maaslin-3-input)
-* [3.2 Running MaAsLin 3](#running-maaslin-3)
-* [3.3 MaAsLin 3 output](#maaslin-3-output)
+    * [3.1 MaAsLin 3 input](#maaslin-3-input)
+    * [3.2 Running MaAsLin 3](#running-maaslin-3)
+    * [3.3 MaAsLin 3 output](#maaslin-3-output)
 * [4. Advanced Topics](#advanced-topics)
-* [4.1 Absolute abundance](#absolute-abundance)
-* [4.2 Random Effects (repeated sampling)](#random-effects)
-* [4.3 Interactions (differences in differences)](#interactions)
-* [4.4 Level contrasts](#level-contrasts)
-* [4.5 Group-wise differences](#group-wise-differences)
+    * [4.1 Absolute abundance](#absolute-abundance)
+    * [4.2 Random Effects (repeated sampling)](#random-effects)
+    * [4.3 Interactions (differences in differences)](#interactions)
+    * [4.4 Level contrasts](#level-contrasts)
+    * [4.5 Group-wise differences](#group-wise-differences)
+    * [4.6 Contrast tests](#contrast-tests)
 * [5. Command line](#command-line)
 
 ## 1. Installing R {#installing-r}
@@ -140,7 +141,6 @@ for (lib in c('maaslin3', 'dplyr', 'ggplot2', 'knitr', 'kableExtra')) {
 ```
 
 ## 3. Microbiome association detection with MaAsLin 3
-{#microbiome-association-detection-with-maaslin-3}
 
 To run MaAsLin 3, the user must supply a table of per-sample feature
 abundances (with zeros still included), a table of per-sample metadata,
@@ -210,7 +210,7 @@ metadata[1:5, 1:5]
 
 ### 3.2 Running MaAsLin 3 {#running-maaslin-3}
 
-MaAsLin 3 is run by specifying a `param_list` that contains the
+MaAsLin 3 is run by specifying the
 abundance table (`input_data`), the metadata table (`input_metadata`),
 the output directory (`output`), and a model. The model can come from a
 formula or vectors of terms. In either case, variable names should not
@@ -224,10 +224,14 @@ categorical variables are included as fixed effects, each level will be
 tested against the first factor level. In addition, ordered predictors
 ([section 4.4](#level-contrasts)) and group predictors ([section
 4.5](#group-wise-differences)) can be included by including
-`group(variable_name)` and `ordered(variable_name)` in the formula.
+`group(variable_name)` and `ordered(variable_name)` in the formula. When
+the data involve paired or matched case-control samples, conditional
+logistic regression can be run by specifying the grouping variable with
+`strata(variable_name)`.
 * *Vectors*: Alternatively, a vector of variable names can be supplied
 to the parameters `fixed_effects`, `random_effects`, `group_effects`,
-and `ordered_effects`. Categorical variables should either be ordered as
+`ordered_effects`, and `strata_effects`. Categorical variables 
+should either be ordered as
 factors beforehand, or `reference` should be provided as a string of
 'variable,reference' semi-colon delimited for multiple variables (e.g.,
 `variable_1,reference_1;variable_2,reference_2`). NOTE: adding a space
@@ -283,15 +287,16 @@ relative abundance data, significance is determined by comparing against
 the median coefficient for a metadatum across the features
 (`median_comparison_abundance`). Since prevalence coefficients do not
 have the same compositional properties, they are instead compared
-against 0 (`median_comparison_prevalence`). See below for a discussin of
+against 0 (`median_comparison_prevalence`). See below for a discussion of
 these paremeters.
 * One CPU is used for fitting (`cores = 1`).
 
 The abundance, prevalence, and variance filtering parameters are not
 included, and they are 0 by default. **Different from other differential
-abundance tools, low prevalence features should not be filtered out**
+abundance tools, low prevalence features need not be filtered out**
 since the prevalence modeling in MaAsLin 3 already accounts for high
-proportions of zeros.
+proportions of zeros. However, filtering low prevalence features might improve
+power.
 
 ```{R, echo = TRUE, results = 'hide', warning = FALSE, cache = FALSE}
 fit_out <- maaslin3(input_data = taxa_table,
@@ -425,7 +430,8 @@ quiet_out <- file.rename('hmp2_output/figures/summary_plot.png',
 
 knitr::include_graphics("hmp2_output/figures/summary_plot_first.png")
 ```
-    * ``association_plots/[metadatum]_[feature]_[association].pdf``
+    * ``association_plots/[metadatum]/[association]/
+[metadatum]_[feature]_[association].png``
         * A plot is generated for each significant association up to `max_pngs`.
         * Scatter plots are used for continuous metadata abundance associations.
         * Box plots are used for categorical data abundance associations.
@@ -498,14 +504,14 @@ positives when there are many significant but uninteresting associations
 #### Replotting
 
 Once `maaslin3` has been run once, `maaslin_plot_results_from_output`
-can be run with the same `param_list` as the original `maaslin3` run to
+can be run to
 (re-)create the plots. This allows the user to plot the associations
 even without having the R object returned by `maaslin_fit` or `maaslin3`
 (e.g., if fitting models through the command line). It is recommended to
 fit models with simple variables names that are robust to formula
 plotting and then convert these into proper names for plotting.
-Likewise, `heatmap_vars` and `coef_plot_vars` can be specified in the
-`param_list` at any point, but it is usually easier to see how the names
+Likewise, `heatmap_vars` and `coef_plot_vars` can be specified at any point, 
+but it is usually easier to see how the names
 come out first and then choose which metadata variables will go in the
 coefficient plot and which will go in the heatmap afterwards with
 `maaslin_plot_results_from_output`.
@@ -783,14 +789,14 @@ where the same subject (column `participant_id`) can have multiple
 samples. We thus use `participant_id` as a random effect grouping
 variable in the model.
 
-```{R, echo = TRUE, results = 'hide', warning = FALSE, cache = TRUE}
+```{R, echo = TRUE, results = 'hide', warning = FALSE}
 # Subset to only CD cases for time; taxa are subset automatically
 fit_out <- maaslin3(
     input_data = taxa_table,
     input_metadata = metadata[metadata$diagnosis == 'CD',],
     output = 'random_effects_output',
     formula = '~ dysbiosis_state + antibiotics +
-        age + reads + (1|participant_id)',
+        age + reads + strata(participant_id)',
     plot_summary_plot = FALSE,
     plot_associations = FALSE)
 ```
@@ -819,13 +825,14 @@ is important to account for this non-independence, and MaAsLin 3 is
 still able to fit complex models with thousands of samples and thousands
 of features in a few hours (and increasing the CPUs used with `cores`
 can help). However, random effects are not the solution to every
-correlated data problem. In particular, **random intercept models may
+correlated data problem. In particular, **logistic random intercept models may
 produce poor model fits when there are fewer than 5 observations per
-group.** In these scenarios, per-group fixed effects should be used. For
+group.** In these scenarios, per-group fixed effects or conditional 
+logistic regression (see `strata_effects` in the manual) should be used. For
 example, in a before-and-after treatment study with one sample before
 and one sample after, the participant IDs and a pre/post indicator
-should be included as fixed effects, but only the pre/post indicator
-should be retained for analysis afterwards.
+should be included as fixed effects or a `strata` variable, but only the 
+pre/post indicator should be retained for analysis afterwards.
 
 ### 4.3 Interactions (differences in differences) {#interactions}
 
@@ -981,7 +988,7 @@ full_results %>%
 
 ### 4.5 Group-wise differences {#group-wise-differences}
 
-The last feature of MaAsLin 3 highlighted here is the ability to test
+MaAsLin 3 can also test
 for group-wise differences in categorical predictors using an ANOVA or
 ANOVA-like procedure. Group-wise predictors are categorical variables
 with or without an ordering such as race, country, or consumption
@@ -1043,11 +1050,61 @@ full_results %>%
     kableExtra::scroll_box(width = "800px", height = "100px")
 ```
 
+### 4.6 Contrast tests {#contrast-tests}
+
+We can also perform contrast testing in MaAsLin 3 to check whether a linear
+combination of the coefficients is significantly different from some constant 
+on the right hand size (RHS). Specify a contrast matrix
+with column names matching the coefficient names and rows with the contrasts
+of interest. For each row $C^T$, the hypothesis $H_0:C^T\vec{\beta}=RHS$ 
+will be tested. Note that
+`save_models` must be `TRUE` in the original fit to perform contrast tests.
+
+Below, we test whether the UC and CD diagnosis coefficients are the same
+and whether the UC and CD dysbiosis coefficients are the same.
+
+```{R, echo = TRUE, results = 'hide', warning = FALSE, cache = TRUE}
+# Fit with save_models = TRUE
+fit_out <- maaslin3(input_data = taxa_table,
+                    input_metadata = metadata,
+                    output = 'contrast_test_output',
+                    formula = '~ diagnosis + dysbiosis_state +
+                        antibiotics + age + reads',
+                    plot_summary_plot = FALSE,
+                    plot_associations = FALSE,
+                    cores = 1,
+                    save_models = TRUE)
+```
+
+```{R, echo = TRUE, warning = FALSE, cache = TRUE}
+contrast_mat <- matrix(c(1, -1, 0, 0, 0, 0, 1, -1), 
+    ncol = 4, nrow = 2, byrow = TRUE)
+    
+colnames(contrast_mat) <- c("diagnosisUC",
+                            "diagnosisCD",
+                            "dysbiosis_statedysbiosis_UC",
+                            "dysbiosis_statedysbiosis_CD")
+                            
+rownames(contrast_mat) <- c("diagnosis_test", "dysbiosis_test")
+
+contrast_mat
+                            
+contrast_out <- maaslin_contrast_test(fits = fit_out$fit_data_abundance$fits,
+                        contrast_mat = contrast_mat,
+                        rhs = c(0, 0))
+
+contrast_out %>%
+    knitr::kable() %>%
+    kableExtra::kable_styling("striped", position = 'center') %>%
+    kableExtra::scroll_box(width = "800px", height = "400px")
+```
+
+
 ## 5. Command line #### {#command-line}
 
 MaAsLin 3 can also be run with a command line interface. For example,
 the first HMP2 analysis can be performed with the following command (the
-"\" may need to be removed):
+slashes may need to be removed):
 
 ```{r, engine = 'bash', eval = FALSE, cache = FALSE}
 ./R/maaslin3.R \

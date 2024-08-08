@@ -60,12 +60,12 @@ metatranscriptomics](https://doi.org/10.1093/bioinformatics/btab327)."
         * [3.1.2 Examples of input files](#312-examples-of-input-files)
     * [3.2 Output files](#32-output-files)
     * [3.3 Running models in R](#33-running-models-in-R)
-    * [3.3.1 Raw RNA Abundances with MaAsLin
-    3](#331-raw-rna-abundances-with-maaslin-3)
-    * [3.3.2 RNA/DNA Ratios with MaAsLin
-    3](#332-rna-dna-ratios-with-maaslin-3)
-    * [3.3.3 RNA abundance adjusted by DNA abundance with MaAsLin
-    3](#333-rna-abundance-adjusted-by-dna-abundance-with-mtxmodel)
+        * [3.3.1 Raw RNA Abundances with MaAsLin
+        3](#331-raw)
+        * [3.3.2 RNA/DNA Ratios with MaAsLin
+        3](#332-ratio)
+        * [3.3.3 RNA abundance adjusted by DNA abundance with MaAsLin
+        3](#333-mtx-mgx)
     * [3.4 Compare output](#34-compare-output)
 
 ## 1. Description {#1-description}
@@ -226,8 +226,7 @@ helper script from HUMAnN on paired MGX/MTX data
 3. Run the MTX model in MaAsLin 3 to adjust the raw RNA abundance by the
 underlying DNA abundances
 
-### 3.3.1 Raw RNA Abundances with MaAsLin 3
-{#331-raw-rna-abundances-with-maaslin-3}
+### 3.3.1 Raw RNA Abundances with MaAsLin 3 {#331-raw}
 
 In this first example run on MTX data, we will run MaAsLin 3 on the RNA
 pathway abundances as characterized by HUMAnN 2 but not normalized by
@@ -255,8 +254,8 @@ fit_maaslin_rna <- maaslin3(
 knitr::include_graphics("demo_output_rna/figures/summary_plot.png")
 ```
 
-### 3.3.2 RNA/DNA Ratios with MaAsLin 3
-{#332-rna-dna-ratios-with-maaslin-3}
+### 3.3.2 RNA/DNA Ratios with MaAsLin 3 {#332-ratio}
+
 Next, we will run the same model changing the input to the RNA/DNA ratio
 data frame. Note that we now set `normalization = 'NONE'` so that
 MaAsLin 3 does not total-sum scale the ratios. As before, we set
@@ -283,8 +282,7 @@ fit_maaslin_ratio <- maaslin3(
 knitr::include_graphics("demo_output_ratio/figures/summary_plot.png")
 ```
 
-### 3.3.3 RNA abundance adjusted by DNA abundance with MaAsLin 3
-{#333-rna-abundance-adjusted-by-dna-abundance-with-mtxmodel}
+### 3.3.3 RNA abundance adjusted by DNA abundance with MaAsLin 3 {#333-mtx-mgx}
 
 Finally, we will run the MTX model in MaAsLin 3. We first put the DNA
 and RNA abundance files into the MaAsLin 3 function `preprocess_dna_mtx`
@@ -350,8 +348,8 @@ results_rna = subset(rbind(fit_maaslin_rna$fit_data_abundance$results,
                         is.na(error))
 table(results_rna$value, results_rna$model)
 #              LM logistic
-# dysbiosis_CD 66       44
-# dysbiosis_UC 14       11
+# dysbiosis_CD 66       1
+# dysbiosis_UC 14       0
 
 results_rna_ratio =
 subset(rbind(fit_maaslin_ratio$fit_data_abundance$results,
@@ -359,9 +357,9 @@ subset(rbind(fit_maaslin_ratio$fit_data_abundance$results,
                         metadata == "dysbiosis_state" & qval_individual < 0.1 &
                             is.na(error))
 table(results_rna_ratio$value, results_rna_ratio$model)
-##                LM logistic
-##   dysbiosis_CD 26        2
-##   dysbiosis_UC  1        0
+##                LM
+##   dysbiosis_CD 26
+##   dysbiosis_UC  1
 
 results_rna_dna =
 subset(rbind(fit_maaslin_mtx_mgx$fit_data_abundance$results,
@@ -369,9 +367,9 @@ subset(rbind(fit_maaslin_mtx_mgx$fit_data_abundance$results,
                         metadata == "dysbiosis_state" & qval_individual < 0.1 &
                             is.na(error))
 table(results_rna_dna$value, results_rna_dna$model)
-#              LM logistic
-# dysbiosis_CD 49        9
-# dysbiosis_UC  2        0
+#              LM
+# dysbiosis_CD 49
+# dysbiosis_UC  2
 ```
 
 As you can tell, this number was highly dependent on the model, with
@@ -385,17 +383,17 @@ do this with the `intersect` call in R:
 # features called by the RNA/DNA ratios compared to the Raw RNA
 # abundances
 intersect(results_rna_ratio$feature, results_rna$feature)
-# 19 features overlapped
+# 16 features overlapped
 
 # features called by the Raw RNA abundances compared
 # to the RNA abundances adjusted by the DNA abundances
 intersect(results_rna$feature, results_rna_dna$feature)
-# 51 features overlapped
+# 46 features overlapped
 
 # features called by the RNA/DNA ratios compared
 # to the RNA abundances adjusted by the DNA abundances
 intersect(results_rna_ratio$feature, results_rna_dna$feature)
-# 18 features overlapped
+# 17 features overlapped
 ```
 
 From this, we can see that while the models are calling different total
@@ -405,10 +403,9 @@ overlapping.
 Finally, let's plot the top CD dysbiosis results in the MTX_model,
 across all the models. Here we first create one object that includes all
 the results, then subset it to the top 10 pathways in the DNA covariate
-results.
+results. (Set `include=TRUE` to see the plot.)
 
-```{r, fig.width=8, fig.height=4, fig.align='center', cache=TRUE,
-include=FALSE}
+```{r, fig.width=8, fig.height=4, fig.align='center', include=FALSE}
 top_pathways <- results_rna_dna$feature[
     order(results_rna_dna$qval_individual)][1:10]
 

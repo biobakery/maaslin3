@@ -400,7 +400,7 @@ choose_ranef_model_summary_funs_logistic <- function(random_effects_formula,
         ranef_function <- NULL
         if (length(strata) > 0) {
             if (augment) {
-                model_function <- substitute(
+                model_function <-
                     function(formula,
                             data,
                             weight_scheme = NULL,
@@ -450,10 +450,7 @@ choose_ranef_model_summary_funs_logistic <- function(random_effects_formula,
                         } else  {
                             return(clogit_out)
                         }
-                    },
-                    list(strata = strata)
-                )
-                model_function <- eval(model_function)
+                    }
             } else {
                 model_function <-
                     function(formula,
@@ -869,6 +866,7 @@ fit_augmented_logistic <- function(ranef_function,
                                 dat_sub,
                                 features,
                                 x) {
+
     warning_message <- NA
     error_message <- NA
     calling_env <- environment()
@@ -958,6 +956,7 @@ non_augmented <- function(ranef_function,
                         dat_sub,
                         features,
                         x) {
+
     warning_message <- NA
     error_message <- NA
     calling_envir <- environment()
@@ -2001,11 +2000,13 @@ fit.model <- function(features,
     # Logistic Model #
     ##################
     
-    if (model == "logistic")
+    if (model == "logistic") {
         fun_list <- choose_ranef_model_summary_funs_logistic(
             random_effects_formula,
-            strata,
-            augment)
+            strata = strata,
+            augment - augment)
+    }
+    
     
     ranef_function <- fun_list$ranef_function
     model_function <- fun_list$model_function

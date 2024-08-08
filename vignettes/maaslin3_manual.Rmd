@@ -16,7 +16,7 @@ vignette: >
 
 ## Introduction ##
 
-[**MaAsLin3**](http://huttenhower.sph.harvard.edu/MaAsLin3) is the next
+[**MaAsLin 3**](http://huttenhower.sph.harvard.edu/MaAsLin3) is the next
 generation of **M**a**A**s**L**in (**M**icrobiome **M**ultivariable
 **A**ssociations with **L**inear Models). This comprehensive R package
 efficiently determines multivariable associations between clinical
@@ -41,7 +41,6 @@ overview of analysis options and some example runs.
 
 If you have questions, please direct them to the [MaAsLin 3
 Forum](https://forum.biobakery.org/c/Downstream-analysis-and-statistics/maaslin)
-.
 
 --------------------------------------------
 
@@ -58,6 +57,7 @@ Forum](https://forum.biobakery.org/c/Downstream-analysis-and-statistics/maaslin)
     - [In R](#in-r)
     - [Plot revisions](#plot-revisions)
     - [Command line](#command-line)
+    - [Contrast testing](#contrast-testing)
 - [Options](#options)
     - [Required parameters](#required-parameters)
     - [Model formula](#model-formula)
@@ -139,11 +139,12 @@ should not have spaces or unusual characters.
 satisfies the `lme4` specifications: fixed effects, random effects,
 interaction terms, polynomial terms, and more can all be included. If
 categorical variables are included as fixed effects, each level will be
-tested against the first factor level. In addition, ordered predictors
-and group predictors can be included by including `group(variable_name)`
-and `ordered(variable_name)` in the formula. Ordered and group
+tested against the first factor level. In addition, ordered predictors, group
+predictors, and strata variables can be included by including
+`group(variable_name)`, `ordered(variable_name)`, and `strata(variable_name)`
+respectively in the formula. Ordered and group
 predictors should stand alone in the formula (i.e., no group predictors
-in random effects).
+in random effects). Only one strata variable can be included.
 * *Vectors*: Alternatively, a vector of variable names can be supplied
 to the parameters `fixed_effects`, `random_effects`, `group_effects`,
 `ordered_effects`, and `strata_effects`. Categorical variables should
@@ -223,7 +224,8 @@ contains all the data and results (see `?maaslin_fit`).
         individual q-value is below the parameter `max_significance`, and two
         stars indicate the individual q-value is below `max_significance`
         divided by 10.
-    * ``association_plots/[metadatum]_[feature]_[association].pdf``
+    * ``association_plots/[metadatum]/[association]/
+[metadatum]_[feature]_[association].png``
         * A plot is generated for each significant association up to `max_pngs`.
         * Scatter plots are used for continuous metadata abundance associations.
         * Box plots are used for categorical data abundance associations.
@@ -247,24 +249,37 @@ interpretable visual while usually agreeing with the full model.
 
 #### Diagnostics
 
-There are a few common issues to check for in the results:
-
-1. When warnings or errors are thrown during the fitting process, they
-are recorded in the `error` column of `all_results.tsv`. Often, these
-indicate model fitting failures or poor fits that should not be trusted,
-but sometimes the warnings can be benign, and the model fit might still
-be reasonable. Users should check associations of interest if they
-produce errors.
-2. Despite the error checking, significant results could still result
-from poor model fits. These can usually be diagnosed with the visuals in
-the `association_plots` directory.
-    * Any significant abundance associations with a categorical variable
-    should usually have **at least 10 observations in each category**.
-    * Significant prevalence associations with categorical variables should
-    also have **at least 10 samples in which the feature was present and at
-    least 10 samples in which it was absent for each significant category**.
-    * Significant abundance associations with continuous metadata should be
+1. When warnings or errors are thrown during the fitting process, they are 
+recorded in the `error` column of `all_results.tsv`. Often, these indicate 
+model fitting failures or poor fits that should not be trusted, but sometimes 
+the warnings can be benign, and the model fit might still be reasonable. Users 
+should check associations of interest if they produce errors.
+2. Despite the error checking, significant results could still result from poor 
+model fits. These can usually be diagnosed with the visuals in the 
+`association_plots` directory. 
+    * Any significant abundance associations with a categorical variable should 
+    usually have **at least 10 observations in each category**.
+    * Significant prevalence associations with categorical variables should 
+    also have **at least 10 samples in which the feature was present and at 
+    least 10 samples in which it was absent for each significant category**. 
+    * Significant abundance associations with continuous metadata should be 
     checked visually for influential outliers.
+3. The q-values are FDR corrected over all abundance or prevalence 
+relationships (separately), so it may be preferable to FDR correct just the 
+p-values from the variables of interest. This can reduce false positives when 
+there are many significant but uninteresting associations (e.g., many read 
+depth associations).
+4. There are also a few rules of thumb to keep in mind.
+    * Models should ideally have about 10 times as many samples (all samples 
+    for logistic fits, non-zero samples for linear fits) as covariate terms 
+    (all continuous variables plus all categorical variable levels).
+    * Coefficients (effect sizes) larger than about 15 in absolute value are 
+    usually suspect unless very small unstandardized predictors are being 
+    included. (A coefficient of 15 corresponds to a fold change >30000!). If 
+    you encounter such coefficients, check that (1) no error was thrown, (2) 
+    the plots look reasonable, (3) a sufficient number of samples were 
+    used in fitting, (4) the q-value is significant, (5) the metadata are not 
+    highly collinear, and (6) the random effects are plausible.
 
 ### Run a demo ###
 
@@ -318,7 +333,8 @@ fit_out <- maaslin3(input_data = taxa_table,
                     median_comparison_abundance = TRUE,
                     median_comparison_prevalence = FALSE,
                     max_pngs = 100,
-                    cores = 1)
+                    cores = 1,
+                    save_models = TRUE)
 ```
 
 The `maaslin3` wrapper function runs all steps at once, but equivalent
@@ -403,14 +419,14 @@ invisible(maaslin_plot_results(output = 'hmp2_output',
 #### Replotting
 
 Once `maaslin3` has been run once, `maaslin_plot_results_from_output`
-can be run with the same `param_list` as the original `maaslin3` run to
+can be run to
 (re-)create the plots. This allows the user to plot the associations
 even without having the R object returned by `maaslin_fit` or `maaslin3`
 (e.g., if fitting models through the command line). It is recommended to
 fit models with simple variables names that are robust to formula
 plotting and then convert these into proper names for plotting.
-Likewise, `heatmap_vars` and `coef_plot_vars` can be specified in the
-`param_list` at any point, but it is usually easier to see how the names
+Likewise, `heatmap_vars` and `coef_plot_vars` can be specified at 
+any point, but it is usually easier to see how the names
 come out first and then choose which metadata variables will go in the
 coefficient plot and which will go in the heatmap afterwards with
 `maaslin_plot_results_from_output`.
@@ -499,7 +515,7 @@ the plots when knitting the Rmd.)
 knitr::include_graphics("hmp2_output/figures/summary_plot.png")
 ```
 
-In the association plots, the taxa and metadata have been renamed to be
+In the association plots below, the taxa and metadata have been renamed to be
 consistent with the results file from earlier.
 ```{r, echo=FALSE, fig.show='hold', cache = FALSE, include=FALSE}
 prefix <- "hmp2_output/figures/association_plots"
@@ -512,12 +528,39 @@ plot_vec <- c("/age/linear/Age_Faecalibacterium prausnitzii_linear.png",
 knitr::include_graphics(paste0(prefix, plot_vec))
 ```
 
+#### Contrast testing
+
+We can also perform contrast testing in MaAsLin 3 to check whether a linear
+combination of the coefficients is significantly different from some constant. 
+Specify a contrast matrix
+with column names matching the coefficient names and rows with the contrasts
+of interest. A separate contrast test will be performed for each row. Note that
+`save_models` must be `TRUE` in the original fit to perform contrast tests.
+
+```{R, echo = TRUE, results = 'hide', warning = FALSE, cache = FALSE}
+contrast_mat <- matrix(c(1, 1, 0, 0, 0, 0, 1, 1), 
+    ncol = 4, nrow = 2, byrow = TRUE)
+    
+colnames(contrast_mat) <- c("diagnosisUC",
+                            "diagnosisCD",
+                            "dysbiosis_statedysbiosis_UC",
+                            "dysbiosis_statedysbiosis_CD")
+                            
+rownames(contrast_mat) <- c("diagnosis_test", "dysbiosis_test")
+
+contrast_mat
+                            
+maaslin_contrast_test(fits = fit_out$fit_data_abundance$fits,
+                        contrast_mat = contrast_mat,
+                        rhs = c(0, 0))
+```
+
 
 #### Command line ####
 
 MaAsLin 3 can also be run with a command line interface. For example,
 the first HMP2 analysis can be performed with the following command (the
-"\" may need to be removed):
+slashes may need to be removed):
 
 ```{r, engine = 'bash', eval = FALSE, cache = FALSE}
 ./R/maaslin3.R \
@@ -572,7 +615,7 @@ ordered, and strata variables can be specified as:
 considered if a formula is set.
 * `fixed_effects`: A vector of variable names to be included as fixed
 effects.
-* Fixed effects models are fit with `lm` (linear) or `glm` (logistic).
+    * Fixed effects models are fit with `lm` (linear) or `glm` (logistic).
 * `reference`: For a variable with more than two levels supplied with
 `fixed_effects`, the factor to use as a reference provided as a string
 of 'variable,reference' semi-colon delimited for multiple variables.
@@ -581,14 +624,14 @@ intercepts. **Random intercept models may produce poor model fits when
 there are fewer than 5 observations per group.** In these scenarios,
 per-group fixed effects should be used and subsequently filtered out.
 See `strata_effects` as well.
-* Random effects models are fit with `lmer` (linear) and `glmer`
+    * Random effects models are fit with `lmer` (linear) and `glmer`
 (logistic), and the significance tests come from `lmerTest` and `glmer`
 respectively.
 * `group_effects`: A factored categorical variable to be included for
 group testing. An ANOVA-style test will be performed to assess whether
 any of the variable's levels are significant, and no coefficients or
 individual p-values will be returned.
-* Tests are performed with the `anova` function's `LRT` option (logistic
+    * Tests are performed with the `anova` function's `LRT` option (logistic
 fixed and mixed effects), the `anova` function's F test (linear fixed
 effects), or `lmerTest::contest` (linear mixed effects).
 * `ordered_effects`: A factored categorical variable to be included.
@@ -596,7 +639,7 @@ Consecutive levels will be tested for significance against each other
 with contrast tests, and the resulting associations will correspond to
 effect sizes, standard errors, and significances of each level versus
 the previous.
-* Contrast tests are performed with `multcomp::glht` (fixed effects and
+    * Contrast tests are performed with `multcomp::glht` (fixed effects and
 logistic mixed effects) and `lmerTest::contest` (linear mixed effects).
 * `strata_effects`: A single grouping variable to be included in matched
 case-control studies. If a strata variable is included, no random
@@ -647,7 +690,8 @@ scaling) is recommended, but `CLR` (centered log ratio) and `NONE` can
 also be used.
 * `transform` (default `LOG`, base 2): The transformation to apply to
 the features after normalization and before analysis. The option `LOG`
-is recommended, but `PLOG` (pseudo-log) and `NONE` can also be used.
+is recommended, but `PLOG` (pseudo-log with a pseudo-count of half the 
+dataset minimum non-zero abundance replacing zeros) and `NONE` can also be used.
 * `correction` (default `BH`): The correction to obtain FDR-corrected
 q-values from raw p-values. Any valid options for `p.adjust` can be
 used.
@@ -656,6 +700,14 @@ continuous metadata variables so they are on the same scale. This is
 recommended in order to compare coefficients across metadata variables,
 but note that functions of the metadata specified in the `formula` will
 apply after standardization.
+* `augment` (default `TRUE`): To avoid linear separability in the
+logistic regression, at each input data point, add an extra 0 and an
+extra 1 observation weighted as the number of predictors divided by two
+times the number of data points. This is almost always recommended to
+avoid linear separability while having a minor effect on fit
+coefficients otherwise.
+* `evaluate_only` (default `NULL`): To fit only the abundance or only the
+prevalence models, `evaluate_only` can be set to `abundance` or `prevalence`.
 
 #### Compositionality corrections ####
 
@@ -722,7 +774,8 @@ against the median, which can enable some inference on the absolute
 scale. There are two interpretations of this test for absolute abundance
 associations:
 
-1. In linear models, if two features' associations with a particular
+1. In linear models without sparsity (or with sparsity under some assumptions), 
+if two features' associations with a particular
 metadatum on the log *absolute* scale differ by some value $d$, the
 features' associations with that metadatum on the log *relative* scale
 (total-sum scaling) will also differ by $d$. That is, the absolute and
@@ -793,12 +846,6 @@ right scale.
 * `median_comparison_prevalence_threshold` (default `0.25`): Same as
 `median_comparison_abundance_threshold` but applied to the prevalence
 associations.
-* `augment` (default `TRUE`): To avoid linear separability in the
-logistic regression, at each input data point, add an extra 0 and an
-extra 1 observation weighted as the number of predictors divided by two
-times the number of data points. This is almost always recommended to
-avoid linear separability while having a minor effect on fit
-coefficients otherwise.
 
 #### Plotting parameters ####
 
@@ -818,7 +865,7 @@ can be tricky, it is recommended to first run `maaslin3` without setting
 `coef_plot_vars` or `heatmap_vars`, look at the names of the variables
 in the summary plot, and then rerun with
 `maaslin_plot_results_from_output` after updating `coef_plot_vars` and
-`heatmap_vars` in `param_list` with the desired variables.
+`heatmap_vars` with the desired variables.
 * `heatmap_vars`: Vector of variable names to be used in the heatmap
 section of the summary plot. Continuous variables should match the
 metadata column name, and categorical variables should be of the form

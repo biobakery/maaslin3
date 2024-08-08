@@ -1136,4 +1136,5 @@ unlink('random_effects_output', recursive = TRUE)
 unlink('interaction_output', recursive = TRUE)
 unlink('ordered_outputs', recursive = TRUE)
 unlink('group_outputs', recursive = TRUE)
+unlink('contrast_test_output', recursive = TRUE)
 ```

@@ -33,7 +33,7 @@ expect_that(expected_results_run1$metadata[1:50],equals(maaslin_results$metadata
 expect_that(expected_results_run1$feature[1:50],equals(maaslin_results$feature[1:50]))
 expect_that(round(expected_results_run1$N[1:50],10),equals(round(maaslin_results$N[1:50],10)))
 expect_that(expected_results_run1$N.not.0[1:50],equals(maaslin_results$N.not.0[1:50]))
-expect_that(round(as.numeric(expected_results_run1$pval.value[1:50]),10),equals(round(as.numeric(maaslin_results$pval.value[1:50]),10)))
-expect_that(round(as.numeric(expected_results_run1$qval.value[1:50]),10),equals(round(as.numeric(maaslin_results$qval.value[1:50]),10)))
+expect_that(round(as.numeric(expected_results_run1$pval_individual[1:50]),10),equals(round(as.numeric(maaslin_results$pval_individual[1:50]),10)))
+expect_that(round(as.numeric(expected_results_run1$qval_individual[1:50]),10),equals(round(as.numeric(maaslin_results$qval_individual[1:50]),10)))
 
 unlink(output_tmp, recursive = T)

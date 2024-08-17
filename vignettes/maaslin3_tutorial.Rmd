@@ -331,7 +331,8 @@ and `median_comparison_prevalence`, but in summary:
 to make inference on the absolute scale when using relative abundance
 data. When `median_comparison_abundance` is `TRUE`, only the p-values
 and q-values change; the coefficients returned are still the relative
-abundance coefficients.
+abundance coefficients unless `subtract_median` is `TRUE` in which case
+the median will be subtracted from the coefficients.
 * `median_comparison_abundance` should be `FALSE` when (1) testing for
 significant relative associations, (2) testing for absolute abundance
 associations under the assumption that the total absolute abundance is

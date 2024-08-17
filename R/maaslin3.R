@@ -103,6 +103,7 @@ args$median_comparison_abundance <- TRUE
 args$median_comparison_prevalence <- FALSE
 args$median_comparison_abundance_threshold <- 0.25
 args$median_comparison_prevalence_threshold <- 0.25
+args$subtract_median <- FALSE
 args$augment <- TRUE
 args$evaluate_only <- NULL
 args$unscaled_abundance <- NULL
@@ -403,7 +404,7 @@ options <-
     optparse::add_option(
         options,
         c("--median_comparison_abundance_threshold"),
-        type = "logical",
+        type = "double",
         dest = "median_comparison_abundance_threshold",
         default = args$median_comparison_abundance_threshold,
         help = paste(
@@ -415,12 +416,24 @@ options <-
     optparse::add_option(
         options,
         c("--median_comparison_prevalence_threshold"),
-        type = "logical",
+        type = "double",
         dest = "median_comparison_prevalence_threshold",
         default = args$median_comparison_prevalence_threshold,
         help = paste(
             "Radius within which the median adjustment",
             "gives a p-value of 1 [ Default: %default ]"
+        )
+    )
+options <-
+    optparse::add_option(
+        options,
+        c("--subtract_median"),
+        type = "logical",
+        dest = "subtract_median",
+        default = args$subtract_median,
+        help = paste(
+            "Subtract the median from coefficients when",
+            "doing median comparisons [ Default: %default ]"
         )
     )
 options <-
@@ -700,6 +713,7 @@ maaslin_log_arguments <- function(input_data,
                                 median_comparison_prevalence = FALSE,
                                 median_comparison_abundance_threshold = 0.25,
                                 median_comparison_prevalence_threshold = 0.25,
+                                subtract_median = FALSE,
                                 augment = TRUE,
                                 evaluate_only = NULL,
                                 plot_summary_plot = TRUE,
@@ -783,6 +797,10 @@ maaslin_log_arguments <- function(input_data,
     logging::logdebug(
         "Prevalence median comparison threshold: %s",
         median_comparison_prevalence_threshold
+    )
+    logging::logdebug(
+        "Subtract median: %s",
+        subtract_median
     )
     if (is.character(unscaled_abundance)) {
         logging::logdebug("Unscaled abundance: %s", unscaled_abundance)
@@ -1824,6 +1842,7 @@ maaslin_fit <- function(filtered_data,
                         median_comparison_prevalence = FALSE,
                         median_comparison_abundance_threshold = 0.25,
                         median_comparison_prevalence_threshold = 0.25,
+                        subtract_median = FALSE,
                         augment = TRUE,
                         evaluate_only = NULL,
                         cores = 1,
@@ -1866,6 +1885,7 @@ maaslin_fit <- function(filtered_data,
                 median_comparison = median_comparison_abundance,
                 median_comparison_threshold = 
                     median_comparison_abundance_threshold,
+                subtract_median = subtract_median,
                 feature_specific_covariate = feature_specific_covariate,
                 feature_specific_covariate_name = 
                     feature_specific_covariate_name,
@@ -1919,6 +1939,7 @@ maaslin_fit <- function(filtered_data,
                 median_comparison = median_comparison_prevalence,
                 median_comparison_threshold = 
                     median_comparison_prevalence_threshold,
+                subtract_median = subtract_median,
                 feature_specific_covariate = feature_specific_covariate,
                 feature_specific_covariate_name = 
                     feature_specific_covariate_name,
@@ -2395,6 +2416,7 @@ maaslin3 <- function(input_data,
                     median_comparison_prevalence = FALSE,
                     median_comparison_abundance_threshold = 0.25,
                     median_comparison_prevalence_threshold = 0.25,
+                    subtract_median = FALSE,
                     augment = TRUE,
                     evaluate_only = NULL,
                     plot_summary_plot = TRUE,
@@ -2447,6 +2469,7 @@ maaslin3 <- function(input_data,
         median_comparison_prevalence,
         median_comparison_abundance_threshold,
         median_comparison_prevalence_threshold,
+        subtract_median,
         augment,
         evaluate_only,
         plot_summary_plot,
@@ -2541,6 +2564,7 @@ maaslin3 <- function(input_data,
         median_comparison_prevalence,
         median_comparison_abundance_threshold,
         median_comparison_prevalence_threshold,
+        subtract_median,
         augment,
         evaluate_only,
         cores,
@@ -2655,6 +2679,7 @@ if (identical(environment(), globalenv()) &&
                 current_args$median_comparison_abundance_threshold,
             median_comparison_prevalence_threshold = 
                 current_args$median_comparison_prevalence_threshold,
+            subtract_median = current_args$subtract_median,
             formula = current_args$formula,
             correction = current_args$correction,
             standardize = current_args$standardize,

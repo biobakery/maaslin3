@@ -1874,6 +1874,7 @@ run_median_comparison <- function(paras,
                                 metadata,
                                 random_effects_formula,
                                 median_comparison_threshold,
+                                subtract_median,
                                 model) {
     logging::loginfo("Performing tests against medians")
     
@@ -1902,8 +1903,14 @@ run_median_comparison <- function(paras,
                                     paras_sub$pval < 0.95], na.rm = TRUE)
         if (is.na(cur_median)) {
             pvals_new <- rep(NA, nrow(paras_sub))
+            coefs_new <- paras_sub$coef
         } else {
             pvals_new <- vector()
+            if (subtract_median) {
+                coefs_new <- paras_sub$coef - cur_median
+            } else {
+                coefs_new <- paras_sub$coef
+            }
             if (metadata_variable %in% ordered_levels) {
                 pvals_new <- run_median_comparison_ordered(
                     paras_sub,
@@ -1938,6 +1945,7 @@ run_median_comparison <- function(paras,
                 paras_sub$error
             )
         paras_sub$pval <- pvals_new
+        paras_sub$coef <- coefs_new
         final_paras <- rbind(final_paras, paras_sub)
     }
     
@@ -1957,6 +1965,7 @@ fit.model <- function(features,
                     cores = 1,
                     median_comparison = FALSE,
                     median_comparison_threshold = 0.1,
+                    subtract_median = FALSE,
                     feature_specific_covariate = NULL,
                     feature_specific_covariate_name = NULL,
                     feature_specific_covariate_record = NULL) {
@@ -2259,6 +2268,7 @@ fit.model <- function(features,
                                     metadata,
                                     random_effects_formula,
                                     median_comparison_threshold,
+                                    subtract_median,
                                     model)
     }
     

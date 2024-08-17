@@ -814,8 +814,9 @@ To conclude:
 * `median_comparison_abundance` is `TRUE` by default and should be used
 to make inference on the absolute scale when using relative abundance
 data. When `median_comparison_abundance` is `TRUE`, only the p-values
-and q-values change; the coefficients returned are still the relative
-abundance coefficients.
+and q-values change. The coefficients returned are still the relative
+abundance coefficients unless `subtract_median` is set to `TRUE` in which
+case the median will be subtracted.
 * `median_comparison_abundance` should be `FALSE` when (1) testing for
 significant relative associations, (2) testing for absolute abundance
 associations under the assumption that the total absolute abundance is
@@ -846,6 +847,8 @@ right scale.
 * `median_comparison_prevalence_threshold` (default `0.25`): Same as
 `median_comparison_abundance_threshold` but applied to the prevalence
 associations.
+* `subtract_median` (default `FALSE`): Subtract the median from the 
+coefficients.
 
 #### Plotting parameters ####
 

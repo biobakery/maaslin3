@@ -26,6 +26,7 @@ maaslin_plot_results(output,
                     feature_specific_covariate_record = NULL,
                     median_comparison_abundance = TRUE,
                     median_comparison_prevalence = FALSE,
+                    subract_median = FALSE,
                     max_significance = 0.1,
                     plot_summary_plot = TRUE,
                     summary_plot_first_n = 25,
@@ -76,6 +77,7 @@ maaslin_plot_results(output,
     variable across the features. This is only recommended if the analyst is
     interested in how feature prevalence associations compare to each other
     or if there is likely strong compositionality-induced sparsity.}
+    \item{subtract_median}{Subtract the median from the coefficients.}
     \item{max_significance}{The FDR corrected q-value threshold for
     significance used in selecting which associations to write as
     significant and to plot.}

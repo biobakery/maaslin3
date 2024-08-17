@@ -45,6 +45,7 @@ maaslin3(input_data,
     median_comparison_prevalence = FALSE,
     median_comparison_abundance_threshold = 0.25,
     median_comparison_prevalence_threshold = 0.25,
+    subtract_median = FALSE,
     augment = TRUE,
     evaluate_only = NULL,
     plot_summary_plot = TRUE,
@@ -179,6 +180,7 @@ maaslin3(input_data,
     \item{median_comparison_prevalence_threshold}{Same as
     \code{median_comparison_abundance_threshold} but applied to the
     prevalence associations.}
+    \item{subtract_median}{Subtract the median from the coefficients.}
     \item{augment}{Add extra lowly-weighted 0s and 1s to avoid linear
     separability.}
     \item{evaluate_only}{Whether to evaluate just the abundnace

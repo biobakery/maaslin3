@@ -1837,6 +1837,7 @@ maaslin_fit <- function(filtered_data,
                         feature_specific_covariate_name = NULL,
                         feature_specific_covariate_record = NULL,
                         zero_threshold = 0,
+                        max_significance = 0.1,
                         correction = 'BH',
                         median_comparison_abundance = TRUE,
                         median_comparison_prevalence = FALSE,
@@ -1847,7 +1848,6 @@ maaslin_fit <- function(filtered_data,
                         evaluate_only = NULL,
                         cores = 1,
                         save_models = FALSE) {
-    logging::loginfo("Running the linear model component")
     
     if (!is.null(feature_specific_covariate)) {
         tryCatch({
@@ -1866,7 +1866,10 @@ maaslin_fit <- function(filtered_data,
     correction <- correction_choices[match(toupper(correction),
                                         toupper(correction_choices))]
     
+    # Run linear model component
     if (is.null(evaluate_only) || evaluate_only == "abundance") {
+        logging::loginfo("Running the linear model component")
+        
         #######################
         # For non-zero models #
         #######################
@@ -1916,6 +1919,7 @@ maaslin_fit <- function(filtered_data,
         
     }
     
+    # Run logistic model component
     if (is.null(evaluate_only) || evaluate_only == "prevalence") {
         #####################
         # For binary models #
@@ -1965,33 +1969,7 @@ maaslin_fit <- function(filtered_data,
             )
     }
     
-    if (is.null(evaluate_only)) {
-        results <-
-            add_joint_signif(fit_data_abundance,
-                            fit_data_prevalence,
-                            'linear',
-                            correction)
-        fit_data_abundance$results <- results[[1]]
-        fit_data_prevalence$results <- results[[2]]
-    } else if (evaluate_only == 'abundance') {
-        fit_data_abundance$results$pval_joint <-
-            fit_data_abundance$results$pval
-        fit_data_abundance$results$qval_joint <-
-            fit_data_abundance$results$qval
-        fit_data_abundance$results <- fit_data_abundance$results %>%
-            dplyr::rename(pval_individual = .data$pval,
-                        qval_individual = .data$qval)
-    } else if (evaluate_only == 'prevalence') {
-        fit_data_prevalence$results$pval_joint <-
-            fit_data_prevalence$results$pval
-        fit_data_prevalence$results$qval_joint <-
-            fit_data_prevalence$results$qval
-        fit_data_prevalence$results <-
-            fit_data_prevalence$results %>%
-            dplyr::rename(pval_individual = .data$pval,
-                        qval_individual = .data$qval)
-    }
-    
+    # Check for highly significant likely model misfits
     if (is.null(evaluate_only) || evaluate_only == "prevalence") {
         current_likely_error_subsetter <-
             !is.na(fit_data_prevalence$results$N.not.zero) &
@@ -2005,8 +1983,8 @@ maaslin_fit <- function(filtered_data,
                     abs(fit_data_prevalence$results$coef) > 15
             ) |
                 (
-                    !is.na(fit_data_prevalence$results$pval_individual) &
-                        fit_data_prevalence$results$pval_individual < 10 ^ -10
+                    !is.na(fit_data_prevalence$results$pval) &
+                        fit_data_prevalence$results$pval < 10 ^ -10
                 )
             )
         current_errors_for_likely_issues <-
@@ -2033,8 +2011,8 @@ maaslin_fit <- function(filtered_data,
                     abs(fit_data_prevalence$results$coef) > 15
             ) |
                 (
-                    !is.na(fit_data_prevalence$results$pval_individual) &
-                        fit_data_prevalence$results$pval_individual < 10 ^ -10
+                    !is.na(fit_data_prevalence$results$pval) &
+                        fit_data_prevalence$results$pval < 10 ^ -10
                 )
             )
         current_errors_for_likely_issues <-
@@ -2047,28 +2025,61 @@ maaslin_fit <- function(filtered_data,
                 (< 10^-10) was obtained from a feature present in >95% of 
                 samples. Check this is intended."
             )
-        
-        fit_data_prevalence$results <-
-            fit_data_prevalence$results[
-                order(fit_data_prevalence$results$qval_joint), ]
-        fit_data_prevalence$results <-
-            fit_data_prevalence$results[
-                order(!is.na(fit_data_prevalence$results$error)), ] 
-        # Move all that had errors to the end
     } else {
         fit_data_prevalence <- NULL
     }
     
+    # Add in joint p/q-values
+    if (is.null(evaluate_only)) {
+        results <-
+            add_joint_signif(fit_data_abundance,
+                            fit_data_prevalence,
+                            max_significance,
+                            correction)
+        fit_data_abundance$results <- results[[1]]
+        fit_data_prevalence$results <- results[[2]]
+    } else if (evaluate_only == 'abundance') {
+        fit_data_abundance$results$pval_joint <-
+            fit_data_abundance$results$pval
+        fit_data_abundance$results$qval_joint <-
+            fit_data_abundance$results$qval
+        fit_data_abundance$results <- fit_data_abundance$results %>%
+            dplyr::rename(pval_individual = .data$pval,
+                        qval_individual = .data$qval)
+    } else if (evaluate_only == 'prevalence') {
+        fit_data_prevalence$results$pval_joint <-
+            fit_data_prevalence$results$pval
+        fit_data_prevalence$results$qval_joint <-
+            fit_data_prevalence$results$qval
+        fit_data_prevalence$results <-
+            fit_data_prevalence$results %>%
+            dplyr::rename(pval_individual = .data$pval,
+                        qval_individual = .data$qval)
+    }
+    
+    # Reorder outputs
     if (is.null(evaluate_only) || evaluate_only == "abundance") {
         fit_data_abundance$results <-
             fit_data_abundance$results[
                 order(fit_data_abundance$results$qval_joint), ]
+        # Move all that had errors to the end
         fit_data_abundance$results <-
             fit_data_abundance$results[
                 order(!is.na(fit_data_abundance$results$error)), ] 
-        # Move all that had errors to the end
     } else {
         fit_data_abundance <- NULL
+    }
+    
+    if (is.null(evaluate_only) || evaluate_only == "prevalence") {
+        fit_data_prevalence$results <-
+            fit_data_prevalence$results[
+                order(fit_data_prevalence$results$qval_joint), ]
+        # Move all that had errors to the end
+        fit_data_prevalence$results <-
+            fit_data_prevalence$results[
+                order(!is.na(fit_data_prevalence$results$error)), ] 
+    } else {
+        fit_data_prevalence <- NULL
     }
     
     return(
@@ -2559,6 +2570,7 @@ maaslin3 <- function(input_data,
         feature_specific_covariate_name,
         feature_specific_covariate_record,
         zero_threshold,
+        max_significance,
         correction,
         median_comparison_abundance,
         median_comparison_prevalence,

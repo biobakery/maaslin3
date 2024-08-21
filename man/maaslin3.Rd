@@ -132,8 +132,7 @@ maaslin3(input_data,
     features that are entirely zero.}
     \item{max_significance}{The FDR corrected q-value threshold for
     significance used in selecting which associations to write as
-    significant
-    and to plot.}
+    significant and to plot.}
     \item{normalization}{The normalization to apply to the features before
     transformation and analysis. The option \code{TSS} (total sum scaling)
     is

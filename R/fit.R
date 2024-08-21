@@ -135,17 +135,16 @@ get_character_cols <- function(dat_sub) {
 }
 
 create_combined_pval <- function(merged_signif,
-                                analysis_method,
                                 correction) {
     # Create a combined p-value
     merged_signif$pval_joint <-
-        pbeta(pmin(merged_signif[, analysis_method],
+        pbeta(pmin(merged_signif[, "linear"],
                 merged_signif[, "logistic"]), 1, 2)
     
     # If NA or model errored, use the p-value of the non-NA
     merged_signif$pval_joint <-
         ifelse(
-            is.na(merged_signif[, analysis_method]) |
+            is.na(merged_signif[, "linear"]) |
                 !is.na(merged_signif$linear_error),
             merged_signif[, "logistic"],
             merged_signif$pval_joint
@@ -154,14 +153,14 @@ create_combined_pval <- function(merged_signif,
         ifelse(
             is.na(merged_signif[, "logistic"]) |
                 !is.na(merged_signif$logistic_error),
-            merged_signif[, analysis_method],
+            merged_signif[, "linear"],
             merged_signif$pval_joint
         )
     merged_signif$pval_joint <-
         ifelse((
             is.na(merged_signif[, "logistic"]) |
                 !is.na(merged_signif$logistic_error)
-        ) & (is.na(merged_signif[, analysis_method]) |
+        ) & (is.na(merged_signif[, "linear"]) |
                 
                 !is.na(merged_signif$linear_error)),
         NA,
@@ -171,32 +170,64 @@ create_combined_pval <- function(merged_signif,
     return(merged_signif)
 }
 
+flag_abundance_turned_prevalence <- function(merged_signif,
+                                            max_significance) {
+    # Join and check linear and logistic pieces
+    merged_signif[,'logistic_error'] <- ifelse(
+            !is.na(merged_signif[,'logistic_coef']) &
+            !is.na(merged_signif[,'linear_coef']) &
+            !is.na(merged_signif[,'logistic']) &
+            !is.na(merged_signif[,'linear']),
+            ifelse(
+                is.na(merged_signif[,'logistic_error']) &
+                is.na(merged_signif[,'linear_error']) &
+                merged_signif[,'linear_qval'] < max_significance &
+                sign(merged_signif[,'logistic_coef']) == 
+                sign(merged_signif[,'logistic_coef']) &
+                abs(merged_signif[,'linear_coef']) > 
+                abs(merged_signif[,'logistic_coef']),
+                "Prevalence association possibly induced 
+by stronger abundance association",
+                merged_signif[,'logistic_error']
+            ),
+            merged_signif[,'logistic_error']
+        )
+    
+    return(merged_signif)
+}
+
 # Get joint significance for zeros and non-zeros
 add_joint_signif <-
     function(fit_data_abundance,
             fit_data_prevalence,
-            analysis_method,
+            max_significance,
             correction) {
         # Subset to shared columns
         fit_data_prevalence_signif <-
             fit_data_prevalence$results[, c("feature", "metadata", "value",
-                                            "name", "pval", "error")]
+                                            "name", "coef", "pval", "qval",
+                                            "error")]
         colnames(fit_data_prevalence_signif) <-
             c("feature",
             "metadata",
             "value",
             "name",
+            "logistic_coef",
             "logistic",
+            "logistic_qval",
             "logistic_error")
         fit_data_abundance_signif <-
             fit_data_abundance$results[, c("feature", "metadata", "value",
-                                        "name", "pval", "error")]
+                                        "name", "coef", "pval", "qval", 
+                                        "error")]
         colnames(fit_data_abundance_signif) <-
             c("feature",
             "metadata",
             "value",
             "name",
-            analysis_method,
+            "linear_coef",
+            "linear",
+            "linear_qval",
             "linear_error")
         
         # Join and check linear and logistic pieces
@@ -217,37 +248,70 @@ add_joint_signif <-
             )
         }
         
+        merged_signif <- flag_abundance_turned_prevalence(merged_signif,
+                                                        max_significance)
+        
         merged_signif <- create_combined_pval(merged_signif,
-                                            analysis_method,
                                             correction)
         
         return(list(
-            append_joint(fit_data_abundance, merged_signif),
-            append_joint(fit_data_prevalence, merged_signif)
+            append_joint(fit_data_abundance, merged_signif, "abundance"),
+            append_joint(fit_data_prevalence, merged_signif, "prevalence")
         ))
     }
 
 # Take logistic or linear component and add on the merged significance pieces
-append_joint <- function(outputs, merged_signif) {
-    merged_signif <-
-        merged_signif[, c("feature",
-                        "metadata",
-                        "value",
-                        "name",
-                        "pval_joint",
-                        "qval_joint")]
-    tmp_colnames <- colnames(outputs$results)
-    tmp_colnames <-
-        dplyr::case_when(
-            tmp_colnames == "pval" ~ "pval_individual",
-            tmp_colnames == "qval" ~ "qval_individual",
-            TRUE ~ tmp_colnames
-        )
-    colnames(outputs$results) <- tmp_colnames
-    
-    merged_signif <- merge(outputs$results,
-                        merged_signif,
-                        by = c("feature", "metadata", "value", "name"))
+append_joint <- function(outputs, merged_signif, association_type) {
+    if (association_type == 'abundance') {
+        merged_signif <-
+            merged_signif[, c("feature",
+                                "metadata",
+                                "value",
+                                "name",
+                                "pval_joint",
+                                "qval_joint")]
+        outputs$results <- outputs$results %>%
+            dplyr::rename(
+                pval_individual = pval,
+                qval_individual = qval
+            )
+        
+        merged_signif <- merge(outputs$results,
+                                merged_signif,
+                                by = c("feature", "metadata", "value", "name"))
+    } else if (association_type == 'prevalence') {
+        merged_signif <-
+            merged_signif[, c("feature",
+                                "metadata",
+                                "value",
+                                "name",
+                                "pval_joint",
+                                "qval_joint",
+                                "logistic_error")]
+        merged_signif <- merged_signif %>%
+            dplyr::rename(
+                error = logistic_error,
+            )
+        
+        original_col_order <- colnames(outputs$results)
+        original_col_order[original_col_order == 'pval'] <- 'pval_individual'
+        original_col_order[original_col_order == 'qval'] <- 'qval_individual'
+        original_col_order <- c(original_col_order, 'pval_joint', 'qval_joint')
+        
+        outputs$results$error <- NULL
+        outputs$results <- outputs$results %>%
+            dplyr::rename(
+                pval_individual = pval,
+                qval_individual = qval
+            )
+
+        merged_signif <- merge(outputs$results,
+                                merged_signif,
+                                by = c("feature", "metadata", "value", "name"))
+        merged_signif <- merged_signif[,original_col_order]
+    } else {
+        stop("Invalid association_type")
+    }
     
     merged_signif <-
         merged_signif[order(merged_signif$qval_joint),]

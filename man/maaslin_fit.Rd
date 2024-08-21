@@ -17,6 +17,7 @@ maaslin_fit(filtered_data,
             feature_specific_covariate_name = NULL,
             feature_specific_covariate_record = NULL,
             zero_threshold = 0,
+            max_significance = 0.1,
             correction = 'BH',
             median_comparison_abundance = TRUE,
             median_comparison_prevalence = FALSE,
@@ -58,6 +59,9 @@ maaslin_fit(filtered_data,
     \item{zero_threshold}{Abundances less than or equal to
     \code{zero_threshold} will be treated as zeros. This is primarily to be
     used when the abundance table has likely low-abundance false positives.}
+    \item{max_significance}{The FDR corrected q-value threshold for
+    significance used in selecting which associations to write as
+    significant and to plot.}
     \item{correction}{The correction to obtain FDR-corrected q-values from
     raw p-values. Any valid options for \code{p.adjust} can be used.}
     \item{median_comparison_abundance}{Test abundance coefficients against a

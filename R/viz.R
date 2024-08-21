@@ -68,6 +68,10 @@ nature_theme <- function(x_axis_labels, y_label) {
 }
 
 preprocess_merged_results <- function(merged_results) {
+    # Disregard abundance-induced-prevalence errors in plotting
+    merged_results$error[grepl("Prevalence association possibly induced", 
+                                merged_results$error)] <- NA
+    
     merged_results <-
         merged_results[is.na(merged_results$error) &
                         !is.na(merged_results$qval_individual) &
@@ -1288,6 +1292,10 @@ maaslin3_association_plots <-
             feature_specific_covariate = NULL,
             feature_specific_covariate_name = NULL,
             feature_specific_covariate_record = NULL) {
+        
+        # Disregard abundance-induced-prevalence errors in plotting
+        merged_results$error[grepl("Prevalence association possibly induced", 
+                                    merged_results$error)] <- NA
         
         new_name_normalization <-
             c('Total sum scaling', 'Center log ratio', 'None')

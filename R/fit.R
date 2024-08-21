@@ -272,8 +272,8 @@ append_joint <- function(outputs, merged_signif, association_type) {
                                 "qval_joint")]
         outputs$results <- outputs$results %>%
             dplyr::rename(
-                pval_individual = pval,
-                qval_individual = qval
+                pval_individual = .data$pval,
+                qval_individual = .data$qval
             )
         
         merged_signif <- merge(outputs$results,
@@ -290,7 +290,7 @@ append_joint <- function(outputs, merged_signif, association_type) {
                                 "logistic_error")]
         merged_signif <- merged_signif %>%
             dplyr::rename(
-                error = logistic_error,
+                error = .data$logistic_error,
             )
         
         original_col_order <- colnames(outputs$results)
@@ -301,8 +301,8 @@ append_joint <- function(outputs, merged_signif, association_type) {
         outputs$results$error <- NULL
         outputs$results <- outputs$results %>%
             dplyr::rename(
-                pval_individual = pval,
-                qval_individual = qval
+                pval_individual = .data$pval,
+                qval_individual = .data$qval
             )
 
         merged_signif <- merge(outputs$results,

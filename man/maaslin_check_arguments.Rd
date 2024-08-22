@@ -14,6 +14,7 @@ maaslin_check_arguments(feature_specific_covariate = NULL,
                         normalization = 'TSS',
                         transform = 'LOG',
                         correction = 'BH',
+                        warn_prevalence = TRUE,
                         evaluate_only = NULL,
                         unscaled_abundance = NULL,
                         median_comparison_abundance = TRUE)

@@ -254,7 +254,7 @@ add_joint_signif <-
                 fit_data_prevalence$results[, c("feature", "metadata", "value",
                                                 "name", "coef", "pval", "qval",
                                                 "error")]
-            colnames(fit_data_prevalence_signif) <-
+            colnames(fit_data_prevalence_signif_tmp) <-
                 c("feature",
                     "metadata",
                     "value",
@@ -267,7 +267,7 @@ add_joint_signif <-
                 new_fit_data_abundance$results[, c("feature", "metadata", 
                                                     "value", "name", "coef", 
                                                     "pval", "qval", "error")]
-            colnames(fit_data_abundance_signif) <-
+            colnames(fit_data_abundance_signif_tmp) <-
                 c("feature",
                     "metadata",
                     "value",
@@ -279,8 +279,8 @@ add_joint_signif <-
             
             merged_signif_tmp <-
                 dplyr::left_join(
-                    unique(fit_data_prevalence_signif),
-                    unique(fit_data_abundance_signif),
+                    unique(fit_data_prevalence_signif_tmp),
+                    unique(fit_data_abundance_signif_tmp),
                     by = c("feature", "metadata", "value", "name")
                 )
             

@@ -84,6 +84,9 @@ maaslin_fit(filtered_data,
     \code{median_comparison_abundance_threshold} but applied to the
     prevalence associations.}
     \item{subtract_median}{Subtract the median from the coefficients.}
+    \item{warn_prevalence}{Warn when prevalence associations are likely
+    induced by abundance associations. This requires re-fitting the linear
+    models on the TSS log-transformed data.}
     \item{augment}{Add extra lowly-weighted 0s and 1s to avoid linear
     separability.}
     \item{evaluate_only}{Whether to evaluate just the abundnace
@@ -92,6 +95,14 @@ maaslin_fit(filtered_data,
     cores will likely be faster only for large datasets or complex models.}
     \item{save_models}{Whether to return the fit models and save them to an
     RData file.}
+    \item{data}{The original data (only necessary if warn_prevalence is
+    TRUE).}
+    \item{min_abundance}{The original min_abundance parameter (only necessary 
+    if warn_prevalence is TRUE).}
+    \item{min_prevalence}{The original min_prevalence parameter (only necessary 
+    if warn_prevalence is TRUE).}
+    \item{min_abundance}{The original min_variance parameter (only necessary if 
+    min_variance is TRUE).}
 }
 \value{
 A list containing the following named items:
@@ -226,7 +237,8 @@ association (row):
         transformed_data,
         standardized_metadata,
         formula,
-        random_effects_formula)
+        random_effects_formula,
+        warn_prevalence = FALSE)
     
     unlink('output', recursive=TRUE)
     logging::logReset()

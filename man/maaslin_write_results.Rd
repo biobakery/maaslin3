@@ -111,7 +111,8 @@ dropped). No value is returned.
         transformed_data,
         standardized_metadata,
         formula,
-        random_effects_formula)
+        random_effects_formula,
+        warn_prevalence = FALSE)
     
     maaslin3::maaslin_write_results(
         output = 'output',

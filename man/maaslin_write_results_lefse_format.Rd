@@ -94,7 +94,8 @@ file in the folder \code{output}. No value is returned.
         transformed_data,
         standardized_metadata,
         formula,
-        random_effects_formula)
+        random_effects_formula,
+        warn_prevalence = FALSE)
     
     maaslin3::maaslin_write_results_lefse_format(
         output = 'output',

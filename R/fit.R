@@ -200,6 +200,7 @@ by stronger abundance association",
 add_joint_signif <-
     function(fit_data_abundance,
             fit_data_prevalence,
+            new_fit_data_abundance,
             max_significance,
             correction) {
         # Subset to shared columns
@@ -248,8 +249,63 @@ add_joint_signif <-
             )
         }
         
-        merged_signif <- flag_abundance_turned_prevalence(merged_signif,
-                                                        max_significance)
+        if (!is.null(new_fit_data_abundance)) {
+            fit_data_prevalence_signif_tmp <-
+                fit_data_prevalence$results[, c("feature", "metadata", "value",
+                                                "name", "coef", "pval", "qval",
+                                                "error")]
+            colnames(fit_data_prevalence_signif) <-
+                c("feature",
+                    "metadata",
+                    "value",
+                    "name",
+                    "logistic_coef",
+                    "logistic",
+                    "logistic_qval",
+                    "logistic_error")
+            fit_data_abundance_signif_tmp <-
+                new_fit_data_abundance$results[, c("feature", "metadata", 
+                                                    "value", "name", "coef", 
+                                                    "pval", "qval", "error")]
+            colnames(fit_data_abundance_signif) <-
+                c("feature",
+                    "metadata",
+                    "value",
+                    "name",
+                    "linear_coef",
+                    "linear",
+                    "linear_qval",
+                    "linear_error")
+            
+            merged_signif_tmp <-
+                dplyr::left_join(
+                    unique(fit_data_prevalence_signif),
+                    unique(fit_data_abundance_signif),
+                    by = c("feature", "metadata", "value", "name")
+                )
+            
+            merged_signif_tmp <- 
+                flag_abundance_turned_prevalence(merged_signif_tmp,
+                                                max_significance)
+            
+            overlapping_cols <- c("feature",
+                                "metadata",
+                                "value",
+                                "name",
+                                "logistic_coef",
+                                "logistic",
+                                "logistic_qval")
+            
+            merged_signif <- merged_signif %>%
+                dplyr::left_join(merged_signif_tmp %>% 
+                            dplyr::select(all_of(overlapping_cols), 
+                                            .data$logistic_error), 
+                            by = overlapping_cols) %>%
+                dplyr::mutate(logistic_error = dplyr::coalesce(
+                    .data$logistic_error.y, 
+                    .data$logistic_error.x)) %>%
+                dplyr::select(-.data$logistic_error.x, -.data$logistic_error.y)
+        }
         
         merged_signif <- create_combined_pval(merged_signif,
                                             correction)
@@ -2028,7 +2084,7 @@ fit.model <- function(features,
                     augment = FALSE,
                     cores = 1,
                     median_comparison = FALSE,
-                    median_comparison_threshold = 0.1,
+                    median_comparison_threshold = 0.25,
                     subtract_median = FALSE,
                     feature_specific_covariate = NULL,
                     feature_specific_covariate_name = NULL,

@@ -43,6 +43,9 @@ maaslin_check_arguments(feature_specific_covariate = NULL,
     used.}
     \item{correction}{The correction to obtain FDR-corrected q-values from
     raw p-values. Any valid options for \code{p.adjust} can be used.}
+    \item{warn_prevalence}{Warn when prevalence associations are likely
+    induced by abundance associations. This requires re-fitting the linear
+    models on the TSS log-transformed data.}
     \item{evaluate_only}{Whether to evaluate just the abundnace
     ("abundance") or prevalence ("prevalence") models}
     \item{unscaled_abundance}{A data frame with a single column of absolute

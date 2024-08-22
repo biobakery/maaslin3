@@ -180,6 +180,9 @@ maaslin3(input_data,
     \code{median_comparison_abundance_threshold} but applied to the
     prevalence associations.}
     \item{subtract_median}{Subtract the median from the coefficients.}
+    \item{warn_prevalence}{Warn when prevalence associations are likely
+    induced by abundance associations. This requires re-fitting the linear
+    models on the TSS log-transformed data.}
     \item{augment}{Add extra lowly-weighted 0s and 1s to avoid linear
     separability.}
     \item{evaluate_only}{Whether to evaluate just the abundnace

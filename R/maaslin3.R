@@ -104,6 +104,7 @@ args$median_comparison_prevalence <- FALSE
 args$median_comparison_abundance_threshold <- 0.25
 args$median_comparison_prevalence_threshold <- 0.25
 args$subtract_median <- FALSE
+args$warn_prevalence <- TRUE
 args$augment <- TRUE
 args$evaluate_only <- NULL
 args$unscaled_abundance <- NULL
@@ -439,6 +440,18 @@ options <-
 options <-
     optparse::add_option(
         options,
+        c("--warn_prevalence"),
+        type = "logical",
+        dest = "warn_prevalence",
+        default = args$warn_prevalence,
+        help = paste(
+            "Check and warn if prevalence associations are",
+            "likely due to compositionality [ Default: %default ]"
+        )
+    )
+options <-
+    optparse::add_option(
+        options,
         c("--augment"),
         type = "logical",
         dest = "augment",
@@ -588,6 +601,7 @@ maaslin_check_arguments <-
             normalization = 'TSS',
             transform = 'LOG',
             correction = 'BH',
+            warn_prevalence = TRUE,
             evaluate_only = NULL,
             unscaled_abundance = NULL,
             median_comparison_abundance = TRUE) {
@@ -601,12 +615,12 @@ maaslin_check_arguments <-
         
         if (!is.null(unscaled_abundance) &&
             median_comparison_abundance) {
-            stop(
-                "`median_comparison_abundance` usually should not be 
-                TRUE (default) with unscaled abundances. To bypass this 
-                check, run the maaslin steps individually, 
-                skipping `maaslin_check_arguments`."
-            )
+            stop_message <- paste0(
+                "`median_comparison_abundance` usually should not be ", 
+                "TRUE (default) with unscaled abundances. To bypass this ",
+                "check, run the maaslin steps individually, ",
+                "skipping `maaslin_check_arguments`.")
+            stop(stop_message)
         }
         
         if (!((
@@ -614,12 +628,11 @@ maaslin_check_arguments <-
             is.null(feature_specific_covariate_name) +
             is.null(feature_specific_covariate_record)
         ) %in% c(0, 3))) {
-            stop(
-                "`feature_specific_covariate`, 
-                `feature_specific_covariate_name`, 
-                and `feature_specific_covariate_record`
-                should all be null or all be non-null"
-            )
+            stop_message <- paste0("`feature_specific_covariate`, ",
+                            "`feature_specific_covariate_name`, ",
+                            "and `feature_specific_covariate_record` ",
+                            "should all be null or all be non-null")
+            stop(stop_message)
         }
         
         # Check valid normalization option selected
@@ -662,11 +675,37 @@ maaslin_check_arguments <-
         }
         
         if (transform == 'PLOG' & zero_threshold >= 0) {
-            stop(
-                "transform set to PLOG, but zero_threshold is >= 0. 
-                Set zero_threshold to -1 to count all 
-                features as present and apply PLOG."
-            )
+            stop_message <- paste0(
+                "transform set to PLOG, but zero_threshold is >= 0. ",
+                "Set zero_threshold to -1 to count all ",
+                "features as present and apply PLOG.")
+            stop(stop_message)
+        }
+        
+        if (warn_prevalence) {
+            if (normalization == 'CLR') {
+                stop_message <- paste0("normalization = CLR can only be used ",
+                                        "with warn_prevalence FALSE")
+                stop(stop_message)
+            }
+            if (normalization != 'TSS') {
+                warn_message <- paste0("Be sure the data can be TSS normalized",
+                        " when using warn_prevalence without normalization=TSS")
+                warning(warn_message)
+            }
+            if (transform != 'LOG') {
+                stop_message <- paste0(
+                    "warn_prevalence has only been validated with ",
+                    "transform = LOG. To bypass this ",
+                    "check, run the maaslin steps individually, ",
+                    "skipping `maaslin_check_arguments`.")
+                stop(stop_message)
+            }
+            if (!is.null(evaluate_only)) {
+                stop_message <- 
+                    "evaluate_only must be NULL when using warn_prevalence"
+                stop(stop_message)
+            }
         }
         
         if (!is.null(evaluate_only) &&
@@ -677,8 +716,9 @@ maaslin_check_arguments <-
         if (transform == 'PLOG' &&
             (is.null(evaluate_only) ||
             evaluate_only != "abundance")) {
-            stop("PLOG should only be used for 
-                abundance-only modeling (evaluate_only)")
+            stop_message <- paste0("PLOG should only be used for ",
+                                    "abundance-only modeling (evaluate_only)")
+            stop(stop_message)
         }
     }
 
@@ -714,6 +754,7 @@ maaslin_log_arguments <- function(input_data,
                                 median_comparison_abundance_threshold = 0.25,
                                 median_comparison_prevalence_threshold = 0.25,
                                 subtract_median = FALSE,
+                                warn_prevalence = TRUE,
                                 augment = TRUE,
                                 evaluate_only = NULL,
                                 plot_summary_plot = TRUE,
@@ -802,6 +843,10 @@ maaslin_log_arguments <- function(input_data,
         "Subtract median: %s",
         subtract_median
     )
+    logging::logdebug(
+        "Warn prevalence: %s",
+        warn_prevalence
+    )
     if (is.character(unscaled_abundance)) {
         logging::logdebug("Unscaled abundance: %s", unscaled_abundance)
     }
@@ -834,6 +879,7 @@ maaslin_log_arguments <- function(input_data,
         normalization,
         transform,
         correction,
+        warn_prevalence,
         evaluate_only,
         unscaled_abundance,
         median_comparison_abundance
@@ -1563,21 +1609,23 @@ maaslin_normalize <- function(data,
             UNSCALEDnorm(features, unscaled_abundance, zero_threshold)
     }
     
-    features_folder <- file.path(output, "features")
-    if (!file.exists(features_folder)) {
-        logging::loginfo("Creating output feature tables folder")
-        dir.create(features_folder, recursive = TRUE)
+    if (!is.null(output)) {
+        features_folder <- file.path(output, "features")
+        if (!file.exists(features_folder)) {
+            logging::loginfo("Creating output feature tables folder")
+            dir.create(features_folder, recursive = TRUE)
+        }
+        
+        data_norm_file <- file.path(features_folder, "data_norm.tsv")
+        logging::loginfo("Writing normalized data to file %s", data_norm_file)
+        write.table(
+            data.frame("feature" = rownames(features), features),
+            file = data_norm_file,
+            sep = "\t",
+            quote = FALSE,
+            row.names = FALSE
+        )
     }
-    
-    data_norm_file <- file.path(features_folder, "data_norm.tsv")
-    logging::loginfo("Writing normalized data to file %s", data_norm_file)
-    write.table(
-        data.frame("feature" = rownames(features), features),
-        file = data_norm_file,
-        sep = "\t",
-        quote = FALSE,
-        row.names = FALSE
-    )
     
     return(features)
 }
@@ -1660,21 +1708,23 @@ maaslin_filter <- function(normalized_data,
     # Write filtered data #
     #######################
     
-    features_folder <- file.path(output, "features")
-    if (!file.exists(features_folder)) {
-        logging::loginfo("Creating output feature tables folder")
-        dir.create(features_folder, recursive = TRUE)
+    if (!is.null(output)) {
+        features_folder <- file.path(output, "features")
+        if (!file.exists(features_folder)) {
+            logging::loginfo("Creating output feature tables folder")
+            dir.create(features_folder, recursive = TRUE)
+        }
+        
+        filtered_file <- file.path(features_folder, "filtered_data.tsv")
+        logging::loginfo("Writing filtered data to file %s", filtered_file)
+        write.table(
+            data.frame("feature" = rownames(filtered_data), filtered_data),
+            file = filtered_file,
+            sep = "\t",
+            quote = FALSE,
+            row.names = FALSE
+        )
     }
-    
-    filtered_file <- file.path(features_folder, "filtered_data.tsv")
-    logging::loginfo("Writing filtered data to file %s", filtered_file)
-    write.table(
-        data.frame("feature" = rownames(filtered_data), filtered_data),
-        file = filtered_file,
-        sep = "\t",
-        quote = FALSE,
-        row.names = FALSE
-    )
     
     return(filtered_data)
 }
@@ -1801,25 +1851,27 @@ maaslin_transform <- function(filtered_data,
         features <- PLOG(features)
     }
     
-    features_folder <- file.path(output, "features")
-    if (!file.exists(features_folder)) {
-        logging::loginfo("Creating output feature tables folder")
-        dir.create(features_folder, recursive = TRUE)
+    if (!is.null(output)) {
+        features_folder <- file.path(output, "features")
+        if (!file.exists(features_folder)) {
+            logging::loginfo("Creating output feature tables folder")
+            dir.create(features_folder, recursive = TRUE)
+        }
+        
+        filtered_data_norm_transformed_file <-
+            file.path(features_folder, "data_transformed.tsv")
+        logging::loginfo(
+            "Writing normalized, filtered, transformed data to file %s",
+            filtered_data_norm_transformed_file
+        )
+        write.table(
+            data.frame("feature" = rownames(features), features),
+            file = filtered_data_norm_transformed_file,
+            sep = "\t",
+            quote = FALSE,
+            row.names = FALSE
+        )
     }
-    
-    filtered_data_norm_transformed_file <-
-        file.path(features_folder, "data_transformed.tsv")
-    logging::loginfo(
-        "Writing normalized, filtered, transformed data to file %s",
-        filtered_data_norm_transformed_file
-    )
-    write.table(
-        data.frame("feature" = rownames(features), features),
-        file = filtered_data_norm_transformed_file,
-        sep = "\t",
-        quote = FALSE,
-        row.names = FALSE
-    )
     
     return(features)
 }
@@ -1844,10 +1896,15 @@ maaslin_fit <- function(filtered_data,
                         median_comparison_abundance_threshold = 0.25,
                         median_comparison_prevalence_threshold = 0.25,
                         subtract_median = FALSE,
+                        warn_prevalence = TRUE,
                         augment = TRUE,
                         evaluate_only = NULL,
                         cores = 1,
-                        save_models = FALSE) {
+                        save_models = FALSE,
+                        data = NULL,
+                        min_abundance = NULL,
+                        min_prevalence = NULL,
+                        min_variance = NULL) {
     
     if (!is.null(feature_specific_covariate)) {
         tryCatch({
@@ -2029,32 +2086,106 @@ maaslin_fit <- function(filtered_data,
         fit_data_prevalence <- NULL
     }
     
-    # Add in joint p/q-values
-    if (is.null(evaluate_only)) {
+    if (warn_prevalence) {
+        logging::loginfo("Re-running abundances for warn_prevalence")
+        
+        if (!is.null(evaluate_only)) {
+            stop_message <- "evaluate_only must be null with warn_prevalence"
+            stop(stop_message)
+        }
+        
+        if (is.null(data)) {
+            stop_message <- "For warn_prevalence, data must not be null"
+            stop(stop_message)
+        }
+        
+        new_normalized_data <- maaslin_normalize(data,
+                                                NULL,
+                                                zero_threshold,
+                                                "TSS",
+                                                NULL)
+        
+        if (is.null(min_abundance) | 
+            is.null(min_prevalence) | 
+            is.null(min_variance)) {
+            stop_message <- paste0("For warn_prevalence, min_abundance,", 
+                        "min_prevalence, and min_variance must not be null")
+            stop(stop_message)
+        }
+        
+        new_filtered_data <- maaslin_filter(
+            new_normalized_data,
+            NULL,
+            min_abundance,
+            min_prevalence,
+            zero_threshold,
+            min_variance
+        )
+        
+        new_transformed_data <- maaslin_transform(filtered_data,
+                                                    NULL,
+                                                    'LOG')
+        
+        # Run TSS LOG no median comparison model
+        new_fit_data_abundance <-
+            fit.model(
+                features = new_transformed_data,
+                metadata = metadata,
+                model = 'linear',
+                formula = formula,
+                random_effects_formula = random_effects_formula,
+                correction = correction,
+                save_models = save_models,
+                augment = augment,
+                cores = cores,
+                median_comparison = FALSE,
+                median_comparison_threshold = 0,
+                subtract_median = FALSE,
+                feature_specific_covariate = feature_specific_covariate,
+                feature_specific_covariate_name = 
+                    feature_specific_covariate_name,
+                feature_specific_covariate_record = 
+                    feature_specific_covariate_record
+            )
+        
         results <-
             add_joint_signif(fit_data_abundance,
                             fit_data_prevalence,
+                            new_fit_data_abundance,
                             max_significance,
                             correction)
+        
         fit_data_abundance$results <- results[[1]]
         fit_data_prevalence$results <- results[[2]]
-    } else if (evaluate_only == 'abundance') {
-        fit_data_abundance$results$pval_joint <-
-            fit_data_abundance$results$pval
-        fit_data_abundance$results$qval_joint <-
-            fit_data_abundance$results$qval
-        fit_data_abundance$results <- fit_data_abundance$results %>%
-            dplyr::rename(pval_individual = .data$pval,
-                        qval_individual = .data$qval)
-    } else if (evaluate_only == 'prevalence') {
-        fit_data_prevalence$results$pval_joint <-
-            fit_data_prevalence$results$pval
-        fit_data_prevalence$results$qval_joint <-
-            fit_data_prevalence$results$qval
-        fit_data_prevalence$results <-
-            fit_data_prevalence$results %>%
-            dplyr::rename(pval_individual = .data$pval,
-                        qval_individual = .data$qval)
+    } else {
+        # Add in joint p/q-values
+        if (is.null(evaluate_only)) {
+            results <-
+                add_joint_signif(fit_data_abundance,
+                                fit_data_prevalence,
+                                NULL,
+                                max_significance,
+                                correction)
+            fit_data_abundance$results <- results[[1]]
+            fit_data_prevalence$results <- results[[2]]
+        } else if (evaluate_only == 'abundance') {
+            fit_data_abundance$results$pval_joint <-
+                fit_data_abundance$results$pval
+            fit_data_abundance$results$qval_joint <-
+                fit_data_abundance$results$qval
+            fit_data_abundance$results <- fit_data_abundance$results %>%
+                dplyr::rename(pval_individual = .data$pval,
+                            qval_individual = .data$qval)
+        } else if (evaluate_only == 'prevalence') {
+            fit_data_prevalence$results$pval_joint <-
+                fit_data_prevalence$results$pval
+            fit_data_prevalence$results$qval_joint <-
+                fit_data_prevalence$results$qval
+            fit_data_prevalence$results <-
+                fit_data_prevalence$results %>%
+                dplyr::rename(pval_individual = .data$pval,
+                            qval_individual = .data$qval)
+        }
     }
     
     # Reorder outputs
@@ -2428,6 +2559,7 @@ maaslin3 <- function(input_data,
                     median_comparison_abundance_threshold = 0.25,
                     median_comparison_prevalence_threshold = 0.25,
                     subtract_median = FALSE,
+                    warn_prevalence = TRUE,
                     augment = TRUE,
                     evaluate_only = NULL,
                     plot_summary_plot = TRUE,
@@ -2481,6 +2613,7 @@ maaslin3 <- function(input_data,
         median_comparison_abundance_threshold,
         median_comparison_prevalence_threshold,
         subtract_median,
+        warn_prevalence,
         augment,
         evaluate_only,
         plot_summary_plot,
@@ -2577,10 +2710,15 @@ maaslin3 <- function(input_data,
         median_comparison_abundance_threshold,
         median_comparison_prevalence_threshold,
         subtract_median,
+        warn_prevalence,
         augment,
         evaluate_only,
         cores,
-        save_models
+        save_models,
+        data,
+        min_abundance,
+        min_prevalence,
+        min_variance
     )
     
     maaslin_write_results(
@@ -2692,6 +2830,7 @@ if (identical(environment(), globalenv()) &&
             median_comparison_prevalence_threshold = 
                 current_args$median_comparison_prevalence_threshold,
             subtract_median = current_args$subtract_median,
+            warn_prevalence = current_args$warn_prevalence,
             formula = current_args$formula,
             correction = current_args$correction,
             standardize = current_args$standardize,

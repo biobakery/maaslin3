@@ -28,7 +28,11 @@ maaslin_fit(filtered_data,
             augment = TRUE,
             evaluate_only = NULL,
             cores = 1,
-            save_models = FALSE)
+            save_models = FALSE,
+            data = NULL,
+            min_abundance = NULL,
+            min_prevalence = NULL,
+            min_variance = NULL)
 }
 \arguments{
     \item{filtered_data}{A data frame of filtered feature abundances. It
@@ -102,7 +106,7 @@ maaslin_fit(filtered_data,
     if warn_prevalence is TRUE).}
     \item{min_prevalence}{The original min_prevalence parameter (only necessary 
     if warn_prevalence is TRUE).}
-    \item{min_abundance}{The original min_variance parameter (only necessary if 
+    \item{min_variance}{The original min_variance parameter (only necessary if 
     min_variance is TRUE).}
 }
 \value{

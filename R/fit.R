@@ -298,7 +298,7 @@ add_joint_signif <-
             
             merged_signif <- merged_signif %>%
                 dplyr::left_join(merged_signif_tmp %>% 
-                            dplyr::select(all_of(overlapping_cols), 
+                            dplyr::select(dplyr::all_of(overlapping_cols), 
                                             .data$logistic_error), 
                             by = overlapping_cols) %>%
                 dplyr::mutate(logistic_error = dplyr::coalesce(

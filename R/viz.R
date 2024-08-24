@@ -927,7 +927,7 @@ make_lm_plot <- function(this_signif_association,
                     joined_features_metadata_abun$metadata == name
                 ))
             new_n <-
-                paste(name, " (n=", total, ")", sep = "")
+                paste(name, " (n = ", total, ")", sep = "")
             levels(joined_features_metadata_abun[, 'metadata'])[
                 levels(
                     joined_features_metadata_abun[, 'metadata']) == 

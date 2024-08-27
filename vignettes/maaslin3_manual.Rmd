@@ -24,7 +24,7 @@ metadata and microbial meta-omics features. Relative to MaAsLin 2,
 MaAsLin 3 introduces the ability to quantify and test for **both
 abundance and prevalence associations** while **accounting for
 compositionality**. By incorporating generalized linear models, MaAsLin
-3 accomodates most modern epidemiological study designs including
+3 accommodates most modern epidemiological study designs including
 cross-sectional and longitudinal studies.
 
 If you use the MaAsLin 3 software, please cite our manuscript:

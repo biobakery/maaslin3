@@ -475,6 +475,9 @@ indicate model fitting failures or poor fits that should not be trusted,
 but sometimes the warnings can be benign, and the model fit might still
 be reasonable. Users should check associations of interest if they
 produce errors.
+    * With `warn_prevalence=TRUE`, a note will be produced in the error column
+    indicating when prevalence associations are likely induced by abundance 
+    associations. These should be checked visually with the diagnosic visuals.
 2. Despite the error checking, significant results could still result
 from poor model fits. These can usually be diagnosed with the visuals in
 the `association_plots` directory.

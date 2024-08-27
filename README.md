@@ -464,6 +464,11 @@ continuous metadata variables so they are on the same scale. This is
 recommended in order to compare coefficients across metadata variables,
 but note that functions of the metadata specified in the `formula` will
 apply after standardization.
+* `warn_prevalence` (default `TRUE`): Warn when prevalence associations 
+are likely induced by abundance associations. This requires re-fitting the 
+linear models on the TSS log-transformed data. A prevalence coefficient is
+flagged if its corresponding abundance coefficient is significantly different
+from 0, of the same sign, and larger in absolute value.
 * `augment` (default `TRUE`): To avoid linear separability in the
 logistic regression, at each input data point, add an extra 0 and an
 extra 1 observation weighted as the number of predictors divided by two

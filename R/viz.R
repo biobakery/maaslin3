@@ -2,7 +2,7 @@
 ###############################################################################
 # MaAsLin3 visualizations
 
-# Copyright (c) 2018 Harvard School of Public Health
+# Copyright (c) 2024 Harvard School of Public Health
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -23,7 +23,7 @@
 # THE SOFTWARE.
 ###############################################################################
 
-# MaAsLin3 theme based on Nature journal requirements
+# MaAsLin 3 ggplot theme based on Nature journal requirements
 nature_theme <- function(x_axis_labels, y_label) {
     # set default text format based on categorical and length
     angle <- NULL
@@ -67,6 +67,7 @@ nature_theme <- function(x_axis_labels, y_label) {
     )
 }
 
+# Pre-process MaAsLin 3 results for plotting
 preprocess_merged_results <- function(merged_results) {
     # Disregard abundance-induced-prevalence errors in plotting
     merged_results$error[grepl("Prevalence association possibly induced", 
@@ -95,6 +96,7 @@ preprocess_merged_results <- function(merged_results) {
     return(merged_results)
 }
 
+# Make the coefficient plot part of the summary figure
 make_coef_plot <- function(merged_results_sig, 
                         coef_plot_vars,
                         max_significance,
@@ -105,6 +107,7 @@ make_coef_plot <- function(merged_results_sig,
         merged_results_sig[merged_results_sig$full_metadata_name %in% 
                             coef_plot_vars,]
     
+    # Limit plotted coefficients to median +/- 10 times distance to quartiles
     quantile_df <- coef_plot_data %>%
         dplyr::group_by(.data$full_metadata_name) %>%
         dplyr::summarise(
@@ -127,6 +130,7 @@ make_coef_plot <- function(merged_results_sig,
                                     coef_plot_data$full_metadata_name, 
                                     'upper_q']),]
     
+    # Choose breaks for plot
     custom_break_fun <- function(n) {
         return(function(x) {
             extended_breaks <- scales::breaks_extended(n)(x)
@@ -148,11 +152,12 @@ make_coef_plot <- function(merged_results_sig,
         })
     }
     
-    # Create plot
+    # Start plot
     p1 <-
         ggplot2::ggplot(coef_plot_data,
                         ggplot2::aes(x = .data$coef, y = .data$feature))
     
+    # Show nulls the coefficients were compared against
     if (median_comparison_prevalence |
         median_comparison_abundance) {
         p1 <- p1 +
@@ -181,6 +186,7 @@ make_coef_plot <- function(merged_results_sig,
             )
     }
     
+    # Q-value color scale
     scale_fill_gradient_limits <-
         c(min(max_significance, 10 ^ floor(log10(
             min(coef_plot_data$qval_individual)
@@ -205,7 +211,7 @@ make_coef_plot <- function(merged_results_sig,
                                         "1")
     }
     
-    
+    # Create the whole plot
     p1 <- p1 +
         ggplot2::geom_errorbar(
             ggplot2::aes(
@@ -292,6 +298,7 @@ make_coef_plot <- function(merged_results_sig,
     return(p1)
 }
 
+# Make the heatmap plot part of the summary figure
 make_heatmap_plot <- function(merged_results_sig,
                             heatmap_vars,
                             max_significance,
@@ -351,10 +358,12 @@ make_heatmap_plot <- function(merged_results_sig,
     merged_results_sig$coef_cat <-
         factor(merged_results_sig$coef_cat, levels = threshold_set)
     
+    # Create color scheme
     scale_fill_values <-
         rev((RColorBrewer::brewer.pal(n = 6, name = "RdBu")))
     names(scale_fill_values) <- threshold_set
     
+    # Create grid for plotting
     heatmap_data <-
         merged_results_sig[merged_results_sig$full_metadata_name %in% 
                             heatmap_vars,]
@@ -373,6 +382,7 @@ make_heatmap_plot <- function(merged_results_sig,
         )
     heatmap_data$coef[is.na(heatmap_data$coef)] <- NA
     
+    # Create whole plot
     p2 <-
         ggplot2::ggplot(heatmap_data,
                         ggplot2::aes(
@@ -481,6 +491,7 @@ maaslin3_summary_plot <-
             median_df$median_val[median_df$model == 'Prevalence'] <- 0
         }
         
+        # Check variables can be plotted
         if (!is.null(coef_plot_vars) | !is.null(heatmap_vars)) {
             if (any(
                 !c(coef_plot_vars, heatmap_vars) %in% 
@@ -512,6 +523,7 @@ maaslin3_summary_plot <-
                                 c(coef_plot_vars, heatmap_vars),]
         }
         
+        # Subset associations for plotting
         merged_results_joint_only <-
             unique(merged_results[, c('feature', 'qval_joint')])
         merged_results_joint_only <-
@@ -526,7 +538,7 @@ maaslin3_summary_plot <-
         merged_results_sig <- merged_results %>%
             dplyr::filter(.data$feature %in% signif_taxa)
         
-        # order feature
+        # Order features
         ord_feature <-
             with(merged_results_sig, reorder(feature, coef))
         ord_feature <- levels(ord_feature)
@@ -534,6 +546,7 @@ maaslin3_summary_plot <-
         merged_results_sig$feature <-
             factor(merged_results_sig$feature, levels = ord_feature)
         
+        # Choose variables for plotting if not set
         if (is.null(coef_plot_vars)) {
             mean_log_qval <- merged_results_sig %>%
                 dplyr::group_by(.data$full_metadata_name) %>%
@@ -550,6 +563,7 @@ maaslin3_summary_plot <-
             }
         }
         
+        # Choose variables for plotting if not set
         if (is.null(heatmap_vars)) {
             mean_log_qval <- merged_results_sig %>%
                 dplyr::group_by(.data$full_metadata_name) %>%
@@ -562,6 +576,7 @@ maaslin3_summary_plot <-
             heatmap_vars <- setdiff(heatmap_vars, coef_plot_vars)
         }
         
+        # Create coefficient plot
         if (length(coef_plot_vars) > 0 &
             sum(merged_results_sig$full_metadata_name %in% 
                 coef_plot_vars) >= 1) {
@@ -576,6 +591,7 @@ maaslin3_summary_plot <-
             p1 <- NULL
         }
         
+        # Create heatmap plot
         if (length(heatmap_vars) > 0 &
             sum(merged_results_sig$full_metadata_name %in% heatmap_vars) >= 1) {
             
@@ -597,6 +613,7 @@ maaslin3_summary_plot <-
             p2 <- NULL
         }
         
+        # Combine plots
         if (!is.null(p1) & !is.null(p2)) {
             final_plot <- patchwork::wrap_plots(
                 p1,
@@ -621,6 +638,7 @@ maaslin3_summary_plot <-
             final_plot <- NULL
         }
         
+        # Save plot
         if (!is.null(final_plot)) {
             height_out <-
                 9.5 + max(first_n / 5 - 5, 0) + max(nchar(c(
@@ -649,6 +667,7 @@ maaslin3_summary_plot <-
         }
     }
 
+# Create a scatterplot for abundance vs. continuous associations
 make_scatterplot <- function(joined_features_metadata_abun,
                             metadata_name,
                             feature_name,
@@ -749,6 +768,7 @@ make_scatterplot <- function(joined_features_metadata_abun,
     return(temp_plot)
 }
 
+# Create boxplot for abundance vs. categorical associations
 make_boxplot_lm <- function(joined_features_metadata_abun,
                             metadata_name,
                             feature_name,
@@ -843,6 +863,7 @@ make_boxplot_lm <- function(joined_features_metadata_abun,
     return(temp_plot)
 }
 
+# Create plots for abundance associations
 make_lm_plot <- function(this_signif_association,
                         joined_features_metadata,
                         metadata,
@@ -960,6 +981,7 @@ make_lm_plot <- function(this_signif_association,
     return(temp_plot)
 }
 
+# Create boxplot for prevalence vs. continuous associations
 make_boxplot_logistic <- function(joined_features_metadata_prev,
                                 metadata_name,
                                 feature_name,
@@ -1040,6 +1062,7 @@ make_boxplot_logistic <- function(joined_features_metadata_prev,
     return(temp_plot)
 }
 
+# Create grid for prevalence vs. categorical associations
 make_tile_plot <- function(joined_features_metadata_prev,
                         metadata_name,
                         feature_name,
@@ -1142,6 +1165,7 @@ make_tile_plot <- function(joined_features_metadata_prev,
     return(temp_plot)
 }
 
+# Create plots for prevalence associations
 make_logistic_plot <- function(this_signif_association,
                             joined_features_metadata,
                             metadata,
@@ -1280,6 +1304,7 @@ make_logistic_plot <- function(this_signif_association,
     return(temp_plot)
 }
 
+# Create individual plots for significant associations
 maaslin3_association_plots <-
     function(merged_results,
             metadata,
@@ -1334,6 +1359,7 @@ maaslin3_association_plots <-
         features_by_metadata <-
             unique(merged_results[, c('feature', 'metadata', 'model')])
         
+        # Iterate through associations to make plots
         for (row_num in seq(min(nrow(features_by_metadata), max_pngs))) {
             feature_name <- features_by_metadata[row_num, 'feature']
             feature_abun <- data.frame(sample = rownames(features),
@@ -1401,6 +1427,7 @@ maaslin3_association_plots <-
             dir.create(association_plots_folder)
         }
         
+        # Save all plots
         for (metadata_variable in names(saved_plots)) {
             for (feature in names(saved_plots[[metadata_variable]])) {
                 for (model_name in names(

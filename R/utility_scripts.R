@@ -1,3 +1,27 @@
+###############################################################################
+# MaAsLin3 utility scripts
+
+# Copyright (c) 2024 Harvard School of Public Health
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+###############################################################################
+
 ######################
 ## TSS Normalization #
 ######################
@@ -165,9 +189,9 @@ PLOG <- function(x) {
     return(log2(x))
 }
 
-############################
-# Write out the model fits #
-############################
+#################
+# Write outputs #
+#################
 
 write_fits <- function(output,
                     fit_data_abundance,
@@ -375,6 +399,7 @@ maaslin_contrast_test <- function(fits,
                                 contrast_mat,
                                 rhs) {
     
+    # Identify model type
     if (any(unlist(lapply(fits, FUN = function(x){is(x,"lm")})))) {
         model <- "abundance"
         uses_random_effects <- FALSE
@@ -401,6 +426,7 @@ maaslin_contrast_test <- function(fits,
     sigmas_new <- vector(length = length(fits) * nrow(contrast_mat))
     errors <- vector(length = length(fits) * nrow(contrast_mat))
     
+    # Run contrast test on each  model
     for (fit_index in seq_along(fits)) {
         fit <- fits[[fit_index]]
         if (!is(fit, 'lmerMod') & !is(fit, 'glmerMod') & !is(fit, "coxph")) {
@@ -417,6 +443,7 @@ maaslin_contrast_test <- function(fits,
             }
         }
         
+        # Fill in contrast matrix gaps if necessary
         if (uses_random_effects) {
             included_coefs <- names(lme4::fixef(fit))
         } else {
@@ -449,6 +476,7 @@ maaslin_contrast_test <- function(fits,
         
         contrast_mat_tmp <- contrast_mat_tmp[,included_coefs]
         
+        # Run contrast test
         if (!uses_random_effects | model == 'prevalence') {
             for (row_num in seq(nrow(contrast_mat))) {
                 contrast_vec <- t(matrix(contrast_mat_tmp[row_num,]))
@@ -551,6 +579,7 @@ maaslin_contrast_test <- function(fits,
         test_names <- rownames(contrast_mat)
     }
     
+    # Prepare results for return
     paras <- data.frame(
         feature = rep(names(fits), each = nrow(contrast_mat)),
         test = rep(test_names, length(fits)),

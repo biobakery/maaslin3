@@ -1,4 +1,27 @@
 #!/usr/bin/env Rscript
+###############################################################################
+# MaAsLin3 fitting
+
+# Copyright (c) 2024 Harvard School of Public Health
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+###############################################################################
 
 # Function to augment data for logistic fitting
 augment_data <- function(formula, random_effects_formula, dat_sub) {
@@ -29,6 +52,7 @@ augment_data <- function(formula, random_effects_formula, dat_sub) {
     ))
 }
 
+# Deparse formula without line breaks
 safe_deparse <- function(formula) {
     paste0(trimws(deparse(formula)), collapse = " ")
 }
@@ -134,8 +158,8 @@ get_character_cols <- function(dat_sub) {
     return(all_factors)
 }
 
-create_combined_pval <- function(merged_signif,
-                                correction) {
+# Combine abundance and prevalence p-values
+create_combined_pval <- function(merged_signif, correction) {
     # Create a combined p-value
     merged_signif$pval_joint <-
         pbeta(pmin(merged_signif[, "linear"],
@@ -170,6 +194,7 @@ create_combined_pval <- function(merged_signif,
     return(merged_signif)
 }
 
+# Put note when abundance effect has likely turned into a prevalence effect
 flag_abundance_turned_prevalence <- function(merged_signif,
                                             max_significance) {
     # Join and check linear and logistic pieces
@@ -196,7 +221,7 @@ by stronger abundance association",
     return(merged_signif)
 }
 
-# Get joint significance for zeros and non-zeros
+# Get joint significance for abundance and prevalence associations
 add_joint_signif <-
     function(fit_data_abundance,
             fit_data_prevalence,
@@ -244,7 +269,7 @@ add_joint_signif <-
             nrow(merged_signif) != nrow(unique(fit_data_abundance_signif))) {
             stop(
                 "Merged significance tables have different associations.
-                This is likely a package issue 
+                This is likely a MaAsLin 3 issue 
                 due to unexpected data or models."
             )
         }
@@ -316,7 +341,7 @@ add_joint_signif <-
         ))
     }
 
-# Take logistic or linear component and add on the merged significance pieces
+# Take logistic or linear results and add on the joint significance
 append_joint <- function(outputs, merged_signif, association_type) {
     if (association_type == 'abundance') {
         merged_signif <-
@@ -375,6 +400,7 @@ append_joint <- function(outputs, merged_signif, association_type) {
     return(merged_signif)
 }
 
+# All functions for export in parallelization
 function_vec <-
     c(
         "augment_data",
@@ -400,6 +426,7 @@ optCtrlList <- list(list(maxeval = 100000),
                     list(maxfun = 100000),
                     list(maxfun = 100000))
 
+# Check that a formula is provided
 check_formulas_valid <- function(formula, random_effects_formula) {
     if (is.null(random_effects_formula)) {
         if (is.null(formula)) {
@@ -410,6 +437,7 @@ check_formulas_valid <- function(formula, random_effects_formula) {
     }
 }
 
+# Prepare ranef, modeling, and summary functions for the linear model
 choose_ranef_model_summary_funs_linear <- function(random_effects_formula) {
     if (is.null(random_effects_formula)) {
         # Fixed effects only
@@ -513,6 +541,7 @@ choose_ranef_model_summary_funs_linear <- function(random_effects_formula) {
                 "summary_function" = summary_function))
 }
 
+# Prepare ranef, modeling, and summary functions for the logistic model
 choose_ranef_model_summary_funs_logistic <- function(random_effects_formula,
                                                     strata,
                                                     augment) {
@@ -867,6 +896,7 @@ choose_ranef_model_summary_funs_logistic <- function(random_effects_formula,
                 "summary_function" = summary_function))
 }
 
+# Return blank results if there are zero or one samples
 check_for_zero_one_obs <- function(formula,
                                     random_effects_formula,
                                     dat_sub,
@@ -915,6 +945,7 @@ check_for_zero_one_obs <- function(formula,
     return (NULL)
 }
 
+# If the baseline level is missing for a factor, return blank results
 check_missing_first_factor_level <- function(formula,
                                             random_effects_formula,
                                             dat_sub,
@@ -977,6 +1008,7 @@ check_missing_first_factor_level <- function(formula,
     return (NULL)
 }
 
+# Fit the augmented logistic model
 fit_augmented_logistic <- function(ranef_function,
                                 model_function,
                                 formula,
@@ -1067,6 +1099,7 @@ fit_augmented_logistic <- function(ranef_function,
                 "mm_input" = mm_input))
 }
 
+# Fit linear or non-augmented logistic models
 non_augmented <- function(ranef_function,
                         model_function,
                         formula,
@@ -1129,6 +1162,7 @@ non_augmented <- function(ranef_function,
                 "mm_input" = NULL))
 }
 
+# Fit models with group effects
 run_group_models <- function(ranef_function,
                             model_function,
                             groups,
@@ -1256,6 +1290,7 @@ run_group_models <- function(ranef_function,
     return(output)
 }
 
+# Fit models with ordered effects
 run_ordered_models <- function(ranef_function,
                             model_function,
                             ordereds,
@@ -1510,6 +1545,7 @@ run_ordered_models <- function(ranef_function,
     return(output)
 }
 
+# Check whether the model fit properly and return modeling outputs
 fitting_wrap_up <- function(fit_properly,
                             fit_and_message,
                             output,
@@ -1598,6 +1634,7 @@ fitting_wrap_up <- function(fit_properly,
     return(output)
 }
 
+# Run the median comparison procedure for ordered predictors
 run_median_comparison_ordered <- function(paras_sub,
                                         fits,
                                         ordereds,
@@ -1820,6 +1857,7 @@ run_median_comparison_ordered <- function(paras_sub,
     return(pvals_new)
 }
 
+# Run the median comparison procedure for non-ordered predictors
 run_median_comparison_general <- function(paras_sub,
                                         fits,
                                         metadata,
@@ -1987,6 +2025,7 @@ run_median_comparison_general <- function(paras_sub,
     return(pvals_new)
 }
 
+# Run the median comparison for all variables
 run_median_comparison <- function(paras,
                                 fits,
                                 ordereds,

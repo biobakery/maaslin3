@@ -1877,7 +1877,7 @@ maaslin_transform <- function(filtered_data,
 }
 
 ##############
-# Fit linear #
+# Fit models #
 ##############
 
 maaslin_fit <- function(filtered_data,
@@ -2086,6 +2086,7 @@ maaslin_fit <- function(filtered_data,
         fit_data_prevalence <- NULL
     }
     
+    # Warn about prevalence associations induced by abundances changes
     if (warn_prevalence) {
         logging::loginfo("Re-running abundances for warn_prevalence")
         
@@ -2319,6 +2320,7 @@ maaslin_plot_results <- function(output,
                                 fit_data_prevalence$results)
     }
     
+    # Summary plot
     if (plot_summary_plot) {
         summary_plot_file <- file.path(figures_folder, "summary_plot.pdf")
         logging::loginfo("Writing summary plot of significant 
@@ -2346,6 +2348,7 @@ maaslin_plot_results <- function(output,
         )
     }
     
+    # Individual association plots
     if (plot_associations) {
         logging::loginfo(
             paste(
@@ -2425,6 +2428,7 @@ maaslin_plot_results_from_output <- function(output,
     merged_results$model[merged_results$model == 'prevalence'] <-
         'logistic'
     
+    # Summary plot
     if (plot_summary_plot) {
         summary_plot_file <- file.path(figures_folder, "summary_plot.pdf")
         logging::loginfo("Writing summary plot of 
@@ -2452,6 +2456,7 @@ maaslin_plot_results_from_output <- function(output,
         )
     }
     
+    # Individual associations
     if (plot_associations) {
         features_file <-
             paste0(gsub('/$', '', output),
@@ -2527,9 +2532,9 @@ maaslin_plot_results_from_output <- function(output,
     return(plots_out)
 }
 
-#######################################################
-# Main maaslin3 function (defaults same command line) #
-#######################################################
+##########################################################
+# Main maaslin3 function (defaults same as command line) #
+##########################################################
 
 maaslin3 <- function(input_data,
                     input_metadata,
@@ -2626,11 +2631,13 @@ maaslin3 <- function(input_data,
         save_models
     )
     
+    # Read data in
     read_data_list <- maaslin_read_data(input_data,
                                         input_metadata,
                                         feature_specific_covariate,
                                         unscaled_abundance)
     
+    # Set ordering of samples correctly
     read_data_list <- maaslin_reorder_data(
         read_data_list$data,
         read_data_list$metadata,
@@ -2644,6 +2651,7 @@ maaslin3 <- function(input_data,
     feature_specific_covariate <-
         read_data_list$feature_specific_covariate
     
+    # Compute or check formula
     if (is.null(formula)) {
         formulas <- maaslin_compute_formula(
             data,
@@ -2665,12 +2673,14 @@ maaslin3 <- function(input_data,
     formula <- formulas$formula
     random_effects_formula <- formulas$random_effects_formula
     
+    # Normalize data
     normalized_data <- maaslin_normalize(data,
                                         output,
                                         zero_threshold,
                                         normalization,
                                         unscaled_abundance)
     
+    # Filter data
     filtered_data <- maaslin_filter(
         normalized_data,
         output,
@@ -2680,10 +2690,12 @@ maaslin3 <- function(input_data,
         min_variance
     )
     
+    # Transform data
     transformed_data <- maaslin_transform(filtered_data,
                                         output,
                                         transform)
     
+    # Process metadata
     standardized_metadata <- maaslin_process_metadata(
         metadata,
         formula,
@@ -2693,6 +2705,7 @@ maaslin3 <- function(input_data,
         standardize
     )
     
+    # Fit models
     maaslin_results <- maaslin_fit(
         filtered_data,
         transformed_data,
@@ -2721,6 +2734,7 @@ maaslin3 <- function(input_data,
         min_variance
     )
     
+    # Write results
     maaslin_write_results(
         output,
         maaslin_results$fit_data_abundance,
@@ -2730,6 +2744,7 @@ maaslin3 <- function(input_data,
         save_models
     )
     
+    # Plot outputs
     if (plot_summary_plot | plot_associations) {
         maaslin_plot_results(
             output,

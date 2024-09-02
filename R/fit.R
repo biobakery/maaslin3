@@ -1649,7 +1649,33 @@ run_median_comparison_ordered <- function(paras_sub,
     ordered <- ordereds[which(startsWith(
         metadata_variable, ordereds))]
     
-    for (feature in paras_sub$feature) {
+    use_this_coef <- !is.na(paras_sub$pval) & paras_sub$pval < 0.95
+    
+    n_coefs <- nrow(paras_sub)
+    sigmas <- paras_sub$stderr
+    coefs <- paras_sub$coef
+    sigma_sq_med <- var(coefs[use_this_coef], na.rm=TRUE)
+    
+    # Variance from asymptotic distribution
+    sd_median <- sqrt(0.25 * 2 * base::pi * sigma_sq_med / sum(use_this_coef))
+    
+    # MC for covariance
+    nsims <- 10000
+    sim_medians <- vector(length = nsims)
+    all_sims <- matrix(ncol = n_coefs, nrow = nsims)
+    for (j in seq(nsims)) {
+        sim_coefs <- rnorm(n_coefs, coefs, sigmas)
+        sim_medians[j] <- median(sim_coefs[use_this_coef])
+        all_sims[j,] <- sim_coefs
+    }
+    cov_adjust <- apply(all_sims, 2, function(x){cov(x, sim_medians)})
+    
+    # Necessary offsets for contrast testing
+    offsets_to_test <- abs(cur_median - coefs) * 
+        sqrt((sigmas^2) / (sigmas^2+ sd_median^2 - 2 * cov_adjust)) + coefs
+    
+    for (row_index in seq(nrow(paras_sub))) {
+        feature <- paras_sub$feature[row_index]
         if (is.null(random_effects_formula)) {
             # Fixed effects
             cur_fit <- fits[[feature]]
@@ -1722,7 +1748,7 @@ run_median_comparison_ordered <- function(paras_sub,
                             multcomp::glht(
                                 cur_fit,
                                 linfct = contrast_vec,
-                                rhs = cur_median,
+                                rhs = offsets_to_test[row_index],
                                 coef. = function(x) {
                                     coef(x, complete = FALSE)
                                 }
@@ -1812,7 +1838,7 @@ run_median_comparison_ordered <- function(paras_sub,
                                 multcomp::glht(
                                     cur_fit,
                                     linfct = contrast_vec,
-                                    rhs = cur_median
+                                    rhs = offsets_to_test[row_index]
                                 )
                             )$test$pvalues
                         },
@@ -1841,7 +1867,7 @@ run_median_comparison_ordered <- function(paras_sub,
                             lmerTest::contest(cur_fit,
                                             matrix(contrast_vec, 
                                                     TRUE),
-                                            rhs = cur_median)[[
+                                            rhs = offsets_to_test[row_index])[[
                                                 'Pr(>F)']]
                         },
                         error = function(err) {
@@ -1867,7 +1893,33 @@ run_median_comparison_general <- function(paras_sub,
                                         pvals_new,
                                         cur_median,
                                         model) {
-    for (feature in paras_sub$feature) {
+    use_this_coef <- !is.na(paras_sub$pval) & paras_sub$pval < 0.95
+    
+    n_coefs <- nrow(paras_sub)
+    sigmas <- paras_sub$stderr
+    coefs <- paras_sub$coef
+    sigma_sq_med <- var(coefs[use_this_coef], na.rm=TRUE)
+    
+    # Variance from asymptotic distribution
+    sd_median <- sqrt(0.25 * 2 * base::pi * sigma_sq_med / sum(use_this_coef))
+
+    # MC for covariance
+    nsims <- 10000
+    sim_medians <- vector(length = nsims)
+    all_sims <- matrix(ncol = n_coefs, nrow = nsims)
+    for (j in seq(nsims)) {
+        sim_coefs <- rnorm(n_coefs, coefs, sigmas)
+        sim_medians[j] <- median(sim_coefs[use_this_coef])
+        all_sims[j,] <- sim_coefs
+    }
+    cov_adjust <- apply(all_sims, 2, function(x){cov(x, sim_medians)})
+    
+    # Necessary offsets for contrast testing
+    offsets_to_test <- abs(cur_median - coefs) * 
+        sqrt((sigmas^2) / (sigmas^2+ sd_median^2 - 2 * cov_adjust)) + coefs
+    
+    for (row_index in seq(nrow(paras_sub))) {
+        feature <- paras_sub$feature[row_index]
         if (is.null(random_effects_formula)) {
             # Fixed effects
             cur_fit <- fits[[feature]]
@@ -1917,7 +1969,7 @@ run_median_comparison_general <- function(paras_sub,
                                 cur_fit,
                                 linfct = matrix(contrast_vec, 
                                                 TRUE),
-                                rhs = cur_median,
+                                rhs = offsets_to_test[row_index],
                                 coef. = function(x) {
                                     coef(x, complete = FALSE)
                                 }
@@ -1980,7 +2032,7 @@ run_median_comparison_general <- function(paras_sub,
                                     cur_fit,
                                     linfct = matrix(
                                         contrast_vec, TRUE),
-                                    rhs = cur_median
+                                    rhs = offsets_to_test[row_index]
                                 )
                             )$test$pvalues[1]
                         },
@@ -2010,7 +2062,7 @@ run_median_comparison_general <- function(paras_sub,
                             lmerTest::contest(
                                 cur_fit,
                                 matrix(contrast_vec, TRUE),
-                                rhs = cur_median)[['Pr(>F)']]
+                                rhs = offsets_to_test[row_index])[['Pr(>F)']]
                         },
                         error = function(err) {
                             NA
@@ -2123,7 +2175,7 @@ fit.model <- function(features,
                     augment = FALSE,
                     cores = 1,
                     median_comparison = FALSE,
-                    median_comparison_threshold = 0.25,
+                    median_comparison_threshold = 0,
                     subtract_median = FALSE,
                     feature_specific_covariate = NULL,
                     feature_specific_covariate_name = NULL,

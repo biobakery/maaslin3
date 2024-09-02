@@ -19,7 +19,7 @@ export(preprocess_dna_mtx)
 
 import("optparse")
 importFrom("stats", "as.formula", "coef", "glm", "lm", "na.exclude",
-    "p.adjust", "update", "relevel", "anova", "approx", "filter", "median",    "model.matrix", "pbeta", "quantile", "terms",    "update.formula", "var", "vcov")
+    "p.adjust", "update", "relevel", "anova", "approx", "filter", "median",    "model.matrix", "pbeta", "quantile", "terms",    "update.formula", "var", "vcov", "rnorm", "cov")
 importFrom("utils", "capture.output", "read.table", "write.table")
 importFrom("dplyr", "%>%")
 importFrom("stats", "sd", "na.omit")

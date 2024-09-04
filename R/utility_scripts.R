@@ -657,6 +657,22 @@ preprocess_dna_mtx <- function(dna_table, rna_table) {
     dna_table <- dna_table[intersect_samples, , drop = FALSE]
     rna_table <- rna_table[intersect_samples, , drop = FALSE]
     
+    # At this point, DNA and RNA tables are 
+    # samples x features with same samples
+    
+    dna_table <- TSSnorm(dna_table, 0)
+    for (col_index in seq(ncol(dna_table))) {
+        dna_table[, col_index][is.na(dna_table[, col_index])] <- 0
+    }
+    
+    rna_table <- TSSnorm(rna_table, 0)
+    for (col_index in seq(ncol(rna_table))) {
+        rna_table[, col_index][is.na(rna_table[, col_index])] <- 0
+    }
+    
+    # Transforming DNA table
+    impute_val <- log2(min(dna_table[dna_table > 0]) / 2)
+
     intersect_features <-
         intersect(colnames(dna_table), colnames(rna_table))
     
@@ -676,21 +692,7 @@ preprocess_dna_mtx <- function(dna_table, rna_table) {
         stop("Something went wrong in preprocessing")
     }
     
-    # At this point, DNA and RNA tables are 
-    # samples x features with same features and samples
-    
-    dna_table <- TSSnorm(dna_table, 0)
-    for (col_index in seq(ncol(dna_table))) {
-        dna_table[, col_index][is.na(dna_table[, col_index])] <- 0
-    }
-    
-    rna_table <- TSSnorm(rna_table, 0)
-    for (col_index in seq(ncol(rna_table))) {
-        rna_table[, col_index][is.na(rna_table[, col_index])] <- 0
-    }
-    
-    # Transforming DNA table
-    impute_val <- log2(min(dna_table[dna_table > 0]) / 2)
+    # Transform DNA 0s as necessary
     dna_table <- log2(dna_table)
     dna_table[dna_table == -Inf & rna_table > 0] <- impute_val
     dna_table[dna_table == -Inf & rna_table == 0] <- NA

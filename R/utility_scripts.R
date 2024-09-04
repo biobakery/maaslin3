@@ -642,6 +642,7 @@ preprocess_dna_mtx <- function(dna_table, rna_table) {
     
     # replace unexpected characters in feature names
     colnames(dna_table) <- make.names(colnames(dna_table))
+    colnames(rna_table) <- make.names(colnames(rna_table))
     
     intersect_samples <-
         intersect(rownames(dna_table), rownames(rna_table))

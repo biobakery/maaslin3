@@ -2350,6 +2350,7 @@ fit.model <- function(features,
                                     character(0))
                 # Suppress warnings about variance-covariance matrix calculation
                 withCallingHandlers({
+                    browser()
                     output$para <-
                         summary_function(fit, c('(Intercept)', 
                                                 names_to_include))

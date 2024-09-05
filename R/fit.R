@@ -2349,77 +2349,84 @@ fit.model <- function(features,
                                     character(0),
                                     character(0))
                 # Suppress warnings about variance-covariance matrix calculation
+                fit_properly <- FALSE
                 withCallingHandlers({
-                    browser()
-                    output$para <-
-                        summary_function(fit, c('(Intercept)', 
-                                                names_to_include))
+                    tryCatch({
+                        output$para <-
+                            summary_function(fit, c('(Intercept)', 
+                                                    names_to_include))
+                        fit_properly <- TRUE
+                    }, error = function(e) {
+                        return()
+                    })
                 }, warning = function(w) {
                     invokeRestart("muffleWarning")
                 })
                 
-                output$para <-
-                    output$para[names_to_include, , drop = FALSE]
-                
-                n_uni_cols <- nrow(output$para)
-                
-                if (length(groups) > 0) {
-                    output <- run_group_models(ranef_function,
-                                                model_function,
-                                                groups,
-                                                formula,
-                                                random_effects_formula,
-                                                model,
-                                                fit,
-                                                augment,
-                                                weight_scheme,
-                                                dat_sub,
-                                                output,
-                                                mm_input)
-                }
-                
-                if (length(ordereds) > 0) {
-                    output <- run_ordered_models(ranef_function,
-                                                model_function,
-                                                ordereds,
-                                                fit_and_message,
-                                                formula,
-                                                random_effects_formula,
-                                                model,
-                                                fit,
-                                                augment,
-                                                weight_scheme,
-                                                dat_sub,
-                                                output)
-                }
-                
-                # Check whether summaries are correct
-                names_to_include <-
-                    get_fixed_effects(formula,
-                                    random_effects_formula,
-                                    dat_sub,
-                                    groups,
-                                    ordereds)
-                if (any(!(names_to_include %in% rownames(output$para)))) {
-                    # Don't worry about dropped factor levels
-                    missing_names <- names_to_include[!(names_to_include %in% 
-                                            rownames(output$para))]
-                    character_cols <- get_character_cols(dat_sub)
-                    if (!all(missing_names %in% character_cols)) {
-                        fit_properly <- FALSE
-                        fit_and_message[[length(fit_and_message)]] <-
-                            "Metadata dropped during fitting (rank deficient)"
+                if (fit_properly) {
+                    output$para <-
+                        output$para[names_to_include, , drop = FALSE]
+                    
+                    n_uni_cols <- nrow(output$para)
+                    
+                    if (length(groups) > 0) {
+                        output <- run_group_models(ranef_function,
+                                                   model_function,
+                                                   groups,
+                                                   formula,
+                                                   random_effects_formula,
+                                                   model,
+                                                   fit,
+                                                   augment,
+                                                   weight_scheme,
+                                                   dat_sub,
+                                                   output,
+                                                   mm_input)
+                    }
+                    
+                    if (length(ordereds) > 0) {
+                        output <- run_ordered_models(ranef_function,
+                                                     model_function,
+                                                     ordereds,
+                                                     fit_and_message,
+                                                     formula,
+                                                     random_effects_formula,
+                                                     model,
+                                                     fit,
+                                                     augment,
+                                                     weight_scheme,
+                                                     dat_sub,
+                                                     output)
+                    }
+                    
+                    # Check whether summaries are correct
+                    names_to_include <-
+                        get_fixed_effects(formula,
+                                          random_effects_formula,
+                                          dat_sub,
+                                          groups,
+                                          ordereds)
+                    if (any(!(names_to_include %in% rownames(output$para)))) {
+                        # Don't worry about dropped factor levels
+                        missing_names <- names_to_include[!(names_to_include %in% 
+                                                                rownames(output$para))]
+                        character_cols <- get_character_cols(dat_sub)
+                        if (!all(missing_names %in% character_cols)) {
+                            fit_properly <- FALSE
+                            fit_and_message[[length(fit_and_message)]] <-
+                                "Metadata dropped during fitting (rank deficient)"
+                        } else {
+                            fit_properly <- TRUE
+                        }
                     } else {
+                        # No errors, summaries are correct
                         fit_properly <- TRUE
                     }
-                } else {
-                    # No errors, summaries are correct
-                    fit_properly <- TRUE
+                    
+                    # Prevents individual group levels from ending up in results
+                    output$para <-
+                        output$para[rownames(output$para) %in% names_to_include,]
                 }
-                
-                # Prevents individual group levels from ending up in results
-                output$para <-
-                    output$para[rownames(output$para) %in% names_to_include,]
             } else {
                 # Fit issue occurred
                 fit_properly <- FALSE

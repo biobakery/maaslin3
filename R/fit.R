@@ -1018,10 +1018,11 @@ fit_augmented_logistic <- function(ranef_function,
                                 dat_sub,
                                 features,
                                 x) {
-
     warning_message <- NA
     error_message <- NA
     calling_env <- environment()
+    mm_input <- NULL
+    weight_scheme <- NULL
     fit1 <- tryCatch({
         withCallingHandlers({
             withCallingHandlers({

@@ -23,7 +23,7 @@
 on:
   push:
     tags:
-    - '**'
+    - '*'
   pull_request:
 
 name: build and test

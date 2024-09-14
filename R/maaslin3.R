@@ -101,8 +101,8 @@ args$feature_specific_covariate_record <- NULL
 args$standardize <- TRUE
 args$median_comparison_abundance <- TRUE
 args$median_comparison_prevalence <- FALSE
-args$median_comparison_abundance_threshold <- 0.25
-args$median_comparison_prevalence_threshold <- 0.25
+args$median_comparison_abundance_threshold <- 0
+args$median_comparison_prevalence_threshold <- 0
 args$subtract_median <- FALSE
 args$warn_prevalence <- TRUE
 args$augment <- TRUE
@@ -751,8 +751,8 @@ maaslin_log_arguments <- function(input_data,
                                 unscaled_abundance = NULL,
                                 median_comparison_abundance = TRUE,
                                 median_comparison_prevalence = FALSE,
-                                median_comparison_abundance_threshold = 0.25,
-                                median_comparison_prevalence_threshold = 0.25,
+                                median_comparison_abundance_threshold = 0,
+                                median_comparison_prevalence_threshold = 0,
                                 subtract_median = FALSE,
                                 warn_prevalence = TRUE,
                                 augment = TRUE,
@@ -1893,8 +1893,8 @@ maaslin_fit <- function(filtered_data,
                         correction = 'BH',
                         median_comparison_abundance = TRUE,
                         median_comparison_prevalence = FALSE,
-                        median_comparison_abundance_threshold = 0.25,
-                        median_comparison_prevalence_threshold = 0.25,
+                        median_comparison_abundance_threshold = 0,
+                        median_comparison_prevalence_threshold = 0,
                         subtract_median = FALSE,
                         warn_prevalence = TRUE,
                         augment = TRUE,
@@ -2561,8 +2561,8 @@ maaslin3 <- function(input_data,
                     unscaled_abundance = NULL,
                     median_comparison_abundance = TRUE,
                     median_comparison_prevalence = FALSE,
-                    median_comparison_abundance_threshold = 0.25,
-                    median_comparison_prevalence_threshold = 0.25,
+                    median_comparison_abundance_threshold = 0,
+                    median_comparison_prevalence_threshold = 0,
                     subtract_median = FALSE,
                     warn_prevalence = TRUE,
                     augment = TRUE,
@@ -2727,7 +2727,7 @@ maaslin3 <- function(input_data,
         augment,
         evaluate_only,
         cores,
-        save_models,
+        save_models = TRUE,
         data,
         min_abundance,
         min_prevalence,

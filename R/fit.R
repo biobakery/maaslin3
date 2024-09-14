@@ -1018,10 +1018,11 @@ fit_augmented_logistic <- function(ranef_function,
                                 dat_sub,
                                 features,
                                 x) {
-
     warning_message <- NA
     error_message <- NA
     calling_env <- environment()
+    mm_input <- NULL
+    weight_scheme <- NULL
     fit1 <- tryCatch({
         withCallingHandlers({
             withCallingHandlers({
@@ -1649,7 +1650,33 @@ run_median_comparison_ordered <- function(paras_sub,
     ordered <- ordereds[which(startsWith(
         metadata_variable, ordereds))]
     
-    for (feature in paras_sub$feature) {
+    use_this_coef <- !is.na(paras_sub$pval) & paras_sub$pval < 0.95
+    
+    n_coefs <- nrow(paras_sub)
+    sigmas <- paras_sub$stderr
+    coefs <- paras_sub$coef
+    sigma_sq_med <- var(coefs[use_this_coef], na.rm=TRUE)
+    
+    # Variance from asymptotic distribution
+    sd_median <- sqrt(0.25 * 2 * base::pi * sigma_sq_med / sum(use_this_coef))
+    
+    # MC for covariance
+    nsims <- 10000
+    sim_medians <- vector(length = nsims)
+    all_sims <- matrix(ncol = n_coefs, nrow = nsims)
+    for (j in seq(nsims)) {
+        sim_coefs <- rnorm(n_coefs, coefs, sigmas)
+        sim_medians[j] <- median(sim_coefs[use_this_coef])
+        all_sims[j,] <- sim_coefs
+    }
+    cov_adjust <- apply(all_sims, 2, function(x){cov(x, sim_medians)})
+    
+    # Necessary offsets for contrast testing
+    offsets_to_test <- abs(cur_median - coefs) * 
+        sqrt((sigmas^2) / (sigmas^2+ sd_median^2 - 2 * cov_adjust)) + coefs
+    
+    for (row_index in seq(nrow(paras_sub))) {
+        feature <- paras_sub$feature[row_index]
         if (is.null(random_effects_formula)) {
             # Fixed effects
             cur_fit <- fits[[feature]]
@@ -1722,7 +1749,7 @@ run_median_comparison_ordered <- function(paras_sub,
                             multcomp::glht(
                                 cur_fit,
                                 linfct = contrast_vec,
-                                rhs = cur_median,
+                                rhs = offsets_to_test[row_index],
                                 coef. = function(x) {
                                     coef(x, complete = FALSE)
                                 }
@@ -1812,7 +1839,7 @@ run_median_comparison_ordered <- function(paras_sub,
                                 multcomp::glht(
                                     cur_fit,
                                     linfct = contrast_vec,
-                                    rhs = cur_median
+                                    rhs = offsets_to_test[row_index]
                                 )
                             )$test$pvalues
                         },
@@ -1841,7 +1868,7 @@ run_median_comparison_ordered <- function(paras_sub,
                             lmerTest::contest(cur_fit,
                                             matrix(contrast_vec, 
                                                     TRUE),
-                                            rhs = cur_median)[[
+                                            rhs = offsets_to_test[row_index])[[
                                                 'Pr(>F)']]
                         },
                         error = function(err) {
@@ -1867,7 +1894,33 @@ run_median_comparison_general <- function(paras_sub,
                                         pvals_new,
                                         cur_median,
                                         model) {
-    for (feature in paras_sub$feature) {
+    use_this_coef <- !is.na(paras_sub$pval) & paras_sub$pval < 0.95
+    
+    n_coefs <- nrow(paras_sub)
+    sigmas <- paras_sub$stderr
+    coefs <- paras_sub$coef
+    sigma_sq_med <- var(coefs[use_this_coef], na.rm=TRUE)
+    
+    # Variance from asymptotic distribution
+    sd_median <- sqrt(0.25 * 2 * base::pi * sigma_sq_med / sum(use_this_coef))
+
+    # MC for covariance
+    nsims <- 10000
+    sim_medians <- vector(length = nsims)
+    all_sims <- matrix(ncol = n_coefs, nrow = nsims)
+    for (j in seq(nsims)) {
+        sim_coefs <- rnorm(n_coefs, coefs, sigmas)
+        sim_medians[j] <- median(sim_coefs[use_this_coef])
+        all_sims[j,] <- sim_coefs
+    }
+    cov_adjust <- apply(all_sims, 2, function(x){cov(x, sim_medians)})
+    
+    # Necessary offsets for contrast testing
+    offsets_to_test <- abs(cur_median - coefs) * 
+        sqrt((sigmas^2) / (sigmas^2+ sd_median^2 - 2 * cov_adjust)) + coefs
+    
+    for (row_index in seq(nrow(paras_sub))) {
+        feature <- paras_sub$feature[row_index]
         if (is.null(random_effects_formula)) {
             # Fixed effects
             cur_fit <- fits[[feature]]
@@ -1917,7 +1970,7 @@ run_median_comparison_general <- function(paras_sub,
                                 cur_fit,
                                 linfct = matrix(contrast_vec, 
                                                 TRUE),
-                                rhs = cur_median,
+                                rhs = offsets_to_test[row_index],
                                 coef. = function(x) {
                                     coef(x, complete = FALSE)
                                 }
@@ -1980,7 +2033,7 @@ run_median_comparison_general <- function(paras_sub,
                                     cur_fit,
                                     linfct = matrix(
                                         contrast_vec, TRUE),
-                                    rhs = cur_median
+                                    rhs = offsets_to_test[row_index]
                                 )
                             )$test$pvalues[1]
                         },
@@ -2010,7 +2063,7 @@ run_median_comparison_general <- function(paras_sub,
                             lmerTest::contest(
                                 cur_fit,
                                 matrix(contrast_vec, TRUE),
-                                rhs = cur_median)[['Pr(>F)']]
+                                rhs = offsets_to_test[row_index])[['Pr(>F)']]
                         },
                         error = function(err) {
                             NA
@@ -2123,7 +2176,7 @@ fit.model <- function(features,
                     augment = FALSE,
                     cores = 1,
                     median_comparison = FALSE,
-                    median_comparison_threshold = 0.25,
+                    median_comparison_threshold = 0,
                     subtract_median = FALSE,
                     feature_specific_covariate = NULL,
                     feature_specific_covariate_name = NULL,
@@ -2296,76 +2349,84 @@ fit.model <- function(features,
                                     character(0),
                                     character(0))
                 # Suppress warnings about variance-covariance matrix calculation
+                fit_properly <- FALSE
                 withCallingHandlers({
-                    output$para <-
-                        summary_function(fit, c('(Intercept)', 
-                                                names_to_include))
+                    tryCatch({
+                        output$para <-
+                            summary_function(fit, c('(Intercept)', 
+                                                    names_to_include))
+                        fit_properly <- TRUE
+                    }, error = function(e) {
+                        return()
+                    })
                 }, warning = function(w) {
                     invokeRestart("muffleWarning")
                 })
                 
-                output$para <-
-                    output$para[names_to_include, , drop = FALSE]
-                
-                n_uni_cols <- nrow(output$para)
-                
-                if (length(groups) > 0) {
-                    output <- run_group_models(ranef_function,
-                                                model_function,
-                                                groups,
-                                                formula,
-                                                random_effects_formula,
-                                                model,
-                                                fit,
-                                                augment,
-                                                weight_scheme,
-                                                dat_sub,
-                                                output,
-                                                mm_input)
-                }
-                
-                if (length(ordereds) > 0) {
-                    output <- run_ordered_models(ranef_function,
-                                                model_function,
-                                                ordereds,
-                                                fit_and_message,
-                                                formula,
-                                                random_effects_formula,
-                                                model,
-                                                fit,
-                                                augment,
-                                                weight_scheme,
-                                                dat_sub,
-                                                output)
-                }
-                
-                # Check whether summaries are correct
-                names_to_include <-
-                    get_fixed_effects(formula,
-                                    random_effects_formula,
-                                    dat_sub,
-                                    groups,
-                                    ordereds)
-                if (any(!(names_to_include %in% rownames(output$para)))) {
-                    # Don't worry about dropped factor levels
-                    missing_names <- names_to_include[!(names_to_include %in% 
-                                            rownames(output$para))]
-                    character_cols <- get_character_cols(dat_sub)
-                    if (!all(missing_names %in% character_cols)) {
-                        fit_properly <- FALSE
-                        fit_and_message[[length(fit_and_message)]] <-
+                if (fit_properly) {
+                    output$para <-
+                        output$para[names_to_include, , drop = FALSE]
+                    
+                    n_uni_cols <- nrow(output$para)
+                    
+                    if (length(groups) > 0) {
+                        output <- run_group_models(ranef_function,
+                                                    model_function,
+                                                    groups,
+                                                    formula,
+                                                    random_effects_formula,
+                                                    model,
+                                                    fit,
+                                                    augment,
+                                                    weight_scheme,
+                                                    dat_sub,
+                                                    output,
+                                                    mm_input)
+                    }
+                    
+                    if (length(ordereds) > 0) {
+                        output <- run_ordered_models(ranef_function,
+                                                    model_function,
+                                                    ordereds,
+                                                    fit_and_message,
+                                                    formula,
+                                                    random_effects_formula,
+                                                    model,
+                                                    fit,
+                                                    augment,
+                                                    weight_scheme,
+                                                    dat_sub,
+                                                    output)
+                    }
+                    
+                    # Check whether summaries are correct
+                    names_to_include <-
+                        get_fixed_effects(formula,
+                                            random_effects_formula,
+                                            dat_sub,
+                                            groups,
+                                            ordereds)
+                    if (any(!(names_to_include %in% rownames(output$para)))) {
+                        # Don't worry about dropped factor levels
+                        missing_names <- names_to_include[
+                            !(names_to_include %in% rownames(output$para))]
+                        character_cols <- get_character_cols(dat_sub)
+                        if (!all(missing_names %in% character_cols)) {
+                            fit_properly <- FALSE
+                            fit_and_message[[length(fit_and_message)]] <-
                             "Metadata dropped during fitting (rank deficient)"
+                        } else {
+                            fit_properly <- TRUE
+                        }
                     } else {
+                        # No errors, summaries are correct
                         fit_properly <- TRUE
                     }
-                } else {
-                    # No errors, summaries are correct
-                    fit_properly <- TRUE
-                }
-                
-                # Prevents individual group levels from ending up in results
-                output$para <-
+                    
+                    # Prevents individual group levels from ending up in results
+                    output$para <-
                     output$para[rownames(output$para) %in% names_to_include,]
+                }
             } else {
                 # Fit issue occurred
                 fit_properly <- FALSE

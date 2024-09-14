@@ -12,6 +12,7 @@ metadata$antibiotics <- factor(metadata$antibiotics, levels = c('No', 'Yes'))
 
 # Run MaAsLin 3
 output_tmp <- tempfile()
+set.seed(1)
 fit_out <- maaslin3::maaslin3(input_data = taxa_table, 
                             input_metadata = metadata, 
                             output = output_tmp, 

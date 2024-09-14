@@ -299,6 +299,7 @@ proportions of zeros. However, filtering low prevalence features might improve
 power.
 
 ```{R, echo = TRUE, results = 'hide', warning = FALSE, cache = FALSE}
+set.seed(1)
 fit_out <- maaslin3(input_data = taxa_table,
                     input_metadata = metadata,
                     output = 'hmp2_output',
@@ -311,7 +312,7 @@ fit_out <- maaslin3(input_data = taxa_table,
                     max_significance = 0.1,
                     median_comparison_abundance = TRUE,
                     median_comparison_prevalence = FALSE,
-                    max_pngs = 100,
+                    max_pngs = 250,
                     cores = 1)
 ```
 
@@ -444,7 +445,7 @@ knitr::include_graphics("hmp2_output/figures/summary_plot_first.png")
 ```{r, echo=FALSE, fig.show='hold',include=FALSE}
 prefix <- "hmp2_output/figures/association_plots"
 plot_vec <- 
-    c("/age/linear/age_Faecalibacterium_prausnitzii_linear.png",
+    c("/age/linear/age_Enterocloster_clostridioformis_linear.png",
     "/dysbiosis_state/linear/dysbiosis_state_Escherichia_coli_linear.png",
     "/age/logistic/age_Bifidobacterium_longum_logistic.png",
     paste0("/dysbiosis_state/logistic/",
@@ -594,7 +595,7 @@ scatter_plots <- maaslin_plot_results_from_output(
     median_comparison_abundance = TRUE,
     median_comparison_prevalence = FALSE,
     max_significance = 0.1,
-    max_pngs = 100)
+    max_pngs = 250)
 ```
 
 In the new summary plot below, we can see that the feature names are
@@ -609,7 +610,7 @@ In the association plots, the taxa and metadata have been renamed to be
 consistent with the results file from earlier.
 ```{r, echo=FALSE, fig.show='hold', cache = FALSE, include=FALSE}
 prefix <- "hmp2_output/figures/association_plots"
-plot_vec <- c("/age/linear/Age_Faecalibacterium prausnitzii_linear.png",
+plot_vec <- c("/age/linear/Age_Enterocloster clostridioformis_linear.png",
             "/Dysbiosis/linear/Dysbiosis_Escherichia coli_linear.png",
             "/age/logistic/Age_Bifidobacterium longum_logistic.png",
             paste0("/Dysbiosis/logistic/",
@@ -800,7 +801,7 @@ fit_out <- maaslin3(
     input_metadata = metadata[metadata$diagnosis == 'CD',],
     output = 'random_effects_output',
     formula = '~ dysbiosis_state + antibiotics +
-        age + reads + strata(participant_id)',
+        age + reads + (1|participant_id)',
     plot_summary_plot = FALSE,
     plot_associations = FALSE)
 ```
@@ -831,7 +832,8 @@ of features in a few hours (and increasing the CPUs used with `cores`
 can help). However, random effects are not the solution to every
 correlated data problem. In particular, **logistic random intercept models may
 produce poor model fits when there are fewer than 5 observations per
-group.** In these scenarios, per-group fixed effects or conditional 
+group.** In these scenarios, per-group fixed effects or, for advanced users,
+conditional 
 logistic regression (see `strata_effects` in the manual) should be used. For
 example, in a before-and-after treatment study with one sample before
 and one sample after, the participant IDs and a pre/post indicator
@@ -1061,14 +1063,13 @@ combination of the coefficients is significantly different from some constant
 on the right hand size (RHS). Specify a contrast matrix
 with column names matching the coefficient names and rows with the contrasts
 of interest. For each row $C^T$, the hypothesis $H_0:C^T\vec{\beta}=RHS$ 
-will be tested. Note that
-`save_models` must be `TRUE` in the original fit to perform contrast tests.
+will be tested.
 
 Below, we test whether the UC and CD diagnosis coefficients are the same
-and whether the UC and CD dysbiosis coefficients are the same.
+and whether the UC and CD dysbiosis coefficients are the same. The contrast
+matrix can easily be extended to test any groups pairwise.
 
 ```{R, echo = TRUE, results = 'hide', warning = FALSE, cache = TRUE}
-# Fit with save_models = TRUE
 fit_out <- maaslin3(input_data = taxa_table,
                     input_metadata = metadata,
                     output = 'contrast_test_output',
@@ -1076,8 +1077,7 @@ fit_out <- maaslin3(input_data = taxa_table,
                         antibiotics + age + reads',
                     plot_summary_plot = FALSE,
                     plot_associations = FALSE,
-                    cores = 1,
-                    save_models = TRUE)
+                    cores = 1)
 ```
 
 ```{R, echo = TRUE, warning = FALSE, cache = TRUE}
@@ -1092,10 +1092,10 @@ colnames(contrast_mat) <- c("diagnosisUC",
 rownames(contrast_mat) <- c("diagnosis_test", "dysbiosis_test")
 
 contrast_mat
-                            
+
 contrast_out <- maaslin_contrast_test(fits = fit_out$fit_data_abundance$fits,
                         contrast_mat = contrast_mat,
-                        rhs = c(0, 0))
+                        median_comparison = TRUE)
 
 contrast_out %>%
     knitr::kable() %>%

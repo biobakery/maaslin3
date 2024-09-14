@@ -387,7 +387,7 @@ of 'variable,reference' semi-colon delimited for multiple variables.
 intercepts. **Random intercept models may produce poor model fits when
 there are fewer than 5 observations per group.** In these scenarios,
 per-group fixed effects should be used and subsequently filtered out.
-See `strata_effects` as well.
+(See `strata_effects` as well.)
     * Random effects models are fit with `lmer` (linear) and `glmer`
 (logistic), and the significance tests come from `lmerTest` and `glmer`
 respectively.
@@ -411,7 +411,9 @@ effects can be included. When a strata variable is included, a
 conditional logistic regression will be run to account for the strata.
 The abundance model will be run with a random intercept in place of the
 strata. Strata can include more than two observations per group. Only
-variables that differ within the groups can be tested.
+variables that differ within the groups can be tested. In general, strata
+effects are not recommended except for advanced users. Fixed or random
+intercepts are recommended instead.
 
 #### Feature specific covariates ####
 Particularly for use in metatranscriptomics workflows, a table of
@@ -606,14 +608,14 @@ coefficient for a metadata variable across the features. Otherwise, test
 against 0. This is only recommended if the analyst is interested in how
 feature prevalence associations compare to each other or if there is
 likely strong compositionality-induced sparsity.
-* `median_comparison_abundance_threshold` (default `0.25`): Coefficients
+* `median_comparison_abundance_threshold` (default `0`): Coefficients
 within `median_comparison_abundance_threshold` of the median association
 will automatically be counted as insignificant (p-value set to 1) since
 they likely represent compositionality-induced associations. This
 threshold will be divided by the metadata variable's standard deviation
 if the metadatum is continuous to ensure the threshold applies to the
 right scale.
-* `median_comparison_prevalence_threshold` (default `0.25`): Same as
+* `median_comparison_prevalence_threshold` (default `0`): Same as
 `median_comparison_abundance_threshold` but applied to the prevalence
 associations.
 * `subtract_median` (default `FALSE`): Subtract the median from 

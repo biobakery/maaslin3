@@ -397,7 +397,12 @@ write_results_in_lefse_format <-
 
 maaslin_contrast_test <- function(fits,
                                 contrast_mat,
-                                rhs) {
+                                rhs = NULL,
+                                median_comparison = TRUE) {
+    
+    if (is.null(fits)) {
+        stop("fits must not be null")
+    }
     
     # Identify model type
     if (any(unlist(lapply(fits, FUN = function(x){is(x,"lm")})))) {
@@ -415,6 +420,14 @@ maaslin_contrast_test <- function(fits,
     } else if (any(unlist(lapply(fits, FUN = function(x){is(x,"coxph")})))) {
         model <- "prevalence"
         uses_random_effects <- FALSE
+    }
+    
+    if (median_comparison & !is.null(rhs)) {
+        stop("rhs must be NULL with median_comparison")
+    }
+    
+    if (is.null(rhs)) {
+        rhs <- rep(0, nrow(contrast_mat))
     }
     
     if (nrow(contrast_mat) != length(rhs)) {
@@ -474,7 +487,7 @@ maaslin_contrast_test <- function(fits,
             next
         }
         
-        contrast_mat_tmp <- contrast_mat_tmp[,included_coefs]
+        contrast_mat_tmp <- contrast_mat_tmp[,included_coefs, drop = FALSE]
         
         # Run contrast test
         if (!uses_random_effects | model == 'prevalence') {
@@ -591,6 +604,182 @@ maaslin_contrast_test <- function(fits,
         model = model
     )
     
+    # Perform median comparison as though these were the original fits
+    if (median_comparison) {
+        for (selected_test in unique(paras$test)) {
+            paras_sub <- paras[paras$test == selected_test & 
+                                !is.na(paras$coef) & 
+                                !is.na(paras$stderr), , drop = FALSE]
+            if (nrow(paras_sub) == 0) {
+                next
+            }
+            
+            # Make sure other p-values are set to NA to not confuse
+            # median comparison with non-comparison
+            paras$pval_individual[paras$test == selected_test & 
+                                    is.na(paras$coef) | 
+                                    is.na(paras$stderr)] <- NA
+            
+            use_this_coef <- !is.na(paras_sub$pval_individual) & 
+                paras_sub$pval_individual < 0.95
+            
+            n_coefs <- nrow(paras_sub)
+            sigmas <- paras_sub$stderr
+            coefs <- paras_sub$coef
+            sigma_sq_med <- var(coefs[use_this_coef], na.rm=TRUE)
+            
+            cur_median <- median(coefs)
+            
+            # Variance from asymptotic distribution
+            sd_median <- sqrt(0.25 * 2 * base::pi * 
+                                sigma_sq_med / sum(use_this_coef))
+            
+            # MC for covariance
+            nsims <- 10000
+            sim_medians <- vector(length = nsims)
+            all_sims <- matrix(ncol = n_coefs, nrow = nsims)
+            for (j in seq(nsims)) {
+                sim_coefs <- rnorm(n_coefs, coefs, sigmas)
+                sim_medians[j] <- median(sim_coefs[use_this_coef])
+                all_sims[j,] <- sim_coefs
+            }
+            cov_adjust <- apply(all_sims, 2, function(x){cov(x, sim_medians)})
+            
+            # Necessary offsets for contrast testing
+            offsets_to_test <- abs(cur_median - coefs) * 
+                sqrt((sigmas^2) / (sigmas^2+ sd_median^2 - 2 * cov_adjust)) + 
+                coefs
+            
+            pvals_new <- vector(length = nrow(paras_sub))
+            
+            # Run contrast test on each  model
+            for (row_index in seq(nrow(paras_sub))) {
+                feature <- paras_sub$feature[row_index]
+                fit <- fits[[feature]]
+
+                # Fill in contrast matrix gaps if necessary
+                if (uses_random_effects) {
+                    included_coefs <- names(lme4::fixef(fit))
+                } else {
+                    included_coefs <- names(coef(fit, complete = FALSE))
+                }
+                contrast_mat_cols <- colnames(contrast_mat)
+                contrast_mat_tmp <- contrast_mat
+                contrast_mat_tmp <- cbind(contrast_mat_tmp, 
+                                        matrix(0, 
+                                                nrow = nrow(contrast_mat_tmp),
+                                                ncol = length(
+                                                setdiff(included_coefs,
+                                                contrast_mat_cols))))
+                colnames(contrast_mat_tmp) <- c(contrast_mat_cols,
+                                                setdiff(included_coefs,
+                                                        contrast_mat_cols))
+
+                contrast_mat_tmp <- contrast_mat_tmp[,included_coefs, 
+                                                    drop = FALSE]
+                
+                # Run contrast test
+                if (!uses_random_effects | model == 'prevalence') {
+                    contrast_vec <- t(matrix(contrast_mat_tmp[selected_test,]))
+                    
+                    error_message <- NA
+                    calling_env <- environment()
+                    test_out <- tryCatch({
+                        if (!uses_random_effects) {
+                            summary_out <- summary(multcomp::glht(
+                                fit,
+                                linfct = contrast_vec,
+                                rhs = offsets_to_test[row_index],
+                                coef. = function(x) {
+                                    coef(x, complete = FALSE)
+                                }
+                            )
+                            )$test
+                        } else {
+                            summary_out <- summary(multcomp::glht(
+                                fit,
+                                linfct = contrast_vec,
+                                rhs = offsets_to_test[row_index],
+                            )
+                            )$test
+                        }
+                        
+                        c(summary_out$pvalues,
+                            summary_out$coefficients,
+                            summary_out$sigma)
+                    }, warning = function(w) {
+                        message(sprintf("Feature %s : %s", 
+                                        names(fit), w))
+                        
+                        assign("error_message",
+                                conditionMessage(w),
+                                envir = calling_env)
+                        invokeRestart("muffleWarning")
+                    },
+                    error = function(err) {
+                        assign("error_message", err$message, 
+                                envir = calling_env)
+                        error_obj <- c(NA, NA, NA)
+                        return(error_obj)
+                    })
+                    pvals_new[row_index] <- 
+                        test_out[1]
+                } else {
+                    contrast_vec <- t(matrix(contrast_mat_tmp[selected_test,]))
+                    
+                    error_message <- NA
+                    calling_env <- environment()
+                    test_out <- tryCatch({
+                        pval <- lmerTest::contest(fit,
+                                                    matrix(
+                                                        contrast_vec,
+                                                        TRUE
+                                                    ), 
+                                rhs = offsets_to_test[row_index])[['Pr(>F)']]
+                        coef <- contrast_vec %*% lme4::fixef(fit)
+                        sigma <- sqrt((contrast_vec %*% vcov(fit) %*% 
+                                        t(contrast_vec))[1, 1])
+                        c(pval, coef, sigma)
+                    }, warning = function(w) {
+                        message(sprintf("Feature %s : %s", 
+                                        names(fit), w))
+                        
+                        assign("error_message",
+                                conditionMessage(w),
+                                envir = calling_env)
+                        invokeRestart("muffleWarning")
+                    },
+                    error = function(err) {
+                        assign("error_message", err$message, 
+                                envir = calling_env)
+                        error_obj <- c(NA, NA, NA)
+                        return(error_obj)
+                    })
+                    pvals_new[row_index] <- 
+                        test_out[1]
+                }
+            }
+            
+            paras$error[paras$test == selected_test & 
+                        !is.na(paras$coef) & 
+                        !is.na(paras$stderr)] <- 
+                ifelse(!is.na(paras$pval_individual[
+                                paras$test == selected_test & 
+                                !is.na(paras$coef) & 
+                                !is.na(paras$stderr)]) & 
+                            is.na(pvals_new),
+                        "P-value became NA during median comparison",
+                        paras$error[paras$test == selected_test & 
+                                    !is.na(paras$coef) & 
+                                    !is.na(paras$stderr)]
+                )
+            
+            paras$pval_individual[paras$test == selected_test & 
+                                !is.na(paras$coef) & 
+                                !is.na(paras$stderr)] <- pvals_new
+        }
+    }
+    
     return(paras)
 }
 
@@ -642,6 +831,7 @@ preprocess_dna_mtx <- function(dna_table, rna_table) {
     
     # replace unexpected characters in feature names
     colnames(dna_table) <- make.names(colnames(dna_table))
+    colnames(rna_table) <- make.names(colnames(rna_table))
     
     intersect_samples <-
         intersect(rownames(dna_table), rownames(rna_table))
@@ -657,6 +847,22 @@ preprocess_dna_mtx <- function(dna_table, rna_table) {
     dna_table <- dna_table[intersect_samples, , drop = FALSE]
     rna_table <- rna_table[intersect_samples, , drop = FALSE]
     
+    # At this point, DNA and RNA tables are 
+    # samples x features with same samples
+    
+    dna_table <- TSSnorm(dna_table, 0)
+    for (col_index in seq(ncol(dna_table))) {
+        dna_table[, col_index][is.na(dna_table[, col_index])] <- 0
+    }
+    
+    rna_table <- TSSnorm(rna_table, 0)
+    for (col_index in seq(ncol(rna_table))) {
+        rna_table[, col_index][is.na(rna_table[, col_index])] <- 0
+    }
+    
+    # Transforming DNA table
+    impute_val <- log2(min(dna_table[dna_table > 0]) / 2)
+
     intersect_features <-
         intersect(colnames(dna_table), colnames(rna_table))
     
@@ -676,21 +882,7 @@ preprocess_dna_mtx <- function(dna_table, rna_table) {
         stop("Something went wrong in preprocessing")
     }
     
-    # At this point, DNA and RNA tables are 
-    # samples x features with same features and samples
-    
-    dna_table <- TSSnorm(dna_table, 0)
-    for (col_index in seq(ncol(dna_table))) {
-        dna_table[, col_index][is.na(dna_table[, col_index])] <- 0
-    }
-    
-    rna_table <- TSSnorm(rna_table, 0)
-    for (col_index in seq(ncol(rna_table))) {
-        rna_table[, col_index][is.na(rna_table[, col_index])] <- 0
-    }
-    
-    # Transforming DNA table
-    impute_val <- log2(min(dna_table[dna_table > 0]) / 2)
+    # Transform DNA 0s as necessary
     dna_table <- log2(dna_table)
     dna_table[dna_table == -Inf & rna_table > 0] <- impute_val
     dna_table[dna_table == -Inf & rna_table == 0] <- NA

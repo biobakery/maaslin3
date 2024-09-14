@@ -419,7 +419,8 @@ make_heatmap_plot <- function(merged_results_sig,
                 max_significance, 3
             )), paste0(
                 "** < ", round(max_significance / 10, 5)
-            ), "")
+            ), ""),
+            drop = FALSE
         ) +
         ggplot2::labs(x = '',
                     y = "Feature",
@@ -1458,7 +1459,7 @@ maaslin3_association_plots <-
                             )
                         )
                     height <-
-                        max(960, 15 * max(nchar(unlist(
+                        max(960, 18 * max(nchar(unlist(
                             strsplit(this_plot$labels$y, '\n')
                         ))))
                     ggplot2::ggsave(

@@ -11,7 +11,8 @@ right hand side. One contrast test is applied per row of the matrix.
 \usage{
 maaslin_contrast_test(fits,
                     contrast_mat,
-                    rhs)
+                    rhs = NULL,
+                    median_comparison = TRUE)
 }
 \arguments{
     \item{fits}{The list of fits from \code{\link{maaslin_fit}} with 
@@ -22,7 +23,10 @@ maaslin_contrast_test(fits,
     If row names are provided, they will be used to label the test in the
     results.}
     \item{rhs}{The right hand size of the contrast test. The length should
-    be the same as the number of rows in the \code{contrast_mat}.}
+    be the same as the number of rows in the \code{contrast_mat}. This will
+    default to 0 or the median comparison if \code{median_comparison=TRUE}.}
+    \item{median_comparison}{Run a median comparison as though the contrast
+    had been fit directly. The parameter \code{rhs} must be \code{NULL} if so.}
 }
 \value{
 A dataframe with the following columns:
@@ -75,8 +79,7 @@ A dataframe with the following columns:
                                 formula = '~ diagnosis + dysbiosis_state +
                                 antibiotics + age + reads',
                                 plot_summary_plot = FALSE,
-                                plot_associations = FALSE,
-                                save_models = TRUE)
+                                plot_associations = FALSE)
                                 
     contrast_mat <- matrix(c(1, 1, 0, 0, 0, 0, 1, 1), 
         ncol = 4, nrow = 2, byrow = TRUE)
@@ -89,8 +92,7 @@ A dataframe with the following columns:
     rownames(contrast_mat) <- c("diagnosis_test", "dysbiosis_test")
                                 
     maaslin_contrast_test(fits = fit_out$fit_data_abundance$fits,
-                            contrast_mat = contrast_mat,
-                            rhs = c(0, 0))
+                            contrast_mat = contrast_mat)
                                 
     unlink('output', recursive=TRUE)
     logging::logReset()

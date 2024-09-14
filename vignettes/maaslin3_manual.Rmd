@@ -519,9 +519,9 @@ In the association plots below, the taxa and metadata have been renamed to be
 consistent with the results file from earlier.
 ```{r, echo=FALSE, fig.show='hold', cache = FALSE, include=FALSE}
 prefix <- "hmp2_output/figures/association_plots"
-plot_vec <- c("/age/linear/age_Enterocloster clostridioformis_linear.png",
+plot_vec <- c("/Age/linear/Age_Enterocloster clostridioformis_linear.png",
             "/Dysbiosis/linear/Dysbiosis_Escherichia coli_linear.png",
-            "/age/logistic/Age_Bifidobacterium longum_logistic.png",
+            "/Age/logistic/Age_Bifidobacterium longum_logistic.png",
             paste0("/Dysbiosis/logistic/",
                 "Dysbiosis_Faecalibacterium prausnitzii_logistic.png"
                 ))

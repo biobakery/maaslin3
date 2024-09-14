@@ -387,7 +387,7 @@ of 'variable,reference' semi-colon delimited for multiple variables.
 intercepts. **Random intercept models may produce poor model fits when
 there are fewer than 5 observations per group.** In these scenarios,
 per-group fixed effects should be used and subsequently filtered out.
-See `strata_effects` as well.
+(See `strata_effects` as well.)
     * Random effects models are fit with `lmer` (linear) and `glmer`
 (logistic), and the significance tests come from `lmerTest` and `glmer`
 respectively.
@@ -411,7 +411,9 @@ effects can be included. When a strata variable is included, a
 conditional logistic regression will be run to account for the strata.
 The abundance model will be run with a random intercept in place of the
 strata. Strata can include more than two observations per group. Only
-variables that differ within the groups can be tested.
+variables that differ within the groups can be tested. In general, strata
+effects are not recommended except for advanced users. Fixed or random
+intercepts are recommended instead.
 
 #### Feature specific covariates ####
 Particularly for use in metatranscriptomics workflows, a table of

@@ -230,21 +230,17 @@ underlying DNA abundances
 
 In this first example run on MTX data, we will run MaAsLin 3 on the RNA
 pathway abundances as characterized by HUMAnN 2 but not normalized by
-the matched DNA of these samples. When running MTX data, **it is
-recommended to set `median_comparison_abundance_threshold = 0.0`** in
-order to detect the typically-smaller MTX effects. (Make sure to set
+the matched DNA of these samples. (Make sure to set
 `include=T` to view the plots when knitting the Rmd.)
 
 ```{R, echo = TRUE, results = 'hide', warning = FALSE, cache = TRUE}
-# Set median_comparison_abundance_threshold = 0.0 since effect sizes are
-# small
+set.seed(1)
 fit_maaslin_rna <- maaslin3(
     input_data = df_input_data,
     input_metadata = df_input_metadata,
     output = 'demo_output_rna',
     fixed_effects = c('diagnosis', 'dysbiosis_state', 'antibiotics', 'age'),
     random_effects = c('participant_id'),
-    median_comparison_abundance_threshold = 0.0,
     coef_plot_vars = c('dysbiosis_state dysbiosis_CD', 'diagnosis CD'),
     heatmap_vars = c('dysbiosis_state dysbiosis_UC', 'diagnosis UC', 'age',
                         'antibiotics Yes'))
@@ -258,13 +254,9 @@ knitr::include_graphics("demo_output_rna/figures/summary_plot.png")
 
 Next, we will run the same model changing the input to the RNA/DNA ratio
 data frame. Note that we now set `normalization = 'NONE'` so that
-MaAsLin 3 does not total-sum scale the ratios. As before, we set
-`median_comparison_abundance_threshold = 0.0` in order to detect the
-typically-smaller MTX effects.
+MaAsLin 3 does not total-sum scale the ratios.
 
 ```{R, echo = TRUE, results = 'hide', warning = FALSE, cache = TRUE}
-# Set median_comparison_abundance_threshold = 0.0 since effect sizes are
-# small
 fit_maaslin_ratio <- maaslin3(
     input_data = df_input_dataratio,
     input_metadata = df_input_metadata,
@@ -272,7 +264,6 @@ fit_maaslin_ratio <- maaslin3(
     fixed_effects = c('diagnosis', 'dysbiosis_state', 'antibiotics', 'age'),
     random_effects = c('participant_id'),
     normalization = 'NONE',
-    median_comparison_abundance_threshold = 0.0,
     coef_plot_vars = c('dysbiosis_state dysbiosis_CD', 'diagnosis CD'),
     heatmap_vars = c('dysbiosis_state dysbiosis_UC', 'diagnosis UC', 'age',
                     'antibiotics Yes'))
@@ -304,9 +295,7 @@ and include the pre-processed DNA as the feature-specific covariate with
 name of the covariate for model fitting with
 `feature_specific_covariate_name = 'DNA'` and we specify that we do not
 want to record the associations with the DNA in the outputs and plots by
-setting `feature_specific_covariate_record = FALSE`. As before, we set
-`median_comparison_abundance_threshold = 0.0` in order to detect the
-typically-smaller MTX effects.
+setting `feature_specific_covariate_record = FALSE`.
 
 ```{R, echo = TRUE, results = 'hide', warning = FALSE, cache = TRUE}
 preprocess_out <- preprocess_dna_mtx(df_input_dnadata, df_input_data)
@@ -317,7 +306,6 @@ fit_maaslin_mtx_mgx <- maaslin3(
     output = 'demo_output_mtx_mgx',
     fixed_effects = c('diagnosis', 'dysbiosis_state', 'antibiotics', 'age'),
     random_effects = c('participant_id'),
-    median_comparison_abundance_threshold = 0.0,
     feature_specific_covariate = preprocess_out$dna_table,
     feature_specific_covariate_name = 'DNA',
     feature_specific_covariate_record = FALSE,

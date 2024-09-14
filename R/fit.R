@@ -1846,7 +1846,7 @@ run_median_comparison_ordered <- function(paras_sub,
                         error = function(err) {
                             NA
                         })
-                }
+                } 
                 pvals_new <-
                     c(pvals_new, pval_new_current)
             } else {

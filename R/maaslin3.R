@@ -2575,6 +2575,8 @@ maaslin3 <- function(input_data,
                     max_pngs = 30,
                     cores = 1,
                     save_models = FALSE) {
+    logging::logReset()
+    
     # Allow for lower case variables
     normalization <- toupper(normalization)
     transform <- toupper(transform)

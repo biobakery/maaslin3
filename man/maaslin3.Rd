@@ -56,7 +56,8 @@ maaslin3(input_data,
     plot_associations = TRUE,
     max_pngs = 30,
     cores = 1,
-    save_models = FALSE)
+    save_models = FALSE,
+    verbosity = 'FINEST')
 }
 \arguments{
     \item{input_data}{A data frame of feature abundances or read counts or a
@@ -208,6 +209,7 @@ maaslin3(input_data,
     cores will likely be faster only for large datasets or complex models.}
     \item{save_models}{Whether to return the fit models and save them to an
     RData file.}
+    \item{verbosity}{The level of verbosity for the \code{logging} package.}
 }
 \value{
     A list containing the following items:

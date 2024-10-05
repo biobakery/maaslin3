@@ -302,7 +302,7 @@ write_results <- function(output,
             TRUE ~ NA
         )
     
-    fit_data <- fit_data[order(fit_data$qval_joint), ]
+    fit_data <- fit_data[order(fit_data$qval_individual), ]
     # Move all that had errors to the end
     fit_data <- fit_data[order(!is.na(fit_data$error)), ] 
     
@@ -315,7 +315,7 @@ write_results <- function(output,
     logging::loginfo(
         paste(
             "Writing all the results to file (ordered 
-            by increasing joint q-values): %s"
+            by increasing individual q-values): %s"
         ),
         results_file
     )
@@ -342,8 +342,9 @@ write_results <- function(output,
     logging::loginfo(
         paste(
             "Writing the significant results without errors",
-            "(those which are less than or equal to the threshold",
-            "of %f ) to file (ordered by increasing joint q-values): %s"
+            "(those which have joint q-values less than",
+            "or equal to the threshold",
+            "of %f ) to file (ordered by increasing individual q-values): %s"
         ),
         max_significance,
         significant_results_file
@@ -398,14 +399,19 @@ write_results_in_lefse_format <-
 maaslin_contrast_test <- function(fits,
                                 contrast_mat,
                                 rhs = NULL,
-                                median_comparison = TRUE) {
+                                median_comparison = NULL) {
     
     if (is.null(fits)) {
         stop("fits must not be null")
     }
     
+    if (is.null(colnames(contrast_mat))) {
+        stop("contrast_mat columns must be named to match model variables")
+    }
+    
     # Identify model type
-    if (any(unlist(lapply(fits, FUN = function(x){is(x,"lm")})))) {
+    if (any(unlist(lapply(fits, FUN = 
+                                function(x){is(x,"lm") & !is(x,"glm")})))) {
         model <- "abundance"
         uses_random_effects <- FALSE
     } else if (any(unlist(lapply(fits, FUN = function(x){is(x,"glm")})))) {
@@ -420,6 +426,14 @@ maaslin_contrast_test <- function(fits,
     } else if (any(unlist(lapply(fits, FUN = function(x){is(x,"coxph")})))) {
         model <- "prevalence"
         uses_random_effects <- FALSE
+    }
+
+    if (is.null(median_comparison)) {
+        if (model == 'abundance') {
+            median_comparison <- TRUE
+        } else {
+            median_comparison <- FALSE
+        }
     }
     
     if (median_comparison & !is.null(rhs)) {

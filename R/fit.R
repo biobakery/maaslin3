@@ -158,6 +158,46 @@ get_character_cols <- function(dat_sub) {
     return(all_factors)
 }
 
+# Correct over prevalence and abundance to get q-values
+add_qvals <- function(fit_data_abundance, fit_data_prevalence, correction) {
+    # Select out p-values and NA if errors
+    if (!is.null(fit_data_abundance)) {
+        abundance_pvals <- fit_data_abundance$results$pval
+        abundance_pvals <- ifelse(!is.na(fit_data_abundance$results$error),
+                                    NA,
+                                    abundance_pvals)
+    } else {
+        abundance_pvals <- c()
+    }
+    
+    if (!is.null(fit_data_prevalence)) {
+        prevalence_pvals <- fit_data_prevalence$results$pval
+        prevalence_pvals <- ifelse(!is.na(fit_data_prevalence$results$error),
+                                    NA,
+                                    prevalence_pvals)
+    } else {
+        prevalence_pvals <- c()
+    }
+
+    # Create and write combined q-vals
+    combined_qvals <- as.numeric(p.adjust(c(abundance_pvals, prevalence_pvals), 
+                                method = correction))
+    if (!is.null(fit_data_abundance)) {
+        fit_data_abundance$results$qval <- combined_qvals[
+            seq(length(abundance_pvals))]
+    }
+    if (!is.null(fit_data_prevalence)) {
+        fit_data_prevalence$results$qval <- combined_qvals[
+            seq(length(abundance_pvals) + 1, length(abundance_pvals) + 
+                    length(prevalence_pvals))]
+    }
+    
+    return(list(
+        fit_data_abundance$results,
+        fit_data_prevalence$results
+    ))
+}
+
 # Combine abundance and prevalence p-values
 create_combined_pval <- function(merged_signif, correction) {
     # Create a combined p-value
@@ -185,7 +225,6 @@ create_combined_pval <- function(merged_signif, correction) {
             is.na(merged_signif[, "logistic"]) |
                 !is.na(merged_signif$logistic_error)
         ) & (is.na(merged_signif[, "linear"]) |
-                
                 !is.na(merged_signif$linear_error)),
         NA,
         merged_signif$pval_joint)
@@ -208,7 +247,7 @@ flag_abundance_turned_prevalence <- function(merged_signif,
                 is.na(merged_signif[,'linear_error']) &
                 merged_signif[,'linear_qval'] < max_significance &
                 sign(merged_signif[,'logistic_coef']) == 
-                sign(merged_signif[,'logistic_coef']) &
+                sign(merged_signif[,'linear_coef']) &
                 abs(merged_signif[,'linear_coef']) > 
                 abs(merged_signif[,'logistic_coef']),
                 "Prevalence association possibly induced 
@@ -374,11 +413,6 @@ append_joint <- function(outputs, merged_signif, association_type) {
                 error = .data$logistic_error,
             )
         
-        original_col_order <- colnames(outputs$results)
-        original_col_order[original_col_order == 'pval'] <- 'pval_individual'
-        original_col_order[original_col_order == 'qval'] <- 'qval_individual'
-        original_col_order <- c(original_col_order, 'pval_joint', 'qval_joint')
-        
         outputs$results$error <- NULL
         outputs$results <- outputs$results %>%
             dplyr::rename(
@@ -389,13 +423,12 @@ append_joint <- function(outputs, merged_signif, association_type) {
         merged_signif <- merge(outputs$results,
                                 merged_signif,
                                 by = c("feature", "metadata", "value", "name"))
-        merged_signif <- merged_signif[,original_col_order]
+        
     } else {
         stop("Invalid association_type")
     }
     
-    merged_signif <-
-        merged_signif[order(merged_signif$qval_joint),]
+    merged_signif <- merged_signif[order(merged_signif$qval_individual),]
     
     return(merged_signif)
 }
@@ -2549,18 +2582,11 @@ fit.model <- function(features,
         }
     }
     
-    ################################
-    # Apply correction to p-values #
-    ################################
-    
-    paras$qval <-
-        as.numeric(p.adjust(paras$pval, method = correction))
-    
     ##############################
     # Sort by decreasing q-value #
     ##############################
     
-    paras <- paras[order(paras$qval, decreasing = FALSE), ]
+    paras <- paras[order(paras$pval, decreasing = FALSE), ]
     paras <-
         dplyr::select(paras,
                     c('feature', 'metadata', 'value'),

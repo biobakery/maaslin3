@@ -162,13 +162,10 @@ contains all the data and results (see `?maaslin_fit`).
         change in the metadatum variable corresponds to a $\textrm{coef}$ change
         in the log-odds of a feature being present.
         * `pval_individual` is the p-value of the individual association.
-        * `error` lists any errors from the model fitting.
         * `qval_individual` is the false discovery rate (FDR) corrected q-value
         of the individual association. FDR correction is performed over all
-        non-NA p-values in the abundance and prevalence modeling separately.
-        * `model` specifies whether the association is abundance or prevalence.
-        * `N` and `N.not.zero` are the total number of data points and the total
-        number of non-zero data points for the feature.
+        p-values without errors in the abundance and prevalence modeling 
+        together.
         * `pval_joint` and `qval_joint` are the p-value and q-value of the joint
         prevalence and abundance association. The p-value comes from plugging in
         the minimum of the association's abundance and prevalence p-values into
@@ -176,6 +173,10 @@ contains all the data and results (see `?maaslin_fit`).
         abundance or prevalence association would be as extreme as observed if
         there was neither an abundance nor prevalence association between the
         feature and metadatum.
+        * `error` lists any errors from the model fitting.
+        * `model` specifies whether the association is abundance or prevalence.
+        * `N` and `N_not_zero` are the total number of data points and the total
+        number of non-zero data points for the feature.
     * ``significant_results.tsv``
         * This file is a subset of the results in the first file.
         * It only includes associations with q-values <= to the threshold and no

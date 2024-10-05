@@ -653,18 +653,35 @@ maaslin3_summary_plot <-
                 ))) / 20) * 2.5 +
                 length(heatmap_vars) * 0.25
             
-            ggplot2::ggsave(
-                summary_plot_file,
-                plot = final_plot,
-                height = height_out,
-                width = width_out
-            )
+            # Silence ggplot warnings
+            tryCatch({
+                withCallingHandlers({
+                    ggplot2::ggsave(
+                        summary_plot_file,
+                        plot = final_plot,
+                        height = height_out,
+                        width = width_out
+                    )
+                },
+                warning = function(w) {
+                    invokeRestart("muffleWarning")
+                })
+            })
+            
             png_file <-
                 file.path(figures_folder, "summary_plot.png")
-            ggplot2::ggsave(png_file,
-                            plot = final_plot,
-                            height = height_out,
-                            width = width_out)
+            
+            tryCatch({
+                withCallingHandlers({
+                    ggplot2::ggsave(png_file,
+                                    plot = final_plot,
+                                    height = height_out,
+                                    width = width_out)
+                },
+                warning = function(w) {
+                    invokeRestart("muffleWarning")
+                })
+            })
         }
     }
 
@@ -883,7 +900,7 @@ make_lm_plot <- function(this_signif_association,
             this_signif_association$model == 'linear',]$qval_individual
     N_nonzero <-
         this_signif_association[
-            this_signif_association$model == 'linear',]$N.not.zero
+            this_signif_association$model == 'linear',]$N_not_zero
     N_total <-
         this_signif_association[
             this_signif_association$model == 'linear',]$N
@@ -1185,7 +1202,7 @@ make_logistic_plot <- function(this_signif_association,
         ]$qval_individual
     N_nonzero <-
         this_signif_association[
-            this_signif_association$model == 'logistic',]$N.not.zero
+            this_signif_association$model == 'logistic',]$N_not_zero
     N_total <-
         this_signif_association[
             this_signif_association$model == 'logistic',]$N
@@ -1462,13 +1479,20 @@ maaslin3_association_plots <-
                         max(960, 18 * max(nchar(unlist(
                             strsplit(this_plot$labels$y, '\n')
                         ))))
-                    ggplot2::ggsave(
-                        filename = png_file,
-                        plot = this_plot,
-                        dpi = 600,
-                        width = 960 / 300,
-                        height = height / 300
-                    )
+                    tryCatch({
+                        withCallingHandlers({
+                            ggplot2::ggsave(
+                                filename = png_file,
+                                plot = this_plot,
+                                dpi = 600,
+                                width = 960 / 300,
+                                height = height / 300)
+                            },
+                            warning = function(w) {
+                                invokeRestart("muffleWarning")
+                            })
+                    })
+                    
                 }
             }
         }

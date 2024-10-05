@@ -12,7 +12,7 @@ right hand side. One contrast test is applied per row of the matrix.
 maaslin_contrast_test(fits,
                     contrast_mat,
                     rhs = NULL,
-                    median_comparison = TRUE)
+                    median_comparison = NULL)
 }
 \arguments{
     \item{fits}{The list of fits from \code{\link{maaslin_fit}} with 

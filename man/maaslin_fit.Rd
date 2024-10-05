@@ -151,24 +151,25 @@ association (row):
     \item{(6)}{\code{stderr}: The standard error of the coefficient.}
     \item{(7)}{\code{pval_individual}: The (uncorrected) p-value of the
     association.}
-    \item{(8)}{\code{error}: Any error produced by the model during fitting.
-    NA otherwise.}
-    \item{(9)}{\code{qval_individual}: The FDR corrected q-value of the
+    \item{(8)}{\code{qval_individual}: The FDR corrected q-value of the
     association. FDR correction is performed over all associations in the
-    abundance and prevalence modeling separately.}
-    \item{(10)}{\code{model}: \code{linear} for the abundance models and
-    \code{logistic} for the prevalence models.}
-    \item{(11)}{\code{N}: The number of data points for the association's
-    feature.}
-    \item{(12)}{\code{N.not.zero}: The number of non-zero data points for
-    the association's feature.}
-    \item{(13)}{\code{pval_joint}: The p-value of the overall association
+    abundance and prevalence modeling without errors together.}
+    \item{(9)}{\code{pval_joint}: The p-value of the overall association
     (combining abundance and prevalence) by taking the minimum of the
     abundance and logistic p-values and applying the Beta(1,2) CDF. These
     will be the same in the abundance and prevalence results for an
     association.}
-    \item{(14)}{\code{qval_joint}: The FDR corrected q-value of the
-    association. FDR correction is performed over all joint p-values.}
+    \item{(10)}{\code{qval_joint}: The FDR corrected q-value of the
+    association. FDR correction is performed over all joint p-values
+    without errors.}
+    \item{(11)}{\code{error}: Any error produced by the model during fitting.
+    NA otherwise.}
+    \item{(12)}{\code{model}: \code{linear} for the abundance models and
+    \code{logistic} for the prevalence models.}
+    \item{(13)}{\code{N}: The number of data points for the association's
+    feature.}
+    \item{(14)}{\code{N_not_zero}: The number of non-zero data points for
+    the association's feature.}
     }
 }
 \author{

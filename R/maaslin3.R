@@ -764,7 +764,8 @@ maaslin_log_arguments <- function(input_data,
                                 plot_associations = TRUE,
                                 max_pngs = 30,
                                 cores = 1,
-                                save_models = FALSE) {
+                                save_models = FALSE,
+                                verbosity = 'FINEST') {
     # Allow for lower case variables
     normalization <- toupper(normalization)
     transform <- toupper(transform)
@@ -796,9 +797,9 @@ maaslin_log_arguments <- function(input_data,
     }
     
     logging::logReset()
-    logging::basicConfig(level = 'FINEST')
+    logging::basicConfig(level = verbosity)
     logging::addHandler(logging::writeToFile,
-                        file = log_file, level = "DEBUG")
+                        file = log_file, level = verbosity)
     logging::setLevel(20, logging::getHandler('basic.stdout'))
     
     logging::loginfo("Writing function arguments to log file")
@@ -810,50 +811,17 @@ maaslin_log_arguments <- function(input_data,
         logging::logdebug("Input metadata file: %s", input_metadata)
     }
     logging::logdebug("Output folder: %s", output)
-    logging::logdebug("Min Abundance: %f", min_abundance)
-    logging::logdebug("Zero Threshold: %f", zero_threshold)
-    logging::logdebug("Min Prevalence: %f", min_prevalence)
-    logging::logdebug("Normalization: %s", normalization)
-    logging::logdebug("Transform: %s", transform)
-    logging::logdebug("Max significance: %f", max_significance)
-    logging::logdebug("Random effects: %s", random_effects)
+    logging::logdebug("Formula: %s", formula)
     logging::logdebug("Fixed effects: %s", fixed_effects)
+    logging::logdebug("Reference: %s", reference)
+    logging::logdebug("Random effects: %s", random_effects)
     logging::logdebug("Group effects: %s", group_effects)
     logging::logdebug("Ordered effects: %s", ordered_effects)
     logging::logdebug("Strata effects: %s", strata_effects)
-    logging::logdebug("Formula: %s", formula)
-    logging::logdebug("Correction method: %s", correction)
-    logging::logdebug("Standardize: %s", standardize)
-    logging::logdebug("Augment: %s", augment)
-    logging::logdebug("Evaluate only: %s", evaluate_only)
-    logging::logdebug("Cores: %d", cores)
-    logging::logdebug("Abundance median comparison: %s",
-                    median_comparison_abundance)
-    logging::logdebug("Prevalence median comparison: %s",
-                    median_comparison_prevalence)
-    logging::logdebug(
-        "Abundance median comparison threshold: %s",
-        median_comparison_abundance_threshold
-    )
-    logging::logdebug(
-        "Prevalence median comparison threshold: %s",
-        median_comparison_prevalence_threshold
-    )
-    logging::logdebug(
-        "Subtract median: %s",
-        subtract_median
-    )
-    logging::logdebug(
-        "Warn prevalence: %s",
-        warn_prevalence
-    )
-    if (is.character(unscaled_abundance)) {
-        logging::logdebug("Unscaled abundance: %s", unscaled_abundance)
-    }
     if (!is.null(feature_specific_covariate)) {
         if (is.character(feature_specific_covariate)) {
             logging::logdebug("Feature specific covariate: %s",
-                            feature_specific_covariate)
+                                feature_specific_covariate)
         }
     }
     if (!is.null(feature_specific_covariate_name)) {
@@ -870,6 +838,41 @@ maaslin_log_arguments <- function(input_data,
             )
         }
     }
+    logging::logdebug("Min Abundance: %f", min_abundance)
+    logging::logdebug("Min Prevalence: %f", min_prevalence)
+    logging::logdebug("Zero Threshold: %f", zero_threshold)
+    logging::logdebug("Min variance: %f", min_variance)
+    logging::logdebug("Max significance: %f", max_significance)
+    logging::logdebug("Normalization: %s", normalization)
+    logging::logdebug("Transform: %s", transform)
+    logging::logdebug("Correction method: %s", correction)
+    logging::logdebug("Standardize: %s", standardize)
+    if (is.character(unscaled_abundance)) {
+        logging::logdebug("Unscaled abundance: %s", unscaled_abundance)
+    }
+    logging::logdebug("Abundance median comparison: %s",
+                        median_comparison_abundance)
+    logging::logdebug("Prevalence median comparison: %s",
+                        median_comparison_prevalence)
+    logging::logdebug(
+        "Abundance median comparison threshold: %s",
+        median_comparison_abundance_threshold
+    )
+    logging::logdebug(
+        "Prevalence median comparison threshold: %s",
+        median_comparison_prevalence_threshold
+    )
+    logging::logdebug(
+        "Subtract median: %s",
+        subtract_median
+    )
+    logging::logdebug(
+        "Warn prevalence: %s",
+        warn_prevalence
+    )
+    logging::logdebug("Augment: %s", augment)
+    logging::logdebug("Evaluate only: %s", evaluate_only)
+    logging::logdebug("Cores: %d", cores)
     
     maaslin_check_arguments(
         feature_specific_covariate,
@@ -1029,8 +1032,7 @@ maaslin_reorder_data <- function(data,
                     )
                 )
                 data <- as.data.frame(BiocGenerics::t(data))
-                metadata <- type.convert(
-                    as.data.frame(BiocGenerics::t(metadata)))
+                metadata <- as.data.frame(BiocGenerics::t(metadata))
                 logging::logdebug("Transformed data and metadata 
                                 so samples are rows")
             } else {
@@ -1053,8 +1055,7 @@ maaslin_reorder_data <- function(data,
                             "as rows and metadata samples as columns"
                         )
                     )
-                    metadata <-
-                        type.convert(as.data.frame(BiocGenerics::t(metadata)))
+                    metadata <- as.data.frame(BiocGenerics::t(metadata))
                     logging::logdebug("Transformed metadata so 
                                     samples are rows")
                 } else {
@@ -1353,7 +1354,7 @@ maaslin_compute_formula <- function(data,
             stop()
         }
         
-        # create formula
+        # Create formula
         if (length(random_effects) > 0) {
             random_effects_formula_text <-
                 paste("expr ~ (1 | ",
@@ -1557,21 +1558,12 @@ maaslin_check_formula <- function(data,
         stop()
     }
     
-    # create formula
+    # Create formula
     if (sum(grepl("\\|", term_labels)) > 0) {
-        logging::loginfo("Formula for random effects: %s",
-                        input_formula)
         random_effects_formula <- formula
     } else {
-        # create the fixed effects formula text
-        formula_text <- deparse(formula)
-        logging::loginfo("Formula for fixed effects: %s", formula_text)
         random_effects_formula <- NULL
     }
-    
-    # reduce metadata to only include fixed/group/ordered/
-    # strata/random effects in formula
-    metadata <- metadata[, formula_terms, drop = FALSE]
     
     return(list(
         "formula" = formula,
@@ -1966,7 +1958,7 @@ maaslin_fit <- function(filtered_data,
                 FUN = function(x)
                     length(transformed_data[, x[1]])
             )
-        fit_data_abundance$results$N.not.zero <-
+        fit_data_abundance$results$N_not_zero <-
             apply(
                 fit_data_abundance$results,
                 1,
@@ -2017,7 +2009,7 @@ maaslin_fit <- function(filtered_data,
                 FUN = function(x)
                     length(transformed_data[, x[1]])
             )
-        fit_data_prevalence$results$N.not.zero <-
+        fit_data_prevalence$results$N_not_zero <-
             apply(
                 fit_data_prevalence$results,
                 1,
@@ -2029,10 +2021,10 @@ maaslin_fit <- function(filtered_data,
     # Check for highly significant likely model misfits
     if (is.null(evaluate_only) || evaluate_only == "prevalence") {
         current_likely_error_subsetter <-
-            !is.na(fit_data_prevalence$results$N.not.zero) &
+            !is.na(fit_data_prevalence$results$N_not_zero) &
             (
-                fit_data_prevalence$results$N.not.zero < 50 &
-                    fit_data_prevalence$results$N.not.zero / 
+                fit_data_prevalence$results$N_not_zero < 50 &
+                    fit_data_prevalence$results$N_not_zero / 
                     fit_data_prevalence$results$N < 0.05
             ) &
             ((
@@ -2056,11 +2048,11 @@ maaslin_fit <- function(filtered_data,
             )
         
         current_likely_error_subsetter <-
-            !is.na(fit_data_prevalence$results$N.not.zero) &
+            !is.na(fit_data_prevalence$results$N_not_zero) &
             (
                 fit_data_prevalence$results$N - 
-                    fit_data_prevalence$results$N.not.zero < 50 &
-                    fit_data_prevalence$results$N.not.zero / 
+                    fit_data_prevalence$results$N_not_zero < 50 &
+                    fit_data_prevalence$results$N_not_zero / 
                     fit_data_prevalence$results$N > 0.95
             ) &
             ((
@@ -2086,6 +2078,12 @@ maaslin_fit <- function(filtered_data,
         fit_data_prevalence <- NULL
     }
     
+    results <- add_qvals(fit_data_abundance,
+                        fit_data_prevalence,
+                        correction)
+    fit_data_abundance$results <- results[[1]]
+    fit_data_prevalence$results <- results[[2]]
+    
     # Warn about prevalence associations induced by abundances changes
     if (warn_prevalence) {
         logging::loginfo("Re-running abundances for warn_prevalence")
@@ -2109,7 +2107,7 @@ maaslin_fit <- function(filtered_data,
         if (is.null(min_abundance) | 
             is.null(min_prevalence) | 
             is.null(min_variance)) {
-            stop_message <- paste0("For warn_prevalence, min_abundance,", 
+            stop_message <- paste0("For warn_prevalence, min_abundance, ", 
                         "min_prevalence, and min_variance must not be null")
             stop(stop_message)
         }
@@ -2123,7 +2121,7 @@ maaslin_fit <- function(filtered_data,
             min_variance
         )
         
-        new_transformed_data <- maaslin_transform(filtered_data,
+        new_transformed_data <- maaslin_transform(new_normalized_data,
                                                     NULL,
                                                     'LOG')
         
@@ -2149,6 +2147,11 @@ maaslin_fit <- function(filtered_data,
                     feature_specific_covariate_record
             )
         
+        results <- add_qvals(new_fit_data_abundance,
+                            fit_data_prevalence,
+                            correction)
+        new_fit_data_abundance$results <- results[[1]]
+
         results <-
             add_joint_signif(fit_data_abundance,
                             fit_data_prevalence,
@@ -2189,15 +2192,23 @@ maaslin_fit <- function(filtered_data,
         }
     }
     
+    # Set column order
+    col_order <- c("feature", "metadata", "value", "name", "coef", "stderr", 
+                    "pval_individual", "qval_individual", "pval_joint", 
+                    "qval_joint", "error", "model", "N", "N_not_zero")
+    
     # Reorder outputs
     if (is.null(evaluate_only) || evaluate_only == "abundance") {
         fit_data_abundance$results <-
             fit_data_abundance$results[
-                order(fit_data_abundance$results$qval_joint), ]
+                order(fit_data_abundance$results$qval_individual), ]
         # Move all that had errors to the end
         fit_data_abundance$results <-
             fit_data_abundance$results[
                 order(!is.na(fit_data_abundance$results$error)), ] 
+        
+        # Reorder columns
+        fit_data_abundance$results <- fit_data_abundance$results[,col_order]
     } else {
         fit_data_abundance <- NULL
     }
@@ -2205,11 +2216,14 @@ maaslin_fit <- function(filtered_data,
     if (is.null(evaluate_only) || evaluate_only == "prevalence") {
         fit_data_prevalence$results <-
             fit_data_prevalence$results[
-                order(fit_data_prevalence$results$qval_joint), ]
+                order(fit_data_prevalence$results$qval_individual), ]
         # Move all that had errors to the end
         fit_data_prevalence$results <-
             fit_data_prevalence$results[
                 order(!is.na(fit_data_prevalence$results$error)), ] 
+        
+        # Reorder columns
+        fit_data_prevalence$results <- fit_data_prevalence$results[,col_order]
     } else {
         fit_data_prevalence <- NULL
     }
@@ -2359,23 +2373,30 @@ maaslin_plot_results <- function(output,
             figures_folder
         )
         
-        return(
-            maaslin3_association_plots(
-                merged_results = merged_results,
-                metadata = unstandardized_metadata,
-                features = transformed_data,
-                max_significance = max_significance,
-                figures_folder = figures_folder,
-                max_pngs = max_pngs,
-                normalization = normalization,
-                transform = transform,
-                feature_specific_covariate = feature_specific_covariate,
-                feature_specific_covariate_name = 
-                    feature_specific_covariate_name,
-                feature_specific_covariate_record = 
-                    feature_specific_covariate_record
-            )
-        )
+        plots_out <- tryCatch({
+            withCallingHandlers({
+                maaslin3_association_plots(
+                    merged_results = merged_results,
+                    metadata = unstandardized_metadata,
+                    features = transformed_data,
+                    max_significance = max_significance,
+                    figures_folder = figures_folder,
+                    max_pngs = max_pngs,
+                    normalization = normalization,
+                    transform = transform,
+                    feature_specific_covariate = feature_specific_covariate,
+                    feature_specific_covariate_name = 
+                        feature_specific_covariate_name,
+                    feature_specific_covariate_record = 
+                        feature_specific_covariate_record
+                )
+            },
+            warning = function(w) {
+                invokeRestart("muffleWarning")
+            })
+        })
+        
+        return(plots_out)
     }
 }
 
@@ -2507,20 +2528,30 @@ maaslin_plot_results_from_output <- function(output,
             )
         }
         
-        plots_out <- maaslin3_association_plots(
-            merged_results = merged_results,
-            metadata = metadata,
-            features = transformed_data,
-            max_significance = max_significance,
-            figures_folder = figures_folder,
-            max_pngs = max_pngs,
-            normalization = normalization,
-            transform = transform,
-            feature_specific_covariate = feature_specific_covariate,
-            feature_specific_covariate_name = feature_specific_covariate_name,
-            feature_specific_covariate_record = 
-                feature_specific_covariate_record
-        )
+        plots_out <- tryCatch({
+            withCallingHandlers({
+                maaslin3_association_plots(
+                    merged_results = merged_results,
+                    metadata = metadata,
+                    features = transformed_data,
+                    max_significance = max_significance,
+                    figures_folder = figures_folder,
+                    max_pngs = max_pngs,
+                    normalization = normalization,
+                    transform = transform,
+                    feature_specific_covariate = feature_specific_covariate,
+                    feature_specific_covariate_name = 
+                        feature_specific_covariate_name,
+                    feature_specific_covariate_record = 
+                        feature_specific_covariate_record
+                )
+            },
+            warning = function(w) {
+                invokeRestart("muffleWarning")
+            })
+        })
+        
+        
     } else {
         plots_out <- NULL
     }
@@ -2574,7 +2605,8 @@ maaslin3 <- function(input_data,
                     plot_associations = TRUE,
                     max_pngs = 30,
                     cores = 1,
-                    save_models = FALSE) {
+                    save_models = FALSE,
+                    verbosity = 'FINEST') {
     logging::logReset()
     
     # Allow for lower case variables
@@ -2630,7 +2662,8 @@ maaslin3 <- function(input_data,
         plot_associations,
         max_pngs,
         cores,
-        save_models
+        save_models,
+        verbosity
     )
     
     # Read data in
@@ -2748,27 +2781,34 @@ maaslin3 <- function(input_data,
     
     # Plot outputs
     if (plot_summary_plot | plot_associations) {
-        maaslin_plot_results(
-            output,
-            transformed_data,
-            metadata,
-            maaslin_results$fit_data_abundance,
-            maaslin_results$fit_data_prevalence,
-            normalization,
-            transform,
-            feature_specific_covariate,
-            feature_specific_covariate_name,
-            feature_specific_covariate_record,
-            median_comparison_abundance,
-            median_comparison_prevalence,
-            max_significance,
-            plot_summary_plot,
-            summary_plot_first_n,
-            coef_plot_vars,
-            heatmap_vars,
-            plot_associations,
-            max_pngs
-        )
+        tryCatch({
+            withCallingHandlers({
+                maaslin_plot_results(
+                    output,
+                    transformed_data,
+                    metadata,
+                    maaslin_results$fit_data_abundance,
+                    maaslin_results$fit_data_prevalence,
+                    normalization,
+                    transform,
+                    feature_specific_covariate,
+                    feature_specific_covariate_name,
+                    feature_specific_covariate_record,
+                    median_comparison_abundance,
+                    median_comparison_prevalence,
+                    max_significance,
+                    plot_summary_plot,
+                    summary_plot_first_n,
+                    coef_plot_vars,
+                    heatmap_vars,
+                    plot_associations,
+                    max_pngs
+                )
+            },
+            warning = function(w) {
+                invokeRestart("muffleWarning")
+            })
+        })
     }
     
     if ('logging::writeToFile' %in% names(logging::getLogger()[['handlers']])) {

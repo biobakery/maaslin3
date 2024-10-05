@@ -267,7 +267,8 @@ fit_maaslin_ratio <- maaslin3(
     normalization = 'NONE',
     coef_plot_vars = c('dysbiosis_state dysbiosis_CD', 'diagnosis CD'),
     heatmap_vars = c('dysbiosis_state dysbiosis_UC', 'diagnosis UC', 'age',
-                    'antibiotics Yes'))
+                    'antibiotics Yes'), 
+    warn_prevalence = F)
 ```
 
 ```{r, out.width='100%', echo=FALSE, cache = TRUE, include=FALSE}

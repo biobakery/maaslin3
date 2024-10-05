@@ -179,6 +179,7 @@ df_input_dataratio = read.table(file = input_dataratio,
                                 row.names = 1,
                                 stringsAsFactors = FALSE)
 df_input_dataratio[1:5, 1:5]
+df_input_dataratio[df_input_dataratio == 0] <- NA
 
 # Metadata from the HMP2
 input_metadata <-system.file(

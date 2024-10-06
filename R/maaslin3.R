@@ -1651,11 +1651,9 @@ maaslin_filter <- function(normalized_data,
     
     # Filter by abundance
     data_zeros <- unfiltered_data
-    for (col_index in seq_along(data_zeros)) {
-        data_zeros[, col_index][is.na(data_zeros[, col_index])] <-
-            min(min_abundance, zero_threshold) - 1
-    }
-    
+    data_zeros[is.na(data_zeros)] <-
+        min(min_abundance, zero_threshold) - 1
+
     ##########################################
     # Apply the non-zero abundance threshold #
     ##########################################

@@ -740,7 +740,7 @@ maaslin_log_arguments <- function(input_data,
                                 feature_specific_covariate_name = NULL,
                                 feature_specific_covariate_record = NULL,
                                 min_abundance = 0,
-                                min_prevalence = 0.0,
+                                min_prevalence = 0,
                                 zero_threshold = 0,
                                 min_variance = 0,
                                 max_significance = 0.1,
@@ -1630,7 +1630,7 @@ maaslin_normalize <- function(data,
 maaslin_filter <- function(normalized_data,
                         output,
                         min_abundance = 0,
-                        min_prevalence = 0.0,
+                        min_prevalence = 0,
                         zero_threshold = 0,
                         min_variance = 0) {
     unfiltered_data <- normalized_data
@@ -2110,16 +2110,10 @@ maaslin_fit <- function(filtered_data,
             stop(stop_message)
         }
         
-        new_filtered_data <- maaslin_filter(
-            new_normalized_data,
-            NULL,
-            min_abundance,
-            min_prevalence,
-            zero_threshold,
-            min_variance
-        )
+        new_filtered_data <- new_normalized_data[rownames(transformed_data),
+                                                colnames(transformed_data)]
         
-        new_transformed_data <- maaslin_transform(new_normalized_data,
+        new_transformed_data <- maaslin_transform(new_filtered_data,
                                                     NULL,
                                                     'LOG')
         
@@ -2579,7 +2573,7 @@ maaslin3 <- function(input_data,
                     feature_specific_covariate_name = NULL,
                     feature_specific_covariate_record = NULL,
                     min_abundance = 0,
-                    min_prevalence = 0.0,
+                    min_prevalence = 0,
                     zero_threshold = 0,
                     min_variance = 0,
                     max_significance = 0.1,

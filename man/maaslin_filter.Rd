@@ -13,7 +13,7 @@ less than or equal to \code{min_variance}.
 maaslin_filter(normalized_data,
             output,
             min_abundance = 0,
-            min_prevalence = 0.0,
+            min_prevalence = 0,
             zero_threshold = 0,
             min_variance = 0)
 }

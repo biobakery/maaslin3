@@ -91,7 +91,8 @@ get_fixed_effects <-
             random_effects_formula,
             dat_sub,
             groups,
-            ordereds) {
+            ordereds,
+            feature_specific_covariate_name) {
         names_to_include <- c()
         if (is.null(random_effects_formula)) {
             # Fixed and group effects only
@@ -123,8 +124,19 @@ get_fixed_effects <-
                 formula <- formula(fixed_effects_only)
             }
             
-            names_to_include <-
-                colnames(model.matrix(formula, dat_sub))
+            if (!is.null(feature_specific_covariate_name)) {
+                names_to_include <- colnames(model.matrix(formula(gsub(
+                    paste0(feature_specific_covariate_name, " \\+|^expr "), 
+                    "", safe_deparse(formula)
+                )), dat_sub))
+                names_to_include <- c(names_to_include, 
+                                        feature_specific_covariate_name)
+            } else {
+                names_to_include <- colnames(model.matrix(formula(gsub(
+                    "^expr ", "", safe_deparse(formula)
+                )), dat_sub))
+            }
+            
             names_to_include <-
                 names_to_include[names_to_include != "(Intercept)"]
         }
@@ -937,7 +949,8 @@ check_for_zero_one_obs <- function(formula,
                                     ordereds,
                                     features,
                                     x,
-                                    model) {
+                                    model,
+                                    feature_specific_covariate_name) {
     if (length(unique(dat_sub$expr)) < 2) {
         output <- list()
         
@@ -947,7 +960,8 @@ check_for_zero_one_obs <- function(formula,
                             random_effects_formula,
                             dat_sub,
                             groups,
-                            ordereds)
+                            ordereds,
+                            feature_specific_covariate_name)
         
         # Build outputs
         output$para <-
@@ -985,7 +999,8 @@ check_missing_first_factor_level <- function(formula,
                                             groups,
                                             ordereds,
                                             features,
-                                            x) {
+                                            x,
+                                            feature_specific_covariate_name) {
     missing_first_factor_level <- FALSE
     for (col in colnames(dat_sub)) {
         if (is.factor(dat_sub[, col])) {
@@ -996,7 +1011,8 @@ check_missing_first_factor_level <- function(formula,
                                     random_effects_formula,
                                     dat_sub,
                                     groups,
-                                    ordereds)
+                                    ordereds,
+                                    feature_specific_covariate_name)
                 if (col %in% substr(fixed_effects, 1, nchar(col))) {
                     missing_first_factor_level <- TRUE
                 }
@@ -1013,7 +1029,8 @@ check_missing_first_factor_level <- function(formula,
                             random_effects_formula,
                             dat_sub,
                             groups,
-                            ordereds)
+                            ordereds,
+                            feature_specific_covariate_name)
         
         # Build outputs
         output$para <-
@@ -1594,7 +1611,8 @@ fitting_wrap_up <- function(fit_properly,
                             ordereds,
                             features,
                             x,
-                            ranef_function) {
+                            ranef_function,
+                            feature_specific_covariate_name) {
     if (fit_properly) {
         output$residuals <- stats::residuals(fit)
         output$fitted <- stats::fitted(fit)
@@ -1638,7 +1656,8 @@ fitting_wrap_up <- function(fit_properly,
                             random_effects_formula,
                             dat_sub,
                             groups,
-                            ordereds)
+                            ordereds,
+                            feature_specific_covariate_name)
         
         # Store NA values for missing outputs
         output$para <-
@@ -2317,7 +2336,8 @@ fit.model <- function(features,
                                     ordereds,
                                     features,
                                     x,
-                                    model)
+                                    model,
+                                    feature_specific_covariate_name)
             
             if (!is.null(zero_one_out)) {
                 return(zero_one_out)
@@ -2330,7 +2350,8 @@ fit.model <- function(features,
                                             groups,
                                             ordereds,
                                             features,
-                                            x)
+                                            x,
+                                            feature_specific_covariate_name)
             
             if (!is.null(check_out)) {
                 return(check_out)
@@ -2380,7 +2401,8 @@ fit.model <- function(features,
                                     random_effects_formula,
                                     dat_sub,
                                     character(0),
-                                    character(0))
+                                    character(0),
+                                    feature_specific_covariate_name)
                 # Suppress warnings about variance-covariance matrix calculation
                 fit_properly <- FALSE
                 withCallingHandlers({
@@ -2438,7 +2460,8 @@ fit.model <- function(features,
                                             random_effects_formula,
                                             dat_sub,
                                             groups,
-                                            ordereds)
+                                            ordereds,
+                                            feature_specific_covariate_name)
                     if (any(!(names_to_include %in% rownames(output$para)))) {
                         # Don't worry about dropped factor levels
                         missing_names <- names_to_include[
@@ -2479,7 +2502,8 @@ fit.model <- function(features,
                                     ordereds,
                                     features,
                                     x,
-                                    ranef_function)
+                                    ranef_function,
+                                    feature_specific_covariate_name)
             
             return(output)
         })

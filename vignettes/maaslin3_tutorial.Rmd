@@ -316,6 +316,10 @@ fit_out <- maaslin3(input_data = taxa_table,
                     cores = 1)
 ```
 
+By default, many lines of information are printed while the models fit, 
+but the verbosity can be changed with the `verbosity` argument (e.g., 
+`verbosity = 'WARN'`).
+
 #### Median comparisons
 
 When `median_comparison_abundance` or `median_comparison_prevalence` are
@@ -490,8 +494,8 @@ the `association_plots` directory.
     least 10 samples in which it was absent for each significant category**.
     * Significant abundance associations with continuous metadata should be
     checked visually for influential outliers.
-3. The q-values are FDR corrected over all abundance or prevalence
-relationships (separately), so it may be preferable to FDR correct just
+3. The q-values are FDR corrected over all abundance and prevalence
+relationships, so it may be preferable to FDR correct just
 the p-values from the variables of interest. This can reduce false
 positives when there are many significant but uninteresting associations
 (e.g., many read depth associations).

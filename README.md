@@ -458,7 +458,8 @@ also be used.
 * `transform` (default `LOG`, base 2): The transformation to apply to
 the features after normalization and before analysis. The option `LOG`
 is recommended, but `PLOG` (pseudo-log with a pseudo-count of half the 
-dataset minimum non-zero abundance replacing zeros) and `NONE` can also be used.
+dataset minimum non-zero abundance replacing zeros, particularly for
+metabolomics data) and `NONE` can also be used.
 * `correction` (default `BH`): The correction to obtain FDR-corrected
 q-values from raw p-values. Any valid options for `p.adjust` can be
 used.
@@ -657,6 +658,8 @@ will be plotted.
 complex models.)
 * `save_models` (default `FALSE`): Whether to return the fit models and
 save them to an RData file.
+* `verbosity` (default `'FINEST'`): The level of verbosity for the 
+`logging` package.
 
 ## Troubleshooting ##
 

@@ -338,8 +338,8 @@ results_rna = subset(rbind(fit_maaslin_rna$fit_data_abundance$results,
                         is.na(error))
 table(results_rna$value, results_rna$model)
 #              linear logistic
-# dysbiosis_CD     55       38
-# dysbiosis_UC      7       11
+# dysbiosis_CD     58       37
+# dysbiosis_UC      8       11
 
 results_rna_ratio =
 subset(rbind(fit_maaslin_ratio$fit_data_abundance$results,
@@ -348,7 +348,7 @@ subset(rbind(fit_maaslin_ratio$fit_data_abundance$results,
                             is.na(error))
 table(results_rna_ratio$value, results_rna_ratio$model)
 #              linear logistic
-# dysbiosis_CD     19        2
+# dysbiosis_CD     17        3
 # dysbiosis_UC      1        0
 
 results_rna_dna =
@@ -358,8 +358,8 @@ subset(rbind(fit_maaslin_mtx_mgx$fit_data_abundance$results,
                             is.na(error))
 table(results_rna_dna$value, results_rna_dna$model)
 #              linear logistic
-# dysbiosis_CD     43        6
-# dysbiosis_UC      1        0
+# dysbiosis_CD     42       10
+# dysbiosis_UC      1        2
 ```
 
 As you can tell, this number was highly dependent on the model, with
@@ -373,17 +373,17 @@ do this with the `intersect` call in R:
 # features called by the RNA/DNA ratios compared to the Raw RNA
 # abundances
 intersect(results_rna_ratio$feature, results_rna$feature)
-# 11 features overlapped
+# 10 features overlapped
 
 # features called by the Raw RNA abundances compared
 # to the RNA abundances adjusted by the DNA abundances
 intersect(results_rna$feature, results_rna_dna$feature)
-# 45 features overlapped
+# 47 features overlapped
 
 # features called by the RNA/DNA ratios compared
 # to the RNA abundances adjusted by the DNA abundances
 intersect(results_rna_ratio$feature, results_rna_dna$feature)
-# 12 features overlapped
+# 11 features overlapped
 ```
 
 From this, we can see that while the models are calling different total

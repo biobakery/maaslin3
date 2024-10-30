@@ -480,6 +480,10 @@ maaslin3_summary_plot <-
         
         merged_results <- preprocess_merged_results(merged_results)
         
+        if (is.null(merged_results) || nrow(merged_results) == 0) {
+            return()
+        }
+        
         median_df <- merged_results %>%
             dplyr::group_by(.data$full_metadata_name, .data$model) %>%
             dplyr::summarize(median_val = median(.data$coef), .groups = 'drop')

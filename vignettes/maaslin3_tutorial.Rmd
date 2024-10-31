@@ -172,6 +172,11 @@ The data file can contain samples not included in the metadata file
 included in both files will be removed from the analysis. Also, the
 samples do not need to be in the same order in the two files.
 
+Samples with NA values for the metadata will be excluded when fitting the 
+models. It is recommended to drop these samples in advance under a 
+missing-at-random assumption or use multiple imputation to run 
+the complete dataset.
+
 Example input files can be found in the ``inst/extdata`` folder of the
 MaAsLin 3 source. The files provided were generated from the Human
 Microbiome Project 2 (HMP2) data which can be downloaded from

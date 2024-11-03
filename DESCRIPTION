@@ -2,7 +2,7 @@ Package: maaslin3
 Title: "Refining and extending generalized multivariate linear models
         for meta-omic association discovery"
 Year: 2024
-Version: 3.0.1
+Version: 0.99.0
 Authors@R: c(
   person("William", "Nickols", email = "willnickols@g.harvard.edu", role = c("aut", "cre"), comment=c(ORCID="0000-0001-8214-9746")), 
   person("Jacob", "Nearing", email = "nearing@broadinstitute.org", role = "aut")

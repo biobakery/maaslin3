@@ -373,6 +373,9 @@ make_heatmap_plot <- function(merged_results_sig,
         full_metadata_name = unique(heatmap_data$full_metadata_name),
         model = unique(heatmap_data$model)
     )
+    if (length(unique(grid$model)) == 2) {
+        grid$model <- factor(grid$model, levels = c('Prevalence', 'Abundance'))
+    }
     heatmap_data <-
         merge(
             grid,

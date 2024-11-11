@@ -902,7 +902,8 @@ maaslin_read_data <- function(input_data,
     if (is.character(input_data) && file.exists(input_data)) {
         data <- read.table(input_data,
                         header = TRUE,
-                        row.names = 1)
+                        row.names = 1, sep = 
+                            ifelse(grepl('.tsv$', input_data),  '\t', ','))
     } else if (is.data.frame(input_data)) {
         if (!tibble::has_rownames(input_data)) {
             stop("If supplying input_data as a data frame, 
@@ -922,7 +923,8 @@ maaslin_read_data <- function(input_data,
         file.exists(input_metadata)) {
         metadata <- read.table(input_metadata,
                             header = TRUE,
-                            row.names = 1)
+                            row.names = 1, sep = 
+                                ifelse(grepl('.tsv$', input_data),  '\t', ','))
     } else if (is.data.frame(input_metadata)) {
         if (!tibble::has_rownames(input_metadata)) {
             stop(
@@ -941,7 +943,8 @@ maaslin_read_data <- function(input_data,
         unscaled_abundance <-
             read.table(unscaled_abundance,
                     header = TRUE,
-                    row.names = 1)
+                    row.names = 1, sep = 
+                        ifelse(grepl('.tsv$', input_data),  '\t', ','))
     } else if (is.data.frame(unscaled_abundance)) {
         if (!tibble::has_rownames(unscaled_abundance)) {
             stop(
@@ -960,7 +963,8 @@ maaslin_read_data <- function(input_data,
         feature_specific_covariate <-
             read.table(feature_specific_covariate,
                     header = TRUE,
-                    row.names = 1)
+                    row.names = 1, sep = 
+                        ifelse(grepl('.tsv$', input_data),  '\t', ','))
     } else if (is.data.frame(feature_specific_covariate)) {
         if (!tibble::has_rownames(feature_specific_covariate)) {
             stop(

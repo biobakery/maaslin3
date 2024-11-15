@@ -35,7 +35,8 @@ file \code{all_results.tsv} will contain all results in the
 \code{fit_data_abundance} and \code{fit_data_prevalence} items of the
 input list (with 'linear' and 'logistic' replaced by 'abundance' and
 'prevalence' in the \code{model} column). The file
-\code{significant_results.tsv} will contain all results with joint
+\code{significant_results.tsv} will contain all results with joint or
+individual
 q-values below the `max_significance` parameter and only `NA` in the
 `error` column of the results (the `error` column is subsequently
 dropped). No value is returned.

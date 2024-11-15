@@ -179,7 +179,7 @@ contains all the data and results (see `?maaslin_fit`).
         number of non-zero data points for the feature.
     * ``significant_results.tsv``
         * This file is a subset of the results in the first file.
-        * It only includes associations with q-values <= to the threshold and no
+        * It only includes associations with q-values < the threshold and no
         errors.
     * ``features``
         * This folder includes the filtered, normalized, and transformed

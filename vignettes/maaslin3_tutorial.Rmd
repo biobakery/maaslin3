@@ -355,7 +355,8 @@ supplying spike-in or total abundances with `unscaled_abundance`.
 #### Significant associations
 
 The main output from MaAsLin 3 is the list of significant associations
-in `significant_results.tsv`. This lists all associations with joint q-values 
+in `significant_results.tsv`. This lists all associations with joint 
+or individual q-values 
 that pass MaAsLin 3's significance
 threshold, ordered by increasing individual q-value. The format is:
 

@@ -57,7 +57,8 @@ maaslin3(input_data,
     max_pngs = 30,
     cores = 1,
     save_models = FALSE,
-    verbosity = 'FINEST')
+    verbosity = 'FINEST',
+    summary_plot_balanced = FALSE)
 }
 \arguments{
     \item{input_data}{A data frame of feature abundances or read counts or a
@@ -210,6 +211,11 @@ maaslin3(input_data,
     \item{save_models}{Whether to return the fit models and save them to an
     RData file.}
     \item{verbosity}{The level of verbosity for the \code{logging} package.}
+    \item{summary_plot_balanced}{If set to TRUE the summary plot will 
+    show the top N features of each variable included in 
+    \code{coef_plot_vars} where N is equal to: 
+    \code{ceiling(summary_plot_first_n/length(coef_plot_vars))}. Will error
+    if \code{coef_plot_vars} = \code{NULL}}
 }
 \value{
     A list containing the following items:

@@ -32,7 +32,8 @@ maaslin_plot_results(output,
                     coef_plot_vars = NULL,
                     heatmap_vars = NULL,
                     plot_associations = TRUE,
-                    max_pngs = 30)
+                    max_pngs = 30,
+                    balanced=FALSE)
 }
 \arguments{
     \item{output}{The output folder to write results.}
@@ -95,6 +96,11 @@ maaslin_plot_results(output,
     associations.}
     \item{max_pngs}{The top \code{max_pngs} significant associations will be
     plotted.}
+    \item{balanced}{If set to TRUE the summary plot will 
+    show the top N features of each variable included in 
+    \code{coef_plot_vars} where N is equal to: 
+    \code{ceiling(summary_plot_first_n/length(coef_plot_vars))}. Will error
+    if \code{coef_plot_vars} = \code{NULL}}
 }
 \value{
 Results will be written to the \code{figures} folder within the folder

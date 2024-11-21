@@ -102,7 +102,8 @@ make_coef_plot <- function(merged_results_sig,
                         max_significance,
                         median_comparison_prevalence,
                         median_comparison_abundance,
-                        median_df) {
+                        median_df,
+                        plot_threshold=10) {
     coef_plot_data <-
         merged_results_sig[merged_results_sig$full_metadata_name %in% 
                             coef_plot_vars,]
@@ -111,9 +112,9 @@ make_coef_plot <- function(merged_results_sig,
     quantile_df <- coef_plot_data %>%
         dplyr::group_by(.data$full_metadata_name) %>%
         dplyr::summarise(
-            lower_q = median(.data$coef) - 10 * 
+            lower_q = median(.data$coef) - plot_threshold * 
                 (median(.data$coef) - quantile(.data$coef, 0.25)),
-            upper_q = median(.data$coef) + 10 * 
+            upper_q = median(.data$coef) + plot_threshold * 
                 (quantile(.data$coef, 0.75) - median(.data$coef))
         ) %>%
         data.frame()
@@ -470,7 +471,8 @@ maaslin3_summary_plot <-
             coef_plot_vars = NULL,
             heatmap_vars = NULL,
             median_comparison_abundance = FALSE,
-            median_comparison_prevalence = FALSE) {
+            median_comparison_prevalence = FALSE,
+            balanced=FALSE) {
         if (first_n > 200) {
             logging::logerror(
                 paste(
@@ -533,15 +535,42 @@ maaslin3_summary_plot <-
         
         # Subset associations for plotting
         merged_results_joint_only <-
-            unique(merged_results[, c('feature', 'qval_joint')])
+            unique(merged_results[, c('feature', 'qval_joint', 'full_metadata_name')])
         merged_results_joint_only <-
             merged_results_joint_only[
                 order(merged_results_joint_only$qval_joint),]
         if (length(unique(merged_results_joint_only$feature)) < first_n) {
             first_n <- length(unique(merged_results_joint_only$feature))
+            signif_taxa <-
+              unique(merged_results_joint_only$feature)[seq(first_n)]
+        }else{
+          #If balanced is turned on but there is not coef's choosen error out.
+          if(balanced){
+            if(is.null(coef_plot_vars)){
+              logging::logerror(
+                paste(
+                  "Balanced plotting requires you set the variables you want to plot using
+                  the parameter coef_plot_vars"
+                )
+              )
+              return()
+            }else{
+              #grab the first N feature where N=N/(length of coef_plot_var) to
+              #plot the coef plot
+              first_n_per = first_n/length(coef_plot_vars)
+              signif_taxa <- merged_results_joint_only %>% 
+                dplyr::group_by(.data$full_metadata_name) %>%
+                dplyr::arrange(desc(-.data$qval_joint), .by_group = T) %>%
+                dplyr::slice_head(n=ceiling(first_n_per)) %>%
+                dplyr::pull(feature) %>%
+                unique()
+            }
+          }else{
+            signif_taxa <-
+              unique(merged_results_joint_only$feature)[seq(first_n)]
+          }
         }
-        signif_taxa <-
-            unique(merged_results_joint_only$feature)[seq(first_n)]
+
         
         merged_results_sig <- merged_results %>%
             dplyr::filter(.data$feature %in% signif_taxa)
@@ -588,12 +617,18 @@ maaslin3_summary_plot <-
         if (length(coef_plot_vars) > 0 &
             sum(merged_results_sig$full_metadata_name %in% 
                 coef_plot_vars) >= 1) {
+            if(balanced){
+              plot_thres=5
+            }else{
+              plot_thres=10
+            }
             p1 <- make_coef_plot(merged_results_sig, 
                                 coef_plot_vars,
                                 max_significance,
                                 median_comparison_prevalence,
                                 median_comparison_abundance,
-                                median_df)
+                                median_df,
+                                plot_threshold = plot_thres)
             
         } else {
             p1 <- NULL

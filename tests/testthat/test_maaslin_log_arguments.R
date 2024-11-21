@@ -80,6 +80,7 @@ lines_to_compare <- c("Writing function arguments to log file",
                         "Augment: TRUE",
                         "Evaluate only:",
                         "Cores: 9",
+                        "Balanced Summary plot: FALSE",
                         "Verifying options selected are valid")
 
 expect_starts_with <- function(strings, prefixes) {

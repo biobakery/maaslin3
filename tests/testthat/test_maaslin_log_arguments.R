@@ -41,7 +41,8 @@ maaslin_log_arguments(input_data = 'something1',
                       max_pngs = 8,
                       cores = 9,
                       save_models = FALSE,
-                      verbosity = 'FINEST')
+                      verbosity = 'FINEST',
+                      summary_plot_balanced=FALSE)
 
 lines_in <- readLines(file.path(output_tmp, 'maaslin3.log'))
 lines_in <- sub('.*::', '', lines_in)

@@ -334,7 +334,7 @@ fit_out <- maaslin3(input_data = taxa_table,
                     max_significance = 0.1,
                     median_comparison_abundance = TRUE,
                     median_comparison_prevalence = FALSE,
-                    max_pngs = 100,
+                    max_pngs = 20,
                     cores = 1)
 ```
 
@@ -354,7 +354,7 @@ maaslin_log_arguments(input_data = taxa_table,
                     max_significance = 0.1,
                     median_comparison_abundance = TRUE,
                     median_comparison_prevalence = FALSE,
-                    max_pngs = 100,
+                    max_pngs = 20,
                     cores = 1)
 
 read_data_list <- maaslin_read_data(taxa_table,
@@ -414,7 +414,7 @@ invisible(maaslin_plot_results(output = 'hmp2_output',
                             median_comparison_abundance = TRUE,
                             median_comparison_prevalence = FALSE,
                             max_significance = 0.1,
-                            max_pngs = 100))
+                            max_pngs = 20))
 ```
 
 #### Replotting
@@ -504,7 +504,7 @@ scatter_plots <- maaslin_plot_results_from_output(
     median_comparison_abundance = TRUE,
     median_comparison_prevalence = FALSE,
     max_significance = 0.1,
-    max_pngs = 250)
+    max_pngs = 20)
 ```
 
 In the new summary plot below, we can see that the feature names are
@@ -517,8 +517,9 @@ knitr::include_graphics("hmp2_output/figures/summary_plot.png")
 ```
 
 In the association plots below, the taxa and metadata have been renamed to be
-consistent with the results file from earlier.
-```{r, echo=FALSE, fig.show='hold', cache = FALSE, include=FALSE}
+consistent with the results file from earlier. **To see the plots, set 
+`max_pngs = 250` above and set `eval=TRUE` in this chunk.**
+```{r, echo=FALSE, fig.show='hold', cache = FALSE, include=FALSE, eval=FALSE}
 prefix <- "hmp2_output/figures/association_plots"
 plot_vec <- c("/Age/linear/Age_Enterocloster clostridioformis_linear.png",
             "/Dysbiosis/linear/Dysbiosis_Escherichia coli_linear.png",

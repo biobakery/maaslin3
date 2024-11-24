@@ -905,3 +905,22 @@ preprocess_dna_mtx <- function(dna_table, rna_table) {
     return(list("dna_table" = dna_table,
                 "rna_table" = rna_table))
 }
+
+##################################
+# Read from SummarizedExperiment #
+##################################
+
+maaslin_read_summarized_experiment_data <- function(summarized_experiment) {
+    if (!inherits(summarized_experiment, "SummarizedExperiment")) {
+        stop("Input must be a SummarizedExperiment object")
+    }
+    
+    data <- as.data.frame(t(SummarizedExperiment::assay(summarized_experiment)))
+    metadata <- as.data.frame(
+        SummarizedExperiment::colData(summarized_experiment))
+    return(list(
+        "data" = data,
+        "metadata" = metadata
+    ))
+}
+

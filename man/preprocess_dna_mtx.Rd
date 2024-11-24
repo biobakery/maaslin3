@@ -64,21 +64,15 @@ A list containing the following named items:
     Maintainers: Lauren McIver<lauren.j.mciver@gmail.com>,\cr
 }
 \examples{
-    input_data <- system.file(
-    'extdata','HMP2_pwyRNA.tsv', package="maaslin3")
-    df_input_data = read.table(file = input_data,
-                                header = TRUE,
-                                sep = "\t",
-                                row.names = 1,
-                                stringsAsFactors = FALSE)
+    mgx_in <- data.frame('a' = c(1, 2, 0, 4, 5), 
+                        'b' = c(2, 3, 4, 5, 6),
+                        'c' = c(3, 4, 5, 6, 0))
+    rownames(mgx_in) <- paste0("sample", c(1:5))
     
-    input_dnadata <- system.file('extdata','HMP2_pwyDNA.tsv',
-    package="maaslin3")
-    df_input_dnadata = read.table(file = input_dnadata,
-                                    header           = TRUE,
-                                    sep              = "\t",
-                                    row.names        = 1,
-                                    stringsAsFactors = FALSE)
+    mtx_in <- data.frame('a' = c(1, 2, 3, 4, 5), 
+                        'b' = c(2, 3, 4, 5, 0),
+                        'c' = c(3, 4, 5, 6, 0))
+    rownames(mtx_in) <- paste0("sample", c(1:5))
     
-    preprocess_out <- preprocess_dna_mtx(df_input_dnadata, df_input_data)
+    preprocess_out <- preprocess_dna_mtx(mgx_in, mtx_in)
 }

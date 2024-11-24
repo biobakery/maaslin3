@@ -61,11 +61,12 @@ maaslin3(input_data,
     summary_plot_balanced = FALSE)
 }
 \arguments{
-    \item{input_data}{A data frame of feature abundances or read counts or a
-    filepath to a tab-delimited file with abundances. It should be formatted
+    \item{input_data}{A data frame of feature abundances or read counts, a
+    filepath to a tab-delimited file with abundances, or a SummarizedExperiment
+    object with the taxa table in `assays` and metadata in `colData`. 
+    If a data frame or a filepath is supplied, the table should be formatted 
     with features as columns and samples as rows (or the transpose). The
-    column
-    and row names should be the feature names and sample names
+    column and row names should be the feature names and sample names
     respectively.}
     \item{input_metadata}{A data frame of per-sample metadata or a filepath
     to

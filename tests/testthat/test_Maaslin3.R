@@ -39,4 +39,25 @@ expect_that(round(as.numeric(expected_results_run1$pval_individual[1:50]),10),
 expect_that(round(as.numeric(expected_results_run1$qval_individual[1:50]),10),
             equals(round(as.numeric(maaslin_results$qval_individual[1:50]),10)))
 
+se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(taxa_table = t(taxa_table)),
+    colData = metadata
+)
+
+fit_out <- maaslin3(input_data = se, 
+                    input_metadata = metadata, 
+                    output = output_tmp, 
+                    normalization = 'TSS', 
+                    transform = 'LOG', 
+                    formula = '~ diagnosis + dysbiosis_state + antibiotics + age + reads', 
+                    save_models = FALSE, 
+                    plot_summary_plot = T, 
+                    plot_associations = T, 
+                    max_significance = 0.1, 
+                    augment = TRUE, 
+                    median_comparison_abundance = TRUE, 
+                    median_comparison_prevalence = FALSE, 
+                    cores=1, 
+                    verbosity = 'WARN')
+
 unlink(output_tmp, recursive = T)

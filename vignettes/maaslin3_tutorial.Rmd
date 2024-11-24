@@ -317,13 +317,37 @@ fit_out <- maaslin3(input_data = taxa_table,
                     max_significance = 0.1,
                     median_comparison_abundance = TRUE,
                     median_comparison_prevalence = FALSE,
-                    max_pngs = 250,
+                    max_pngs = 10,
                     cores = 1)
 ```
 
 By default, many lines of information are printed while the models fit, 
 but the verbosity can be changed with the `verbosity` argument (e.g., 
 `verbosity = 'WARN'`).
+
+MaAsLin 3 can also take as input a `SummarizedExperiment` object from
+BioConductor:
+
+```{R, echo = TRUE, results = 'hide', warning = FALSE, eval = FALSE}
+se <- SummarizedExperiment(
+    assays = list(taxa_table = t(taxa_table)),
+    colData = metadata
+)
+
+fit_out <- maaslin3(input_data = se,
+                    output = 'hmp2_output',
+                    formula = '~ diagnosis + dysbiosis_state +
+                        antibiotics + age + reads',
+                    normalization = 'TSS',
+                    transform = 'LOG',
+                    augment = TRUE,
+                    standardize = TRUE,
+                    max_significance = 0.1,
+                    median_comparison_abundance = TRUE,
+                    median_comparison_prevalence = FALSE,
+                    max_pngs = 10,
+                    cores = 1)
+```
 
 #### Median comparisons
 
@@ -388,7 +412,7 @@ number of non-zero data points for the feature.
 ```{r, echo = FALSE, cache = FALSE}
 signif_results <- read.csv('hmp2_output/significant_results.tsv',
 sep='\t')
-signif_results %>%
+head(signif_results, 20) %>%
     dplyr::mutate_if(is.numeric, .funs = function(x){(
         as.character(signif(x, 3)))}) %>%
     knitr::kable() %>%
@@ -436,7 +460,7 @@ visualizations. In addition, the object returned from `maaslin3`
         stars indicate the individual q-value is below `max_significance`
         divided by 10. (Make sure to set `include=T` to view the plots when
         knitting the Rmd.)
-```{r, out.width='100%', echo=FALSE, cache = FALSE, include=FALSE}
+```{r, out.width='100%', echo=FALSE, cache = FALSE, include=FALSE, eval=FALSE}
 # Rename summary plot to avoid knitting issues later
 quiet_out <- file.rename('hmp2_output/figures/summary_plot.png',
                         'hmp2_output/figures/summary_plot_first.png')
@@ -453,7 +477,9 @@ knitr::include_graphics("hmp2_output/figures/summary_plot_first.png")
         * Data points plotted are after filtering, normalization, and
         transformation so that the scale in the plot is the scale that was used
         in fitting.
-```{r, echo=FALSE, fig.show='hold',include=FALSE}
+        * **To see the association plots, set `max_pngs = 250` above and set 
+        `eval=TRUE` and `include=TRUE` in this chunk**
+```{r, echo=FALSE, fig.show='hold',include=FALSE, eval=FALSE}
 prefix <- "hmp2_output/figures/association_plots"
 plot_vec <- 
     c("/age/linear/age_Enterocloster_clostridioformis_linear.png",
@@ -606,7 +632,7 @@ scatter_plots <- maaslin_plot_results_from_output(
     median_comparison_abundance = TRUE,
     median_comparison_prevalence = FALSE,
     max_significance = 0.1,
-    max_pngs = 250)
+    max_pngs = 20)
 ```
 
 In the new summary plot below, we can see that the feature names are
@@ -619,7 +645,7 @@ knitr::include_graphics("hmp2_output/figures/summary_plot.png")
 
 In the association plots, the taxa and metadata have been renamed to be
 consistent with the results file from earlier.
-```{r, echo=FALSE, fig.show='hold', cache = FALSE, include=FALSE}
+```{r, echo=FALSE, fig.show='hold', cache = FALSE, include=FALSE, eval=FALSE}
 prefix <- "hmp2_output/figures/association_plots"
 plot_vec <- c("/Age/linear/Age_Enterocloster clostridioformis_linear.png",
             "/Dysbiosis/linear/Dysbiosis_Escherichia coli_linear.png",
@@ -716,7 +742,7 @@ The absolute abundance coefficients can be inspected:
 
 ```{R, cache = FALSE}
 rownames(fit_out$fit_data_abundance$results) <- NULL
-fit_out$fit_data_abundance$results %>%
+head(fit_out$fit_data_abundance$results, 20) %>%
     dplyr::mutate_if(is.numeric, .funs =
                             function(x){(as.character(signif(x, 3)))}) %>%
     knitr::kable() %>%
@@ -779,7 +805,7 @@ The absolute abundance coefficients can be inspected:
 
 ```{R, cache = FALSE}
 rownames(fit_out$fit_data_abundance$results) <- NULL
-fit_out$fit_data_abundance$results %>%
+head(fit_out$fit_data_abundance$results, n = 20) %>%
     dplyr::mutate_if(is.numeric,
                     .funs = function(x){(as.character(signif(x, 3)))}) %>%
     knitr::kable() %>%
@@ -821,7 +847,7 @@ fit_out <- maaslin3(
 signif_results <-
 read.csv('random_effects_output/significant_results.tsv',
                             sep='\t')
-signif_results %>%
+head(signif_results, n = 20) %>%
     dplyr::mutate_if(is.numeric, .funs =
                         function(x){(as.character(signif(x, 3)))}) %>%
     knitr::kable() %>%
@@ -887,7 +913,7 @@ full_results <- full_results %>%
     dplyr::arrange(qval_joint) %>%
     dplyr::filter(metadata == "diagnosis")
 rownames(full_results) <- NULL
-full_results %>%
+head(full_results, n = 20) %>%
     dplyr::mutate_if(is.numeric,
                     .funs = function(x){(as.character(signif(x, 3)))}) %>%
     knitr::kable() %>%
@@ -995,7 +1021,7 @@ full_results <- full_results %>%
                                             'Yesterday, 3 or more times'))) %>%
     dplyr::arrange(value)
 rownames(full_results) <- NULL
-full_results %>%
+head(full_results, n = 20) %>%
     dplyr::mutate_if(is.numeric,
                     .funs = function(x){(as.character(signif(x, 3)))}) %>%
     knitr::kable() %>%
@@ -1059,7 +1085,7 @@ full_results <- full_results %>%
                                             'Yesterday, 3 or more times'))) %>%
     dplyr::arrange(value)
 rownames(full_results) <- NULL
-full_results %>%
+head(full_results, n = 20) %>%
     dplyr::mutate_if(is.numeric,
                     .funs = function(x){(as.character(signif(x, 3)))}) %>%
     knitr::kable() %>%
@@ -1080,7 +1106,7 @@ Below, we test whether the UC and CD diagnosis coefficients are the same
 and whether the UC and CD dysbiosis coefficients are the same. The contrast
 matrix can easily be extended to test any groups pairwise.
 
-```{R, echo = TRUE, results = 'hide', warning = FALSE, cache = TRUE}
+```{R, echo = TRUE, results = 'hide', warning = FALSE, cache = FALSE}
 fit_out <- maaslin3(input_data = taxa_table,
                     input_metadata = metadata,
                     output = 'contrast_test_output',
@@ -1091,7 +1117,7 @@ fit_out <- maaslin3(input_data = taxa_table,
                     cores = 1)
 ```
 
-```{R, echo = TRUE, warning = FALSE, cache = TRUE}
+```{R, echo = TRUE, warning = FALSE, cache = FALSE}
 contrast_mat <- matrix(c(1, -1, 0, 0, 0, 0, 1, -1), 
     ncol = 4, nrow = 2, byrow = TRUE)
     
@@ -1108,7 +1134,7 @@ contrast_out <- maaslin_contrast_test(fits = fit_out$fit_data_abundance$fits,
                         contrast_mat = contrast_mat,
                         median_comparison = TRUE)
 
-contrast_out %>%
+head(contrast_out, n = 20) %>%
     knitr::kable() %>%
     kableExtra::kable_styling("striped", position = 'center') %>%
     kableExtra::scroll_box(width = "800px", height = "400px")

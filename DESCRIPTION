@@ -2,7 +2,7 @@ Package: maaslin3
 Title: "Refining and extending generalized multivariate linear models
         for meta-omic association discovery"
 Year: 2024
-Version: 0.99.0
+Version: 0.99.1
 Authors@R: c(
   person("William", "Nickols", email = "willnickols@g.harvard.edu", role = c("aut", "cre"), comment=c(ORCID="0000-0001-8214-9746")), 
   person("Jacob", "Nearing", email = "nearing@broadinstitute.org", role = "aut")
@@ -12,7 +12,7 @@ Description: MaAsLin 3 refines and extends generalized multivariate linear model
 License: MIT + file LICENSE
 Imports: dplyr, pbapply, lmerTest, parallel, lme4, optparse, logging,
         multcomp, ggplot2, RColorBrewer, patchwork, scales,
-        rlang, tibble, ggnewscale, survival, methods, BiocGenerics
+        rlang, tibble, ggnewscale, survival, methods, BiocGenerics, SummarizedExperiment
 Suggests: knitr, testthat (>= 2.1.0), rmarkdown, markdown, kableExtra
 VignetteBuilder: knitr
 Collate: fit.R utility_scripts.R viz.R maaslin3.R

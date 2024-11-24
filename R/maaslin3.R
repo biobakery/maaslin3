@@ -2585,7 +2585,7 @@ maaslin_plot_results_from_output <- function(output,
 ##########################################################
 
 maaslin3 <- function(input_data,
-                    input_metadata,
+                    input_metadata = NULL,
                     output,
                     formula = NULL,
                     fixed_effects = NULL,
@@ -2638,6 +2638,14 @@ maaslin3 <- function(input_data,
     # If formula is a formula object, convert it back to a string
     if (methods::is(formula, "formula")) {
         formula <- paste0(trimws(deparse(formula)), collapse = " ")
+    }
+    
+    if (inherits(input_data, "SummarizedExperiment")) {
+        summarized_experiment_out <- 
+            maaslin_read_summarized_experiment_data(input_data)
+        
+        input_data <- summarized_experiment_out[['data']]
+        input_metadata <- summarized_experiment_out[['metadata']]
     }
     
     # Create log file, log arguments, and check arguments

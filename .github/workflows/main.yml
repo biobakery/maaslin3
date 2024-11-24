@@ -173,9 +173,12 @@ jobs:
         env:
           DISPLAY: 99.0
         run: |
-          Rscript -e "BiocCheck::BiocCheck(
+          BiocCheck::BiocCheck(
               dir('check', 'tar.gz$', full.names = TRUE),
-              quit_with_status = TRUE,
-              no_check_R_ver = TRUE,
-              no_check_bioc_help = TRUE
-          )"
+              quit-with-status = TRUE,
+              no-check-R-ver = TRUE,
+              no-check-bioc-help = TRUE
+          )
+        shell: Rscript {0}
+
+

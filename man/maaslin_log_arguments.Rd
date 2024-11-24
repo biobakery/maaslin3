@@ -48,7 +48,7 @@ maaslin_log_arguments(input_data,
                     cores = 1,
                     save_models = FALSE,
                     verbosity = 'FINEST',
-                    summary_plot_balanced=FALSE)
+                    summary_plot_balanced = FALSE)
 }
 \arguments{
     \item{input_data}{A data frame of feature abundances or read counts or a

@@ -33,7 +33,7 @@ maaslin_plot_results_from_output(output,
                                 heatmap_vars = NULL,
                                 plot_associations = TRUE,
                                 max_pngs = 30,
-                                balanced=FALSE)
+                                balanced = FALSE)
 }
 \arguments{
     \item{output}{The output folder to write results.}

@@ -780,7 +780,7 @@ maaslin_log_arguments <- function(input_data,
                                 cores = 1,
                                 save_models = FALSE,
                                 verbosity = 'FINEST',
-                                summary_plot_balanced=FALSE) {
+                                summary_plot_balanced = FALSE) {
     # Allow for lower case variables
     normalization <- toupper(normalization)
     transform <- toupper(transform)
@@ -2436,7 +2436,7 @@ maaslin_plot_results_from_output <- function(output,
                                             heatmap_vars = NULL,
                                             plot_associations = TRUE,
                                             max_pngs = 30,
-                                            balanced=FALSE) {
+                                            balanced = FALSE) {
     
     # create an output folder and figures folder if it does not exist
     if (!file.exists(output)) {
@@ -2624,7 +2624,7 @@ maaslin3 <- function(input_data,
                     cores = 1,
                     save_models = FALSE,
                     verbosity = 'FINEST',
-                    summary_plot_balanced=FALSE) {
+                    summary_plot_balanced = FALSE) {
     logging::logReset()
     
     # Allow for lower case variables
@@ -2682,7 +2682,7 @@ maaslin3 <- function(input_data,
         cores,
         save_models,
         verbosity,
-        balanced
+        summary_plot_balanced
     )
     
     # Read data in

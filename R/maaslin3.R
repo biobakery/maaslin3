@@ -117,6 +117,7 @@ args$max_pngs <- 30
 args$cores <- 1
 args$save_models <- FALSE
 args$reference <- NULL
+args$summary_plot_balanced <- FALSE
 
 #### end ####
 
@@ -582,6 +583,19 @@ options <-
         )
     )
 
+options <-
+    optparse::add_option(
+        options,
+        c("--summary_plot_balanced"),
+        type = "logical",
+        dest = "make_summary_plot_balanced",
+        default = args$summary_plot_balanced,
+        help = paste(
+            "If coef_plot_vars is selected this will",
+            "select balanced top features [ Default: %default ]"
+        )
+    )
+
 option_not_valid_error <- function(message, valid_options) {
     logging::logerror(paste(message, ": %s"), toString(valid_options))
     stop("Option not valid", call. = FALSE)
@@ -765,7 +779,8 @@ maaslin_log_arguments <- function(input_data,
                                 max_pngs = 30,
                                 cores = 1,
                                 save_models = FALSE,
-                                verbosity = 'FINEST') {
+                                verbosity = 'FINEST',
+                                summary_plot_balanced=FALSE) {
     # Allow for lower case variables
     normalization <- toupper(normalization)
     transform <- toupper(transform)
@@ -873,6 +888,8 @@ maaslin_log_arguments <- function(input_data,
     logging::logdebug("Augment: %s", augment)
     logging::logdebug("Evaluate only: %s", evaluate_only)
     logging::logdebug("Cores: %d", cores)
+    logging::logdebug("Balanced Summary plot: %s", summary_plot_balanced)
+    
     
     maaslin_check_arguments(
         feature_specific_covariate,
@@ -2307,7 +2324,8 @@ maaslin_plot_results <- function(output,
                                 coef_plot_vars = NULL,
                                 heatmap_vars = NULL,
                                 plot_associations = TRUE,
-                                max_pngs = 30) {
+                                max_pngs = 30,
+                                balanced = FALSE) {
     # create an output folder and figures folder if it does not exist
     if (!file.exists(output)) {
         logging::loginfo("Creating output folder")
@@ -2354,7 +2372,8 @@ maaslin_plot_results <- function(output,
             coef_plot_vars = coef_plot_vars,
             heatmap_vars = heatmap_vars,
             median_comparison_abundance = median_comparison_abundance,
-            median_comparison_prevalence = median_comparison_prevalence
+            median_comparison_prevalence = median_comparison_prevalence,
+            balanced = balanced
         )
     }
     
@@ -2416,7 +2435,8 @@ maaslin_plot_results_from_output <- function(output,
                                             coef_plot_vars = NULL,
                                             heatmap_vars = NULL,
                                             plot_associations = TRUE,
-                                            max_pngs = 30) {
+                                            max_pngs = 30,
+                                            balanced=FALSE) {
     
     # create an output folder and figures folder if it does not exist
     if (!file.exists(output)) {
@@ -2469,7 +2489,8 @@ maaslin_plot_results_from_output <- function(output,
             coef_plot_vars = coef_plot_vars,
             heatmap_vars = heatmap_vars,
             median_comparison_abundance = median_comparison_abundance,
-            median_comparison_prevalence = median_comparison_prevalence
+            median_comparison_prevalence = median_comparison_prevalence,
+            balanced = balanced
         )
     }
     
@@ -2602,7 +2623,8 @@ maaslin3 <- function(input_data,
                     max_pngs = 30,
                     cores = 1,
                     save_models = FALSE,
-                    verbosity = 'FINEST') {
+                    verbosity = 'FINEST',
+                    summary_plot_balanced=FALSE) {
     logging::logReset()
     
     # Allow for lower case variables
@@ -2659,7 +2681,8 @@ maaslin3 <- function(input_data,
         max_pngs,
         cores,
         save_models,
-        verbosity
+        verbosity,
+        balanced
     )
     
     # Read data in
@@ -2798,7 +2821,8 @@ maaslin3 <- function(input_data,
                     coef_plot_vars,
                     heatmap_vars,
                     plot_associations,
-                    max_pngs
+                    max_pngs,
+                    summary_plot_balanced
                 )
             },
             warning = function(w) {
@@ -2898,6 +2922,7 @@ if (identical(environment(), globalenv()) &&
             augment = current_args$augment,
             evaluate_only = current_args$evaluate_only,
             reference = current_args$reference,
-            unscaled_abundance = current_args$unscaled_abundance
+            unscaled_abundance = current_args$unscaled_abundance,
+            summary_plot_balanced = current_args$summary_plot_balanced
         )
 }

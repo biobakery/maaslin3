@@ -41,7 +41,8 @@ maaslin_log_arguments(input_data = 'something1',
                       max_pngs = 8,
                       cores = 9,
                       save_models = FALSE,
-                      verbosity = 'FINEST')
+                      verbosity = 'FINEST',
+                      summary_plot_balanced=FALSE)
 
 lines_in <- readLines(file.path(output_tmp, 'maaslin3.log'))
 lines_in <- sub('.*::', '', lines_in)
@@ -80,6 +81,7 @@ lines_to_compare <- c("Writing function arguments to log file",
                         "Augment: TRUE",
                         "Evaluate only:",
                         "Cores: 9",
+                        "Balanced Summary plot: FALSE",
                         "Verifying options selected are valid")
 
 expect_starts_with <- function(strings, prefixes) {

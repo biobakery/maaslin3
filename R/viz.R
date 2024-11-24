@@ -103,7 +103,7 @@ make_coef_plot <- function(merged_results_sig,
                         median_comparison_prevalence,
                         median_comparison_abundance,
                         median_df,
-                        plot_threshold=10) {
+                        plot_threshold = 10) {
     coef_plot_data <-
         merged_results_sig[merged_results_sig$full_metadata_name %in% 
                             coef_plot_vars,]
@@ -543,32 +543,33 @@ maaslin3_summary_plot <-
             first_n <- length(unique(merged_results_joint_only$feature))
             signif_taxa <-
               unique(merged_results_joint_only$feature)[seq(first_n)]
-        }else{
-          #If balanced is turned on but there is not coef's choosen error out.
-          if(balanced){
-            if(is.null(coef_plot_vars)){
-              logging::logerror(
-                paste(
-                  "Balanced plotting requires you set the variables you want to plot using
-                  the parameter coef_plot_vars"
-                )
-              )
-              return()
-            }else{
-              #grab the first N feature where N=N/(length of coef_plot_var) to
-              #plot the coef plot
-              first_n_per = first_n/length(coef_plot_vars)
-              signif_taxa <- merged_results_joint_only %>% 
-                dplyr::group_by(.data$full_metadata_name) %>%
-                dplyr::arrange(desc(-.data$qval_joint), .by_group = T) %>%
-                dplyr::slice_head(n=ceiling(first_n_per)) %>%
-                dplyr::pull(feature) %>%
-                unique()
+        } else {
+            # If balanced is turned on but there are not coefs choosen, error out
+            if (balanced){
+                if (is.null(coef_plot_vars)){
+                    logging::logerror(
+                        paste(
+                            "Balanced plotting requires you set the variables you 
+                            want to plot using
+                            the parameter coef_plot_vars"
+                        )
+                    )
+                    return()
+                } else {
+                    # grab the first N feature where N=N/(length of coef_plot_var) to
+                    # plot the coef plot
+                    first_n_per = first_n/length(coef_plot_vars)
+                    signif_taxa <- merged_results_joint_only %>% 
+                    dplyr::group_by(.data$full_metadata_name) %>%
+                    dplyr::arrange(desc(-.data$qval_joint), .by_group = T) %>%
+                    dplyr::slice_head(n=ceiling(first_n_per)) %>%
+                    dplyr::pull(feature) %>%
+                    unique()
+                }
+            } else {
+                signif_taxa <-
+                unique(merged_results_joint_only$feature)[seq(first_n)]
             }
-          }else{
-            signif_taxa <-
-              unique(merged_results_joint_only$feature)[seq(first_n)]
-          }
         }
 
         
@@ -617,10 +618,10 @@ maaslin3_summary_plot <-
         if (length(coef_plot_vars) > 0 &
             sum(merged_results_sig$full_metadata_name %in% 
                 coef_plot_vars) >= 1) {
-            if(balanced){
-              plot_thres=5
-            }else{
-              plot_thres=10
+            if (balanced) {
+                plot_thres = 5
+            } else {
+                plot_thres = 10
             }
             p1 <- make_coef_plot(merged_results_sig, 
                                 coef_plot_vars,

@@ -730,6 +730,11 @@ maaslin3_summary_plot <-
                     invokeRestart("muffleWarning")
                 })
             })
+            saveRDS(final_plot,
+                    file = paste(figures_folder,
+                                 "/" ,
+                                 "summary_plot_gg.RDS",
+                                 sep = ""))
         }
     }
 
@@ -1421,7 +1426,6 @@ maaslin3_association_plots <-
         )
         
         saved_plots <- list()
-        
         features_by_metadata <-
             unique(merged_results[, c('feature', 'metadata', 'model')])
         
@@ -1453,7 +1457,6 @@ maaslin3_association_plots <-
                 dplyr::inner_join(feature_abun, metadata_sub, by = c('sample'))
             
             model_name <- features_by_metadata[row_num, 'model']
-            
             this_signif_association <-
                 merged_results[merged_results$feature == feature_name &
                                 merged_results$metadata == metadata_name &
@@ -1485,6 +1488,7 @@ maaslin3_association_plots <-
             
             saved_plots[[metadata_name]][[feature_name]][[model_name]] <-
                 temp_plot
+            
         }
         
         association_plots_folder <-
@@ -1495,6 +1499,12 @@ maaslin3_association_plots <-
         
         # Save all plots
         for (metadata_variable in names(saved_plots)) {
+          saveRDS(saved_plots[[metadata_variable]],
+                  file = paste(association_plots_folder,
+                               "/" ,
+                               metadata_variable,
+                               "_gg_associations.RDS",
+                               sep = ""))
             for (feature in names(saved_plots[[metadata_variable]])) {
                 for (model_name in names(
                     saved_plots[[metadata_variable]][[feature]])) {

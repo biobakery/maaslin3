@@ -2364,7 +2364,7 @@ maaslin_plot_results <- function(output,
             heatmap_vars <- trimws(unlist(strsplit(heatmap_vars, ',')))
         }
         
-        sum_plot <- maaslin3_summary_plot(
+        summary_plot <- maaslin3_summary_plot(
             merged_results,
             summary_plot_file,
             figures_folder,
@@ -2376,8 +2376,9 @@ maaslin_plot_results <- function(output,
             median_comparison_prevalence = median_comparison_prevalence,
             balanced = balanced
         )
+        ret_plots[["summary_plot"]] <- summary_plot
     }
-    ret_plots[["Summary_plot"]] <- sum_plot
+    
     # Individual association plots
     if (plot_associations) {
         logging::loginfo(
@@ -2411,7 +2412,7 @@ maaslin_plot_results <- function(output,
                 invokeRestart("muffleWarning")
             })
         })
-        ret_plots[["Assocations"]] <- plots_out
+        ret_plots[["assocation_plots"]] <- plots_out
     }
     return(ret_plots)
 }
@@ -2438,6 +2439,7 @@ maaslin_plot_results_from_output <- function(output,
                                             plot_associations = TRUE,
                                             max_pngs = 30,
                                             balanced = FALSE) {
+    ret_plots <- list()
     
     # create an output folder and figures folder if it does not exist
     if (!file.exists(output)) {
@@ -2481,7 +2483,7 @@ maaslin_plot_results_from_output <- function(output,
             heatmap_vars <- trimws(unlist(strsplit(heatmap_vars, ',')))
         }
         
-        maaslin3_summary_plot(
+        summary_plot <- maaslin3_summary_plot(
             merged_results,
             summary_plot_file,
             figures_folder,
@@ -2493,6 +2495,7 @@ maaslin_plot_results_from_output <- function(output,
             median_comparison_prevalence = median_comparison_prevalence,
             balanced = balanced
         )
+        ret_plots[["summary_plot"]] <- summary_plot
     }
     
     # Individual associations
@@ -2568,17 +2571,14 @@ maaslin_plot_results_from_output <- function(output,
                 invokeRestart("muffleWarning")
             })
         })
-        
-        
-    } else {
-        plots_out <- NULL
+        ret_plots[["assocation_plots"]] <- plots_out
     }
     
     if ('logging::writeToFile' %in% names(logging::getLogger()[['handlers']])) {
         logging::removeHandler('logging::writeToFile')
     }
     
-    return(plots_out)
+    return(ret_plots)
 }
 
 ##########################################################

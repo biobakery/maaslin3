@@ -38,7 +38,7 @@ plot_out <- maaslin_plot_results(output = output_tmp,
                      median_comparison_abundance = FALSE,
                      max_significance = 0.1)
 
-expect_is(plot_out$var1$a$logistic, 'ggplot')
+expect_is(plot_out$assocation_plots$var1$a$logistic, 'ggplot')
 
 expect_equal(list.files(file.path(output_tmp, 'figures', 
                                   'association_plots', 'var1', 'logistic')),

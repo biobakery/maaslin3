@@ -44,7 +44,7 @@ expect_equal(list.files(file.path(output_tmp, 'figures',
                                   'association_plots', 'var1', 'logistic')),
              'var1_a_logistic.png')
 
-expect_equal(list.files(file.path(output_tmp, 'figures')),
+expect_equal(sort(list.files(file.path(output_tmp, 'figures'))),
              c("association_plots", "summary_plot_gg.RDS", "summary_plot.pdf", "summary_plot.png"))
 
 unlink(output_tmp, recursive = T)

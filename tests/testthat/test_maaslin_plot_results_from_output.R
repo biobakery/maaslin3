@@ -67,7 +67,7 @@ plot_out2 <- maaslin_plot_results(output = output_tmp,
 
 expect_equal(plot_out$assocation_plots$var1$a$logistic$data, plot_out2$assocation_plots$var1$a$logistic$data)
 expect_equal(plot_out$assocation_plots$var1$a$logistic$mapping, 
-             plot_out$assocation_plots2$var1$a$logistic$mapping)
+             plot_out2$assocation_plots$var1$a$logistic$mapping)
 expect_equal(plot_out$assocation_plots$var1$a$logistic$scales, 
              plot_out2$assocation_plots$var1$a$logistic$scales)
 

@@ -473,6 +473,7 @@ maaslin3_summary_plot <-
             median_comparison_abundance = FALSE,
             median_comparison_prevalence = FALSE,
             balanced=FALSE) {
+        ret_plots <- list()
         if (first_n > 200) {
             logging::logerror(
                 paste(
@@ -686,6 +687,9 @@ maaslin3_summary_plot <-
         } else {
             final_plot <- NULL
         }
+        ret_plots[["coefficient"]] <- p1
+        ret_plots[["heat"]] <- p2
+        ret_plots[["final"]] <- final_plot
         
         # Save plot
         if (!is.null(final_plot)) {
@@ -736,6 +740,7 @@ maaslin3_summary_plot <-
                                  "summary_plot_gg.RDS",
                                  sep = ""))
         }
+        return(ret_plots)
     }
 
 # Create a scatterplot for abundance vs. continuous associations

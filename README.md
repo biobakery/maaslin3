@@ -681,3 +681,7 @@ library(maaslin3): there is no package called 'maaslin3'``. How do I fix
 this?
     * Answer: Install the R package and then try loading the library again.
 
+## Manuscript evaluation code ##
+The manuscript evaluation code 
+[can be found here](https://github.com/willnickols/maaslin3_benchmark).
+

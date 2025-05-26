@@ -284,7 +284,7 @@ includes just some of the fields.
 #### In R ####
 
 The following code identifies associations between patient metadata and
-microbial species in the HMP2 cohort.
+microbial species in the HMP2 cohort. This should take about a minute.
 
 ```
 # Read abundance table

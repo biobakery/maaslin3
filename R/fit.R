@@ -207,8 +207,8 @@ add_qvals <- function(fit_data_abundance, fit_data_prevalence, correction) {
     }
     
     return(list(
-        fit_data_abundance$results,
-        fit_data_prevalence$results
+        if (!is.null(fit_data_abundance)) fit_data_abundance$results else NULL,
+        if (!is.null(fit_data_prevalence)) fit_data_prevalence$results else NULL
     ))
 }
 

@@ -1982,6 +1982,10 @@ maaslin_fit <- function(filtered_data,
     correction <- correction_choices[match(toupper(correction),
                                         toupper(correction_choices))]
 
+    # Initialize fit data objects
+    fit_data_abundance <- NULL
+    fit_data_prevalence <- NULL
+
     # Run linear model component
     if (is.null(evaluate_only) || evaluate_only == "abundance") {
         logging::loginfo("Running the linear model component")
@@ -2151,8 +2155,12 @@ maaslin_fit <- function(filtered_data,
     results <- add_qvals(fit_data_abundance,
                         fit_data_prevalence,
                         correction)
-    fit_data_abundance$results <- results[[1]]
-    fit_data_prevalence$results <- results[[2]]
+    if (!is.null(fit_data_abundance)) {
+        fit_data_abundance$results <- results[[1]]
+    }
+    if (!is.null(fit_data_prevalence)) {
+        fit_data_prevalence$results <- results[[2]]
+    }
 
     # Warn about prevalence associations induced by abundances changes
     if (warn_prevalence) {
@@ -2224,8 +2232,12 @@ maaslin_fit <- function(filtered_data,
                             max_significance,
                             correction)
 
-        fit_data_abundance$results <- results[[1]]
-        fit_data_prevalence$results <- results[[2]]
+        if (!is.null(fit_data_abundance)) {
+            fit_data_abundance$results <- results[[1]]
+        }
+        if (!is.null(fit_data_prevalence)) {
+            fit_data_prevalence$results <- results[[2]]
+        }
     } else {
         # Add in joint p/q-values
         if (is.null(evaluate_only)) {
@@ -2235,8 +2247,12 @@ maaslin_fit <- function(filtered_data,
                                 NULL,
                                 max_significance,
                                 correction)
-            fit_data_abundance$results <- results[[1]]
-            fit_data_prevalence$results <- results[[2]]
+            if (!is.null(fit_data_abundance)) {
+                fit_data_abundance$results <- results[[1]]
+            }
+            if (!is.null(fit_data_prevalence)) {
+                fit_data_prevalence$results <- results[[2]]
+            }
         } else if (evaluate_only == 'abundance') {
             fit_data_abundance$results$pval_joint <-
                 fit_data_abundance$results$pval

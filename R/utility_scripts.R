@@ -106,7 +106,7 @@ NONEnorm <- function(features, zero_threshold) {
     X <- as.matrix(features)
     X_mask <- ifelse(X > zero_threshold, 1, 0)
     features_NONE <-
-        data.frame(ifelse(X_mask > zero_threshold, X, NA), check.names = FALSE)
+        data.frame(ifelse(X_mask, X, NA), check.names = FALSE)
     return(features_NONE)
 }
 

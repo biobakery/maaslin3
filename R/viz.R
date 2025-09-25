@@ -789,7 +789,6 @@ make_scatterplot <- function(joined_features_metadata_abun,
             na.rm = TRUE
         ) +
         ggplot2::guides(alpha = 'none') +
-        ggplot2::labs("") +
         ggplot2::xlab(metadata_name) +
         ggplot2::ylab(
             paste0(

@@ -64,6 +64,7 @@ args$output <- NULL
 args$min_abundance <- 0.0
 args$zero_threshold <- 0.0
 args$min_prevalence <- 0.0
+args$max_prevalence <- 1.0
 args$min_variance <- 0.0
 args$max_significance <- 0.1
 args$normalization <- normalization_choices[1]
@@ -256,6 +257,19 @@ options <-
         default = args$min_prevalence,
         help = paste(
             "The minimum proportion of samples for which",
+            "a feature is detected at minimum abundance",
+            "[ Default: %default ]"
+        )
+    )
+options <-
+    optparse::add_option(
+        options,
+        c("--max_prevalence"),
+        type = "double",
+        dest = "max_prevalence",
+        default = args$max_prevalence,
+        help = paste(
+            "The maximum proportion of samples for which",
             "a feature is detected at minimum abundance",
             "[ Default: %default ]"
         )
@@ -760,6 +774,7 @@ maaslin_log_arguments <- function(input_data,
                                 feature_specific_covariate_record = NULL,
                                 min_abundance = 0,
                                 min_prevalence = 0,
+                                max_prevalence = 1,
                                 zero_threshold = 0,
                                 min_variance = 0,
                                 max_significance = 0.1,
@@ -862,6 +877,7 @@ maaslin_log_arguments <- function(input_data,
     }
     logging::logdebug("Min Abundance: %f", min_abundance)
     logging::logdebug("Min Prevalence: %f", min_prevalence)
+    logging::logdebug("Max Prevalence: %f", max_prevalence)
     logging::logdebug("Zero Threshold: %f", zero_threshold)
     logging::logdebug("Min variance: %f", min_variance)
     logging::logdebug("Max significance: %f", max_significance)
@@ -1688,22 +1704,32 @@ maaslin_filter <- function(normalized_data,
                         output,
                         min_abundance = 0,
                         min_prevalence = 0,
+                        max_prevalence = 1,
                         zero_threshold = 0,
                         min_variance = 0) {
     unfiltered_data <- normalized_data
 
     # require at least total samples * min prevalence values
+    # and at most total samples * max prevalence values
     # for each feature to be greater than min abundance
-    logging::loginfo("Filter data based on min abundance and min prevalence")
+    logging::loginfo("Filter data based on min abundance, min prevalence, and max prevalence")
     total_samples <- nrow(unfiltered_data)
     logging::loginfo("Total samples in data: %d", total_samples)
     min_samples <- total_samples * min_prevalence
+    max_samples <- total_samples * max_prevalence
     logging::loginfo(
         paste(
             "Min samples required with min abundance",
             "for a feature not to be filtered: %f"
         ),
         min_samples
+    )
+    logging::loginfo(
+        paste(
+            "Max samples allowed with min abundance",
+            "for a feature not to be filtered: %f"
+        ),
+        max_samples
     )
 
     # Filter by abundance
@@ -1719,7 +1745,8 @@ maaslin_filter <- function(normalized_data,
     data_zeros <- data_zeros * prevalence_mask
 
     filtered_data <-
-        unfiltered_data[, colSums(data_zeros > min_abundance) > min_samples,
+        unfiltered_data[, colSums(data_zeros > min_abundance) > min_samples &
+                          colSums(data_zeros > min_abundance) <= max_samples,
                         drop = FALSE]
     total_filtered_features <-
         ncol(unfiltered_data) - ncol(filtered_data)
@@ -1727,7 +1754,7 @@ maaslin_filter <- function(normalized_data,
     filtered_feature_names <-
         setdiff(names(unfiltered_data), names(filtered_data))
     logging::loginfo(
-        "Filtered feature names from abundance and prevalence filtering: %s",
+        "Filtered feature names from abundance, min prevalence, and max prevalence filtering: %s",
         toString(filtered_feature_names)
     )
 
@@ -1961,6 +1988,7 @@ maaslin_fit <- function(filtered_data,
                         data = NULL,
                         min_abundance = 0,
                         min_prevalence = 0,
+                        max_prevalence = 1,
                         min_variance = 0) {
 
     match.arg(correction, correction_choices)
@@ -1981,6 +2009,10 @@ maaslin_fit <- function(filtered_data,
     # Match variable ignoring case then set correctly as required for p.adjust
     correction <- correction_choices[match(toupper(correction),
                                         toupper(correction_choices))]
+
+    # Initialize fit data objects
+    fit_data_abundance <- NULL
+    fit_data_prevalence <- NULL
 
     # Run linear model component
     if (is.null(evaluate_only) || evaluate_only == "abundance") {
@@ -2151,8 +2183,12 @@ maaslin_fit <- function(filtered_data,
     results <- add_qvals(fit_data_abundance,
                         fit_data_prevalence,
                         correction)
-    fit_data_abundance$results <- results[[1]]
-    fit_data_prevalence$results <- results[[2]]
+    if (!is.null(fit_data_abundance)) {
+        fit_data_abundance$results <- results[[1]]
+    }
+    if (!is.null(fit_data_prevalence)) {
+        fit_data_prevalence$results <- results[[2]]
+    }
 
     # Warn about prevalence associations induced by abundances changes
     if (warn_prevalence) {
@@ -2176,9 +2212,10 @@ maaslin_fit <- function(filtered_data,
 
         if (is.null(min_abundance) |
             is.null(min_prevalence) |
+            is.null(max_prevalence) |
             is.null(min_variance)) {
             stop_message <- paste0("For warn_prevalence, min_abundance, ",
-                        "min_prevalence, and min_variance must not be null")
+                        "min_prevalence, max_prevalence, and min_variance must not be null")
             stop(stop_message)
         }
 
@@ -2224,8 +2261,12 @@ maaslin_fit <- function(filtered_data,
                             max_significance,
                             correction)
 
-        fit_data_abundance$results <- results[[1]]
-        fit_data_prevalence$results <- results[[2]]
+        if (!is.null(fit_data_abundance)) {
+            fit_data_abundance$results <- results[[1]]
+        }
+        if (!is.null(fit_data_prevalence)) {
+            fit_data_prevalence$results <- results[[2]]
+        }
     } else {
         # Add in joint p/q-values
         if (is.null(evaluate_only)) {
@@ -2235,8 +2276,12 @@ maaslin_fit <- function(filtered_data,
                                 NULL,
                                 max_significance,
                                 correction)
-            fit_data_abundance$results <- results[[1]]
-            fit_data_prevalence$results <- results[[2]]
+            if (!is.null(fit_data_abundance)) {
+                fit_data_abundance$results <- results[[1]]
+            }
+            if (!is.null(fit_data_prevalence)) {
+                fit_data_prevalence$results <- results[[2]]
+            }
         } else if (evaluate_only == 'abundance') {
             fit_data_abundance$results$pval_joint <-
                 fit_data_abundance$results$pval
@@ -2677,6 +2722,7 @@ maaslin3 <- function(input_data,
                     feature_specific_covariate_record = NULL,
                     min_abundance = 0,
                     min_prevalence = 0,
+                    max_prevalence = 1,
                     zero_threshold = 0,
                     min_variance = 0,
                     max_significance = 0.1,
@@ -2748,6 +2794,7 @@ maaslin3 <- function(input_data,
         feature_specific_covariate_record,
         min_abundance,
         min_prevalence,
+        max_prevalence,
         zero_threshold,
         min_variance,
         max_significance,
@@ -2842,6 +2889,7 @@ maaslin3 <- function(input_data,
         output,
         min_abundance,
         min_prevalence,
+        max_prevalence,
         zero_threshold,
         min_variance
     )
@@ -2888,6 +2936,7 @@ maaslin3 <- function(input_data,
         data,
         min_abundance,
         min_prevalence,
+        max_prevalence,
         min_variance
     )
 
@@ -2987,6 +3036,7 @@ if (identical(environment(), globalenv()) &&
             min_abundance = current_args$min_abundance,
             zero_threshold = current_args$zero_threshold,
             min_prevalence = current_args$min_prevalence,
+            max_prevalence = current_args$max_prevalence,
             min_variance = current_args$min_variance,
             max_significance = current_args$max_significance,
             normalization = current_args$normalization,

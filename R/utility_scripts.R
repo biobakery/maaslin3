@@ -106,7 +106,7 @@ NONEnorm <- function(features, zero_threshold) {
     X <- as.matrix(features)
     X_mask <- ifelse(X > zero_threshold, 1, 0)
     features_NONE <-
-        data.frame(ifelse(X_mask > zero_threshold, X, NA), check.names = FALSE)
+        data.frame(ifelse(X_mask, X, NA), check.names = FALSE)
     return(features_NONE)
 }
 
@@ -541,8 +541,12 @@ maaslin_contrast_test <- function(
     }
     
     results <- add_qvals(fit_data_abundance,fit_data_prevalence, correction)
-    fit_data_abundance$results <- results[[1]]
-    fit_data_prevalence$results <- results[[2]]
+    if (!is.null(fit_data_abundance)) {
+        fit_data_abundance$results <- results[[1]]
+    }
+    if (!is.null(fit_data_prevalence)) {
+        fit_data_prevalence$results <- results[[2]]
+    }
     if (!is.null(fit_data_abundance)) {
         fit_data_abundance$results <- fit_data_abundance$results %>%
             dplyr::mutate(null_hypothesis = rhs)
@@ -568,38 +572,48 @@ maaslin_contrast_test <- function(
     
     # Add in joint p/q-values
     if (is.null(evaluate_only)) {
-        fit_data_abundance$results <- fit_data_abundance$results %>%
-            dplyr::mutate(metadata = .data$test,
-                value = .data$test,
-                name = .data$test)
-        fit_data_prevalence$results <- fit_data_prevalence$results %>%
-            dplyr::mutate(metadata = .data$test,
-                value = .data$test,
-                name = .data$test)
+        if (!is.null(fit_data_abundance)) {
+            fit_data_abundance$results <- fit_data_abundance$results %>%
+                dplyr::mutate(metadata = .data$test,
+                    value = .data$test,
+                    name = .data$test)
+        }
+        if (!is.null(fit_data_prevalence)) {
+            fit_data_prevalence$results <- fit_data_prevalence$results %>%
+                dplyr::mutate(metadata = .data$test,
+                    value = .data$test,
+                    name = .data$test)
+        }
         results <-
             add_joint_signif(fit_data_abundance,
                             fit_data_prevalence,
                             NULL,
                             max_significance,
                             correction)
-        fit_data_abundance$results <- results[[1]]
-        fit_data_abundance$results <- fit_data_abundance$results %>%
-            dplyr::select(-.data$metadata,
-                    -.data$value,
-                    -.data$name)
-        fit_data_prevalence$results <- results[[2]]
-        fit_data_prevalence$results <- fit_data_prevalence$results %>%
-            dplyr::select(-.data$metadata,
-                    -.data$value,
-                    -.data$name)
+        if (!is.null(fit_data_abundance)) {
+            fit_data_abundance$results <- results[[1]]
+            fit_data_abundance$results <- fit_data_abundance$results %>%
+                dplyr::select(-.data$metadata,
+                        -.data$value,
+                        -.data$name)
+        }
+        if (!is.null(fit_data_prevalence)) {
+            fit_data_prevalence$results <- results[[2]]
+            fit_data_prevalence$results <- fit_data_prevalence$results %>%
+                dplyr::select(-.data$metadata,
+                        -.data$value,
+                        -.data$name)
+        }
     } else if (evaluate_only == 'abundance') {
-        fit_data_abundance$results$pval_joint <-
-            fit_data_abundance$results$pval
-        fit_data_abundance$results$qval_joint <-
-            fit_data_abundance$results$qval
-        fit_data_abundance$results <- fit_data_abundance$results %>%
-            dplyr::rename(pval_individual = .data$pval,
-                        qval_individual = .data$qval)
+        if (!is.null(fit_data_abundance)) {
+            fit_data_abundance$results$pval_joint <-
+                fit_data_abundance$results$pval
+            fit_data_abundance$results$qval_joint <-
+                fit_data_abundance$results$qval
+            fit_data_abundance$results <- fit_data_abundance$results %>%
+                dplyr::rename(pval_individual = .data$pval,
+                            qval_individual = .data$qval)
+        }
     } else if (evaluate_only == 'prevalence') {
         fit_data_prevalence$results$pval_joint <-
             fit_data_prevalence$results$pval

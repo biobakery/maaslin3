@@ -683,6 +683,10 @@ writing results, and displaying plots.
 included for analysis. The threshold is applied after normalization and before
 transformation.
 * `min_prevalence` (default `0`): See above.
+* `max_prevalence` (default `1`): Features with abundances more than
+`min_abundance` in fewer than `max_prevalence` of the samples will be 
+included for analysis. The threshold is applied after normalization and
+before transformation.
 * `zero_threshold` (default `0`): Abundances less than or equal to
 `zero_threshold` will be treated as zeros. This is primarily to be used
 when the abundance table has likely low-abundance false positives.

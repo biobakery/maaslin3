@@ -33,6 +33,7 @@ maaslin_fit(filtered_data,
             data = NULL,
             min_abundance = 0,
             min_prevalence = 0,
+            max_prevalence = 1,
             min_variance = 0)
 }
 \arguments{
@@ -111,6 +112,8 @@ maaslin_fit(filtered_data,
     \item{min_abundance}{The original min_abundance parameter (only necessary 
     if warn_prevalence is TRUE).}
     \item{min_prevalence}{The original min_prevalence parameter (only necessary 
+    if warn_prevalence is TRUE).}
+    \item{max_prevalence}{The original max_prevalence parameter (only necessary 
     if warn_prevalence is TRUE).}
     \item{min_variance}{The original min_variance parameter (only necessary if 
     min_variance is TRUE).}

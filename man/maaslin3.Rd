@@ -33,6 +33,7 @@ maaslin3(input_data,
     feature_specific_covariate_record = NULL,
     min_abundance = 0,
     min_prevalence = 0,
+    max_prevalence = 1,
     zero_threshold = 0,
     min_variance = 0,
     max_significance = 0.1,
@@ -131,6 +132,10 @@ maaslin3(input_data,
     be included for analysis. The threshold is applied after normalization and
     before transformation.}
     \item{min_prevalence}{See \code{min_abundance}.}
+    \item{max_prevalence}{Features with abundances more than
+    \code{min_abundance} in fewer than \code{max_prevalence} of the samples will 
+    be included for analysis. The threshold is applied after normalization and
+    before transformation.}
     \item{zero_threshold}{Abundances less than or equal to
     \code{zero_threshold} will be treated as zeros. This is primarily to be
     used when the abundance table has likely low-abundance false positives.}

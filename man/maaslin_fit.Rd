@@ -33,7 +33,7 @@ maaslin_fit(filtered_data,
             data = NULL,
             min_abundance = 0,
             min_prevalence = 0,
-            max_prevalence = 1,
+            max_prevalence = 1.01,
             min_variance = 0)
 }
 \arguments{

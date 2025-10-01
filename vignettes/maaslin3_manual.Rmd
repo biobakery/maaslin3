@@ -509,6 +509,8 @@ scatter_plots <- maaslin_plot_results_from_output(
     median_comparison_abundance = TRUE,
     median_comparison_prevalence = FALSE,
     max_significance = 0.1,
+    coef_plot_vars=coef_plot_vars,
+    heatmap_vars=heatmap_vars,
     max_pngs = 20)
 ```
 

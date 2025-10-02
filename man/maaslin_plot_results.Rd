@@ -101,7 +101,7 @@ maaslin_plot_results(output,
     plotted.}
     \item{balanced}{If set to TRUE the summary plot will 
     show the top N features of each variable included in 
-    \code{coef_plot_vars} where N is equal to: 
+    \code{coef_plot_vars} and \code{heatmap_vars} where N is equal to: 
     \code{ceiling(summary_plot_first_n/length(coef_plot_vars))}. Will error
     if \code{coef_plot_vars} = \code{NULL}}
     \item{save_plots_rds}{Whether to return the plots to an RDS file.}

@@ -16,7 +16,7 @@ maaslin_filter(normalized_data,
             output,
             min_abundance = 0,
             min_prevalence = 0,
-            max_prevalence = 1,
+            max_prevalence = 1.01,
             zero_threshold = 0,
             min_variance = 0)
 }

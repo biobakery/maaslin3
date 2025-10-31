@@ -445,7 +445,7 @@ writing results, and displaying plots.
 included for analysis. The threshold is applied after normalization and before
 transformation.
 * `min_prevalence` (default `0`): See above.
-* `max_prevalence` (default `1`): Features with abundances more than
+* `max_prevalence` (default `1.01`): Features with abundances more than
 `min_abundance` in fewer than `max_prevalence` of the samples will be 
 included for analysis. The threshold is applied after normalization and
 before transformation.

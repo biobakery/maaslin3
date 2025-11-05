@@ -339,6 +339,7 @@ fit_out <- maaslin3(input_data = taxa_table,
                     median_comparison_abundance = TRUE,
                     median_comparison_prevalence = FALSE,
                     max_pngs = 20,
+                    save_models = TRUE,
                     cores = 1)
 ```
 

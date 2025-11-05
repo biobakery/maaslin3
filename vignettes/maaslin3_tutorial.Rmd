@@ -1133,6 +1133,7 @@ fit_out <- maaslin3(input_data = taxa_table,
                         antibiotics + age + reads',
                     plot_summary_plot = FALSE,
                     plot_associations = FALSE,
+                    save_models = TRUE,
                     cores = 1)
 ```
 

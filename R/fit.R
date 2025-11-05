@@ -477,11 +477,9 @@ function_vec <-
     )
 
 optimizers <-
-    c('nloptwrap', 'nlminbwrap', 'bobyqa', 'Nelder_Mead')
-optCtrlList <- list(list(maxeval = 100000),
-                    list(maxit = 1500),
-                    list(maxfun = 100000),
-                    list(maxfun = 100000))
+    c('nlminbwrap', 'nloptwrap')
+optCtrlList <- list(list(maxit = 150),
+                    list(maxeval = 100000))
 
 # Check that a formula is provided
 check_formulas_valid <- function(formula, random_effects_formula) {

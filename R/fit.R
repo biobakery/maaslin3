@@ -531,46 +531,18 @@ choose_ranef_model_summary_funs_linear <- function(random_effects_formula) {
         # Random effects
         ranef_function <- lme4::ranef
         model_function <-
-            function(formula,
-                    data,
-                    weight_scheme = NULL,
-                    na.action) {
-                index <- 1
-                
-                while (index < length(optimizers)) {
-                    tryCatch({
-                        return(
-                            lmerTest::lmer(
-                                formula(formula),
-                                data = data,
-                                na.action = na.action,
-                                control = lme4::lmerControl(
-                                    optimizer = optimizers[index],
-                                    optCtrl = optCtrlList[[index]]
-                                )
-                            )
-                        )
-                    }, warning = function(w) {
-                        'warning'
-                    }, error = function(e) {
-                        'error'
-                    })
-                    
-                    # Something warned or errored if here
-                    index <- index + 1
-                }
-                
-                return(
-                    lmerTest::lmer(
-                        formula(formula),
-                        data = data,
-                        na.action = na.action,
-                        control = lme4::lmerControl(
-                            optimizer = optimizers[index],
-                            optCtrl = optCtrlList[[index]])
-                    )
-                )
-            }
+          function(formula,
+                   data,
+                   weight_scheme = NULL,
+                   na.action) {
+            return(
+              lmerTest::lmer(
+                formula(formula),
+                data = data,
+                na.action = na.action
+              )
+            )
+          }
         summary_function <- function(fit, names_to_include) {
             lm_summary <- coef(summary(fit))
             

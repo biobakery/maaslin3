@@ -26,7 +26,6 @@ fit_out <- maaslin3(input_data = taxa_table,
                     augment = TRUE, 
                     median_comparison_abundance = TRUE, 
                     median_comparison_prevalence = FALSE, 
-                    cores=1, 
                     verbosity = 'WARN')
 
 maaslin_results = read.table(file.path(output_tmp, "significant_results.tsv"), header = TRUE, stringsAsFactors=FALSE)
@@ -57,7 +56,6 @@ fit_out <- maaslin3(input_data = se,
                     augment = TRUE, 
                     median_comparison_abundance = TRUE, 
                     median_comparison_prevalence = FALSE, 
-                    cores=1, 
                     verbosity = 'WARN')
 
 tse <- TreeSummarizedExperiment::TreeSummarizedExperiment(
@@ -80,7 +78,6 @@ fit_out <- maaslin3(input_data = tse,
                     augment = TRUE, 
                     median_comparison_abundance = TRUE, 
                     median_comparison_prevalence = FALSE, 
-                    cores=1, 
                     verbosity = 'WARN',
                     assay.type = 'another_taxa_table')
 
@@ -97,7 +94,6 @@ fit_out <- maaslin3(input_data = tse,
                     augment = TRUE, 
                     median_comparison_abundance = TRUE, 
                     median_comparison_prevalence = FALSE, 
-                    cores=1, 
                     verbosity = 'WARN',
                     assay.type = 2)
 
@@ -116,7 +112,6 @@ fit_out <- maaslin3(input_data = taxa_table,
                     augment = TRUE, 
                     median_comparison_abundance = TRUE, 
                     median_comparison_prevalence = FALSE, 
-                    cores=1, 
                     verbosity = 'WARN')
 
 # Weird names
@@ -151,7 +146,6 @@ fit_out <- maaslin3(input_data = taxa_table,
                     augment = TRUE, 
                     median_comparison_abundance = FALSE, 
                     median_comparison_prevalence = FALSE, 
-                    cores=1, 
                     verbosity = 'WARN')
 
 fit_out2 <- maaslin3(input_data = taxa_table, 
@@ -167,7 +161,6 @@ fit_out2 <- maaslin3(input_data = taxa_table,
                     augment = TRUE, 
                     median_comparison_abundance = FALSE, 
                     median_comparison_prevalence = FALSE, 
-                    cores=1, 
                     verbosity = 'WARN')
 
 expect_that(fit_out$fit_data_abundance$results$coef,
@@ -187,7 +180,6 @@ fit_out <- maaslin3(input_data = taxa_table,
                     augment = TRUE, 
                     median_comparison_abundance = FALSE, 
                     median_comparison_prevalence = FALSE, 
-                    cores=1, 
                     verbosity = 'WARN')
 
 fit_out2 <- maaslin3(input_data = taxa_table, 
@@ -203,7 +195,6 @@ fit_out2 <- maaslin3(input_data = taxa_table,
                      augment = TRUE, 
                      median_comparison_abundance = FALSE, 
                      median_comparison_prevalence = FALSE, 
-                     cores=1, 
                      verbosity = 'WARN')
 
 expect_that(fit_out$fit_data_abundance$results$coef,
@@ -222,7 +213,6 @@ fit_out <- maaslin3(input_data = taxa_table,
                     augment = TRUE, 
                     median_comparison_abundance = TRUE, 
                     median_comparison_prevalence = FALSE, 
-                    cores=1, 
                     verbosity = 'WARN')
 
 expect_error(maaslin3(input_data = taxa_table, 
@@ -239,7 +229,6 @@ expect_error(maaslin3(input_data = taxa_table,
     augment = TRUE, 
     median_comparison_abundance = TRUE, 
     median_comparison_prevalence = FALSE, 
-    cores=1, 
     verbosity = 'WARN'))
 
 unlink(output_tmp, recursive = T)

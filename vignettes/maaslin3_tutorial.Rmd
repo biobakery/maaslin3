@@ -290,7 +290,6 @@ the median coefficient for a metadatum across the features
 have the same compositional properties, they are instead compared
 against 0 (`median_comparison_prevalence`). See below for a discussion of
 these parameters.
-* One CPU is used for fitting (`cores = 1`).
 
 The abundance, prevalence, and variance filtering parameters are not
 included, and they are 0 by default. **Different from other differential
@@ -313,8 +312,7 @@ fit_out <- maaslin3(input_data = taxa_table,
                     max_significance = 0.1,
                     median_comparison_abundance = TRUE,
                     median_comparison_prevalence = FALSE,
-                    max_pngs = 10,
-                    cores = 1)
+                    max_pngs = 10)
 ```
 
 By default, many lines of information are printed while the models fit, 
@@ -341,8 +339,7 @@ fit_out <- maaslin3(input_data = se,
                     max_significance = 0.1,
                     median_comparison_abundance = TRUE,
                     median_comparison_prevalence = FALSE,
-                    max_pngs = 10,
-                    cores = 1)
+                    max_pngs = 10)
 ```
 
 #### Median comparisons
@@ -1133,8 +1130,7 @@ fit_out <- maaslin3(input_data = taxa_table,
                         antibiotics + age + reads',
                     plot_summary_plot = FALSE,
                     plot_associations = FALSE,
-                    save_models = TRUE,
-                    cores = 1)
+                    save_models = TRUE)
 ```
 
 ```{R, echo = TRUE, warning = FALSE, cache = FALSE}

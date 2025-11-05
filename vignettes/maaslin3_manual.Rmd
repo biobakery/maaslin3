@@ -339,8 +339,7 @@ fit_out <- maaslin3(input_data = taxa_table,
                     median_comparison_abundance = TRUE,
                     median_comparison_prevalence = FALSE,
                     max_pngs = 20,
-                    save_models = TRUE,
-                    cores = 1)
+                    save_models = TRUE)
 ```
 
 The `maaslin3` wrapper function runs all steps at once, but equivalent
@@ -359,8 +358,7 @@ maaslin_log_arguments(input_data = taxa_table,
                     max_significance = 0.1,
                     median_comparison_abundance = TRUE,
                     median_comparison_prevalence = FALSE,
-                    max_pngs = 20,
-                    cores = 1)
+                    max_pngs = 20)
 
 read_data_list <- maaslin_read_data(taxa_table,
                                     metadata)
@@ -400,8 +398,7 @@ maaslin_results = maaslin_fit(filtered_data,
                             random_effects_formula,
                             data = data,
                             median_comparison_abundance = TRUE,
-                            median_comparison_prevalence = FALSE,
-                            cores = 1)
+                            median_comparison_prevalence = FALSE)
 
 maaslin_write_results(output = 'hmp2_output',
                     maaslin_results$fit_data_abundance,
@@ -904,9 +901,6 @@ will be plotted.
 
 #### Technical/miscellaneous parameters ####
 
-* `cores` (default `1`): How many cores to use when fitting models.
-(Using multiple cores will likely be faster only for large datasets or
-complex models.)
 * `save_models` (default `FALSE`): Whether to return the fit models and
 save them to an RData file.
 * `verbosity` (default `'FINEST'`): The level of verbosity for the 

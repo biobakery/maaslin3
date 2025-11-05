@@ -457,25 +457,6 @@ append_joint <- function(outputs, merged_signif, association_type) {
     return(merged_signif)
 }
 
-# All functions for export in parallelization
-function_vec <-
-    c(
-        "augment_data",
-        "safe_deparse",
-        "extract_special_predictor",
-        "get_fixed_effects",
-        "get_character_cols",
-        "add_joint_signif",
-        "append_joint",
-        "check_for_zero_one_obs",
-        "check_missing_first_factor_level",
-        "fit_augmented_logistic",
-        "non_augmented",
-        "run_group_models",
-        "run_ordered_models",
-        "fitting_wrap_up"
-    )
-
 optimizers <-
     c('nlminbwrap', 'nloptwrap')
 optCtrlList <- list(list(maxit = 150),
@@ -2178,7 +2159,6 @@ fit.model <- function(features,
                     save_models = FALSE,
                     small_random_effects = FALSE,
                     augment = FALSE,
-                    cores = 1,
                     median_comparison = FALSE,
                     median_comparison_threshold = 0,
                     subtract_median = FALSE,
@@ -2260,18 +2240,6 @@ fit.model <- function(features,
     ranef_function <- fun_list$ranef_function
     model_function <- fun_list$model_function
     summary_function <- fun_list$summary_function
-    
-    #######################################
-    # Init cluster for parallel computing #
-    #######################################
-    
-    cluster <- NULL
-    if (cores > 1) {
-        logging::loginfo("Creating cluster of %s R processes", cores)
-        cluster <- parallel::makeCluster(cores)
-        parallel::clusterExport(cluster, c(ls(), function_vec),
-                                envir = environment())
-    }
     
     ##############################
     # Apply per-feature modeling #
@@ -2485,20 +2453,8 @@ fit.model <- function(features,
         return(output)
     }
     
-    env_objects <- ls(environment(func_to_run))
-    for (obj in env_objects) {
-        size <- utils::object.size(get(obj, envir = environment(func_to_run)))
-        logging::logdebug(paste0("Object: ", obj, ", Size: ", size))
-    }
-    size <- utils::object.size(func_to_run)
-    logging::logdebug(paste0("Object: ", "func_to_run", ", Size: ", size))
-
     outputs <-
-        pbapply::pblapply(seq_len(ncol(features)), cl = cluster, func_to_run)
-    
-    # stop the cluster
-    if (!is.null(cluster))
-        parallel::stopCluster(cluster)
+        pbapply::pblapply(seq_len(ncol(features)), func_to_run)
     
     # bind the results for each feature
     paras <-

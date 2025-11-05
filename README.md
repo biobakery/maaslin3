@@ -319,7 +319,6 @@ fit_out <- maaslin3(input_data = taxa_table,
                     median_comparison_abundance = TRUE,
                     median_comparison_prevalence = FALSE,
                     max_pngs = 100,
-                    cores = 1,
                     save_models = TRUE)
 ```
 
@@ -663,9 +662,6 @@ will be plotted.
 
 #### Technical/miscellaneous parameters ####
 
-* `cores` (default `1`): How many cores to use when fitting models.
-(Using multiple cores will likely be faster only for large datasets or
-complex models.)
 * `save_models` (default `FALSE`): Whether to return the fit models and
 save them to an RData file.
 * `verbosity` (default `'FINEST'`): The level of verbosity for the 

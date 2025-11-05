@@ -96,7 +96,6 @@ args$coef_plot_vars <- NULL
 args$heatmap_vars <- NULL
 args$plot_associations <- TRUE
 args$max_pngs <- 30
-args$cores <- 1
 args$save_models <- FALSE
 args$save_plots_rds <- FALSE
 args$reference <- NULL
@@ -569,18 +568,6 @@ options <-
 options <-
     optparse::add_option(
         options,
-        c("--cores"),
-        type = "double",
-        dest = "cores",
-        default = args$cores,
-        help = paste(
-            "The number of R processes to",
-            "run in parallel [ Default: %default ]"
-        )
-    )
-options <-
-    optparse::add_option(
-        options,
         c("--save_models"),
         type = "logical",
         dest = "save_models",
@@ -798,7 +785,6 @@ maaslin_log_arguments <- function(input_data,
                                 heatmap_vars = NULL,
                                 plot_associations = TRUE,
                                 max_pngs = 30,
-                                cores = 1,
                                 save_models = FALSE,
                                 save_plots_rds = FALSE,
                                 verbosity = 'FINEST',
@@ -914,7 +900,6 @@ maaslin_log_arguments <- function(input_data,
     )
     logging::logdebug("Augment: %s", augment)
     logging::logdebug("Evaluate only: %s", evaluate_only)
-    logging::logdebug("Cores: %d", cores)
     logging::logdebug("Balanced Summary plot: %s", summary_plot_balanced)
 
 
@@ -1983,7 +1968,6 @@ maaslin_fit <- function(filtered_data,
                         small_random_effects = FALSE,
                         augment = TRUE,
                         evaluate_only = NULL,
-                        cores = 1,
                         save_models = FALSE,
                         data = NULL,
                         min_abundance = 0,
@@ -2034,7 +2018,6 @@ maaslin_fit <- function(filtered_data,
                 save_models = save_models,
                 small_random_effects = small_random_effects,
                 augment = augment,
-                cores = cores,
                 median_comparison = median_comparison_abundance,
                 median_comparison_threshold =
                     median_comparison_abundance_threshold,
@@ -2090,7 +2073,6 @@ maaslin_fit <- function(filtered_data,
                 save_models = save_models,
                 small_random_effects = small_random_effects,
                 augment = augment,
-                cores = cores,
                 median_comparison = median_comparison_prevalence,
                 median_comparison_threshold =
                     median_comparison_prevalence_threshold,
@@ -2238,7 +2220,6 @@ maaslin_fit <- function(filtered_data,
                 save_models = save_models,
                 small_random_effects = small_random_effects,
                 augment = augment,
-                cores = cores,
                 median_comparison = FALSE,
                 median_comparison_threshold = 0,
                 subtract_median = FALSE,
@@ -2746,7 +2727,6 @@ maaslin3 <- function(input_data,
                     heatmap_vars = NULL,
                     plot_associations = TRUE,
                     max_pngs = 30,
-                    cores = 1,
                     save_models = FALSE,
                     save_plots_rds = FALSE,
                     verbosity = 'FINEST',
@@ -2818,7 +2798,6 @@ maaslin3 <- function(input_data,
         heatmap_vars,
         plot_associations,
         max_pngs,
-        cores,
         save_models,
         save_plots_rds,
         verbosity,
@@ -2931,7 +2910,6 @@ maaslin3 <- function(input_data,
         small_random_effects,
         augment,
         evaluate_only,
-        cores,
         save_models,
         data,
         min_abundance,
@@ -3066,7 +3044,6 @@ if (identical(environment(), globalenv()) &&
             formula = current_args$formula,
             correction = current_args$correction,
             standardize = current_args$standardize,
-            cores = current_args$cores,
             plot_summary_plot = current_args$plot_summary_plot,
             summary_plot_first_n = current_args$summary_plot_first_n,
             coef_plot_vars = current_args$coef_plot_vars,

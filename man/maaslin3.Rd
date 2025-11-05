@@ -57,7 +57,6 @@ maaslin3(input_data,
     heatmap_vars = NULL,
     plot_associations = TRUE,
     max_pngs = 30,
-    cores = 1,
     save_models = FALSE,
     save_plots_rds = FALSE,
     verbosity = 'FINEST',
@@ -219,8 +218,6 @@ maaslin3(input_data,
     associations.}
     \item{max_pngs}{The top \code{max_pngs} significant associations will be
     plotted.}
-    \item{cores}{How many cores to use when fitting models. (Using multiple
-    cores will likely be faster only for large datasets or complex models.}
     \item{save_models}{Whether to return the fit models and save them to an
     RData file.}
     \item{save_plots_rds}{Whether to return the fit models and save them to an

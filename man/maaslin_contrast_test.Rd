@@ -118,7 +118,8 @@ A dataframe with the following columns:
                                 formula = '~ diagnosis + dysbiosis_state +
                                 antibiotics + age + reads',
                                 plot_summary_plot = FALSE,
-                                plot_associations = FALSE)
+                                plot_associations = FALSE,
+                                save_models = TRUE)
                                 
     contrast_mat <- matrix(c(1, 1, 0, 0, 0, 0, 1, 1), 
         ncol = 4, nrow = 2, byrow = TRUE)

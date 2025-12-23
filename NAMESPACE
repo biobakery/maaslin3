@@ -20,13 +20,14 @@ export(preprocess_taxa_mtx)
 
 import("optparse")
 importFrom("stats", "as.formula", "coef", "glm", "lm", "na.exclude",
-    "p.adjust", "update", "relevel", "anova", "approx", "filter", "median",    "model.matrix", "pbeta", "quantile", "terms",    "update.formula", "var", "vcov", "rnorm", "cov", "setNames")
+    "p.adjust", "update", "relevel", "anova", "approx", "filter", "median",
+    "model.matrix", "pbeta", "quantile", "terms",
+    "update.formula", "var", "vcov", "rnorm", "cov", "setNames")
 importFrom("utils", "capture.output", "read.table", "write.table")
 importFrom("dplyr", "%>%")
 importFrom("plyr", "mapvalues")
 importFrom("stats", "sd", "na.omit")
 importFrom("utils","type.convert")
-importFrom("rlang", ".data")
+importFrom("rlang", ".data", "check_installed")
 importFrom("methods", "is")
 importFrom("survival", "strata", "coxph", "Surv")
-importFrom("TreeSummarizedExperiment", "TreeSummarizedExperiment")

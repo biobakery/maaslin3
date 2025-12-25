@@ -2310,7 +2310,6 @@ fit.model <- function(features,
     # There's probably a less repetitive way to do this V 
     everywhere({}, 
                metadata = metadata,
-               covariateVector = covariateVector,
                random_effects_formula = random_effects_formula,
                groups = groups,
                ordereds = ordereds,

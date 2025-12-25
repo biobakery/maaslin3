@@ -279,12 +279,13 @@ flag_abundance_turned_prevalence <- function(merged_signif,
 # Get joint significance for abundance and prevalence associations
 add_joint_signif <-
     function(fit_data_abundance,
-            fit_data_prevalence,
-            new_fit_data_abundance,
-            max_significance,
-            correction) {
+             fit_data_prevalence,
+             new_fit_data_abundance,
+             max_significance,
+             correction) {
+        
         match.arg(correction,
-            c("BH", "holm", "hochberg", "hommel", "bonferroni", "BY"))
+                  c("BH", "holm", "hochberg", "hommel", "bonferroni", "BY"))
         # Subset to shared columns
         fit_data_prevalence_signif <-
             fit_data_prevalence$results[, c("feature", "metadata", "value",

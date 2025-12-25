@@ -2295,27 +2295,51 @@ fit.model <- function(features,
     # Init cluster for parallel computing #
     #######################################
     
-    cluster <- NULL
-    if (cores > 1) {
-        logging::loginfo("Creating cluster of %s R processes", cores)
-        cluster <- parallel::makeCluster(cores)
-        parallel::clusterExport(cluster, c(ls(), function_vec),
-                                envir = environment())
-    }
+    # cluster <- NULL
+    # if (cores > 1) {
+    #     logging::loginfo("Creating cluster of %s R processes", cores)
+    #     cluster <- parallel::makeCluster(cores)
+    #     parallel::clusterExport(cluster, c(ls(), function_vec),
+    #                             envir = environment())
+    # }
     
     ##############################
     # Apply per-feature modeling #
     ##############################
-    func_to_run <- function(x) {
+   
+    # There's probably a less repetitive way to do this V 
+    everywhere({}, 
+               metadata = metadata,
+               covariateVector = covariateVector,
+               random_effects_formula = random_effects_formula,
+               groups = groups,
+               ordereds = ordereds,
+               features = features,
+               model = model,
+               feature_specific_covariate = feature_specific_covariate,
+               feature_specific_covariate_name = feature_specific_covariate_name,
+               zero_one_out = zero_one_out,
+               formula = formula,
+               check_out = check_out,
+               summary_function = summary_function,
+               ranef_function = ranef_function,
+               model_function = model_function,
+               formula = formula,
+               augment = augment,
+               median_comparison = median_comparison,
+               save_models = save_models)
+    
+    func_to_run <- function(fv, fn, fi) {
         # Extract Features One by One
-        featuresVector <- features[, x]
+        featuresVector <- fv 
         
         logging::loginfo("Fitting model to feature number %d, %s",
-                        x,
-                        colnames(features)[x])
+                        fi,
+                        fn)
         
         # Make fitting matrix of features and metadata
         if (!is.null(feature_specific_covariate)) {
+            # Ignoring this for now...
             covariateVector <- feature_specific_covariate[, x]
             
             dat_sub <-
@@ -2336,13 +2360,14 @@ fit.model <- function(features,
         }
         
         # 0 or 1 observations
-        zero_one_out <- check_for_zero_one_obs(formula,
+        # It might be better to hand the functions to the daemons with everywhere() rather than triple colon
+        zero_one_out <- maaslin3:::check_for_zero_one_obs(formula,
             random_effects_formula,
             dat_sub,
             groups,
             ordereds,
-            features,
-            x,
+            features, # TODO: avoid handing the full matrix to all daemons... Will need to fix functions like this one
+            fi,
             model,
             feature_specific_covariate_name)
         
@@ -2351,7 +2376,7 @@ fit.model <- function(features,
         }
         
         # Missing first factor level
-        check_out <- check_missing_first_factor_level(formula,
+        check_out <- maaslin3:::check_missing_first_factor_level(formula,
             random_effects_formula,
             dat_sub,
             groups,
@@ -2368,7 +2393,7 @@ fit.model <- function(features,
         if (augment &
             model == "logistic" &
             length(unique(featuresVector)) >= 2) {
-            fitting_out <- fit_augmented_logistic(
+            fitting_out <- maaslin3:::fit_augmented_logistic(
                 ranef_function,
                 model_function,
                 formula,
@@ -2377,9 +2402,9 @@ fit.model <- function(features,
                 ordereds,
                 dat_sub,
                 features,
-                x)
+                fi)
         } else { # linear or non-augmented logistic
-            fitting_out <- non_augmented(
+            fitting_out <- maaslin3:::non_augmented(
                 ranef_function,
                 model_function,
                 formula,
@@ -2388,7 +2413,7 @@ fit.model <- function(features,
                 ordereds,
                 dat_sub,
                 features,
-                x)
+                fi)
         }
         
         fit_and_message <- fitting_out[["fit_and_message"]]
@@ -2404,7 +2429,7 @@ fit.model <- function(features,
         low_n_error <- FALSE
         if (all(!inherits(fit, "try-error"))) {
             names_to_include <-
-                get_fixed_effects(formula,
+                maaslin3:::get_fixed_effects(formula,
                     random_effects_formula,
                     dat_sub,
                     character(0),
@@ -2432,7 +2457,7 @@ fit.model <- function(features,
                 n_uni_cols <- nrow(output$para)
                 
                 if (length(groups) > 0) {
-                    output <- run_group_models(ranef_function,
+                    output <- maaslin3:::run_group_models(ranef_function,
                                             model_function,
                                             groups,
                                             formula,
@@ -2447,7 +2472,7 @@ fit.model <- function(features,
                 }
                 
                 if (length(ordereds) > 0) {
-                    output <- run_ordered_models(ranef_function,
+                    output <- maaslin3:::run_ordered_models(ranef_function,
                                                 model_function,
                                                 ordereds,
                                                 fit_and_message,
@@ -2463,7 +2488,7 @@ fit.model <- function(features,
                 
                 # Check whether summaries are correct
                 names_to_include <-
-                    get_fixed_effects(formula,
+                    maaslin3:::get_fixed_effects(formula,
                                     random_effects_formula,
                                     dat_sub,
                                     groups,
@@ -2473,7 +2498,7 @@ fit.model <- function(features,
                     # Don't worry about dropped factor levels
                     missing_names <- names_to_include[
                         !(names_to_include %in% rownames(output$para))]
-                    character_cols <- get_character_cols(dat_sub)
+                    character_cols <- maaslin3:::get_character_cols(dat_sub)
                     if (!all(missing_names %in% character_cols)) {
                         fit_properly <- FALSE
                         fit_and_message[[length(fit_and_message)]] <-
@@ -2495,7 +2520,7 @@ fit.model <- function(features,
             fit_properly <- FALSE
         }
         
-        output <- fitting_wrap_up(fit_properly,
+        output <- maaslin3:::fitting_wrap_up(fit_properly,
                                 fit_and_message,
                                 output,
                                 fit,
@@ -2523,12 +2548,20 @@ fit.model <- function(features,
     size <- utils::object.size(func_to_run)
     logging::logdebug(paste0("Object: ", "func_to_run", ", Size: ", size))
 
-    outputs <-
-        pbapply::pblapply(seq_len(ncol(features)), cl = cluster, func_to_run)
+    feat_list = as.list(as.data.frame(features))
+    feat_nm = colnames(features)
+    feat_i = seq_len(ncol(features))
     
-    # stop the cluster
-    if (!is.null(cluster))
-        parallel::stopCluster(cluster)
+    # purrr::list_transpose() would be a better way to do this V.
+    map_input = data.frame(fv = I(feat_list), fn = feat_nm, fi = feat_i)
+    
+    outputs <- mirai::mirai_map(map_input, func_to_run)[]
+    # outputs <-
+    #     pbapply::pblapply(seq_len(ncol(features)), cl = cluster, func_to_run)
+    
+    # # stop the cluster
+    # if (!is.null(cluster))
+    #     parallel::stopCluster(cluster)
     
     # bind the results for each feature
     paras <-

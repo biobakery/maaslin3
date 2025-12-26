@@ -2326,7 +2326,7 @@ fit.model <- function(features,
                save_models = save_models)
     
     mirai::everywhere(library(stats))
-    mirai::everywhere(library(lme4))
+    mirai::everywhere(library(lmerTest))
     
     func_to_run <- function(fv, fn, fi) {
         # Extract Features One by One

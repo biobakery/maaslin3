@@ -2555,9 +2555,9 @@ fit.model <- function(features,
     
     outputs <- mirai::mirai_map(map_input, func_to_run)[.progress]
     
-    cli::cli_alert_success("Passed mirai_map()")
-    cli::cli_alert("First result: ")
-    print(outputs[[1]])
+    #cli::cli_alert_success("Passed mirai_map()")
+    #cli::cli_alert("First result: ")
+    #print(outputs[[1]])
     # outputs <-
     #     pbapply::pblapply(seq_len(ncol(features)), cl = cluster, func_to_run)
     

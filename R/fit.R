@@ -30,7 +30,7 @@ augment_data <- function(formula, random_effects_formula, dat_sub) {
     dat_sub_new$expr[(nrow(dat_sub) * 2 + 1):(3 * nrow(dat_sub))] <-
         0
     
-    formula <- stats::formula(formula)
+    formula <- formula(formula)
     
     if (is.null(random_effects_formula)) {
         # No random effects
@@ -76,8 +76,8 @@ extract_special_predictor <- function(formula, predictor_type) {
     if (substr(formula_tmp, nchar(formula_tmp), nchar(formula_tmp)) == '~') {
         formula_tmp <- paste0(formula_tmp, '1')
     }
-    formula <- stats::formula(formula_tmp)
-    formula <- stats::formula(gsub("~ \\+", "~", safe_deparse(formula)))
+    formula <- formula(formula_tmp)
+    formula <- formula(gsub("~ \\+", "~", safe_deparse(formula)))
     
     if (predictor_type == "strata" & length(groups) > 1) {
         stop("Only one strata allowed. Please change the formula.")
@@ -97,14 +97,14 @@ get_fixed_effects <-
         names_to_include <- c()
         if (is.null(random_effects_formula)) {
             # Fixed and group effects only
-            names_to_include <- colnames(model.matrix(stats::formula(gsub(
+            names_to_include <- colnames(model.matrix(formula(gsub(
                 "^expr ", "", safe_deparse(formula)
             )), dat_sub))
             names_to_include <-
                 names_to_include[names_to_include != "(Intercept)"]
         } else {
             # Random effects
-            patterns <- paste0("(", unlist(lme4::findbars(stats::formula(
+            patterns <- paste0("(", unlist(lme4::findbars(formula(
                 gsub("^expr ", "", safe_deparse(formula))
             ))), ")")
             
@@ -112,7 +112,7 @@ get_fixed_effects <-
             for (pattern in patterns) {
                 fixed_effects_only <- gsub(pattern, "",
                                         paste0(trimws(safe_deparse(
-                                            stats::formula(gsub(
+                                            formula(gsub(
                                                 "^expr ", "",
                                                 safe_deparse(formula)
                                             ))
@@ -122,18 +122,18 @@ get_fixed_effects <-
                     gsub("[+ ]+$", "", fixed_effects_only)
                 fixed_effects_only <-
                     gsub("\\+\\s*\\++", "+", fixed_effects_only)
-                formula <- stats::formula(fixed_effects_only)
+                formula <- formula(fixed_effects_only)
             }
             
             if (!is.null(feature_specific_covariate_name)) {
-                names_to_include <- colnames(model.matrix(stats::formula(gsub(
+                names_to_include <- colnames(model.matrix(formula(gsub(
                     paste0(feature_specific_covariate_name, " \\+|^expr "), 
                     "", safe_deparse(formula)
                 )), dat_sub))
                 names_to_include <- c(names_to_include, 
                                         feature_specific_covariate_name)
             } else {
-                names_to_include <- colnames(model.matrix(stats::formula(gsub(
+                names_to_include <- colnames(model.matrix(formula(gsub(
                     "^expr ", "", safe_deparse(formula)
                 )), dat_sub))
             }
@@ -499,13 +499,14 @@ choose_ranef_model_summary_funs_linear <- function(random_effects_formula) {
     if (is.null(random_effects_formula)) {
         # Fixed effects only
         ranef_function <- NULL
+        
         model_function <-
-            function(formula,
+            function(form,
                     data,
                     weight_scheme = NULL,
                     na.action) {
-                return(lm(
-                    stats::formula(formula),
+                return(stats::lm(
+                    formula(form),
                     data = data,
                     na.action = na.action
                 ))
@@ -532,8 +533,9 @@ choose_ranef_model_summary_funs_linear <- function(random_effects_formula) {
     } else {
         # Random effects
         ranef_function <- lme4::ranef
+        
         model_function <-
-            function(formula,
+            function(form,
                     data,
                     weight_scheme = NULL,
                     na.action) {
@@ -543,7 +545,7 @@ choose_ranef_model_summary_funs_linear <- function(random_effects_formula) {
                     tryCatch({
                         return(
                             lmerTest::lmer(
-                                stats::formula(formula),
+                                formula = form,
                                 data = data,
                                 na.action = na.action,
                                 control = lme4::lmerControl(
@@ -562,9 +564,9 @@ choose_ranef_model_summary_funs_linear <- function(random_effects_formula) {
                     index <- index + 1
                 }
                 
-                return(
+                return( # TODO: Wait, does this fit the model twice then? Just save the result!
                     lmerTest::lmer(
-                        stats::formula(formula),
+                        formula = form,
                         data = data,
                         na.action = na.action,
                         control = lme4::lmerControl(
@@ -574,8 +576,10 @@ choose_ranef_model_summary_funs_linear <- function(random_effects_formula) {
                 )
             }
         summary_function <- function(fit, names_to_include) {
-            lm_summary <- coef(summary(fit))
-            
+            summ = lmerTest:::summary.lmerModLmerTest # Scoped calls - this will be running on daemons
+
+            lm_summary <- summ(fit)$coefficients # Couldn't figure out how to get a scoped call for coef.summary.merMod...
+
             store_names <- rownames(lm_summary)
             if (!all(names_to_include %in% store_names)) {
                 # If deficient rank, make sure all rownames are included
@@ -612,7 +616,7 @@ choose_ranef_model_summary_funs_logistic <- function(random_effects_formula,
                             weight_scheme = NULL,
                             na.action) {
                         formula <-
-                            stats::formula(paste0(
+                            formula(paste0(
                                 safe_deparse(formula),
                                 ' + strata(',
                                 strata,
@@ -626,7 +630,7 @@ choose_ranef_model_summary_funs_logistic <- function(random_effects_formula,
                         
                         clogit_out <- tryCatch({
                             fit1 <- survival::clogit(
-                                stats::formula(formula),
+                                formula(formula),
                                 data = data,
                                 method = "breslow",
                                 control = survival::coxph.control(
@@ -643,7 +647,7 @@ choose_ranef_model_summary_funs_logistic <- function(random_effects_formula,
                         
                         if (is.character(clogit_out)) {
                             fit1 <- survival::clogit(
-                                stats::formula(formula),
+                                formula(formula),
                                 data = data,
                                 method = "breslow",
                                 control = survival::coxph.control(
@@ -665,7 +669,7 @@ choose_ranef_model_summary_funs_logistic <- function(random_effects_formula,
                             na.action) {
                         clogit_out <- tryCatch({
                             fit1 <- survival::clogit(
-                                stats::formula(formula),
+                                formula(formula),
                                 data = data,
                                 method = "breslow",
                                 control = survival::coxph.control(
@@ -682,7 +686,7 @@ choose_ranef_model_summary_funs_logistic <- function(random_effects_formula,
                         
                         if (is.character(clogit_out)) {
                             fit1 <- survival::clogit(
-                                stats::formula(formula),
+                                formula(formula),
                                 data = data,
                                 method = "breslow",
                                 control = survival::coxph.control(
@@ -699,7 +703,9 @@ choose_ranef_model_summary_funs_logistic <- function(random_effects_formula,
             }
             summary_function <-
                 function(fit, names_to_include) {
-                    lm_summary <- coef(summary(fit))
+                    summ = survival:::summary.coxph # Scoped calls - this will be running on daemons
+                    
+                    lm_summary <- summ(fit)$coefficients
                     
                     store_names <- rownames(lm_summary)
                     if (!all(names_to_include %in% store_names)) {
@@ -747,7 +753,7 @@ choose_ranef_model_summary_funs_logistic <- function(random_effects_formula,
                             envir = environment(formula))
                         
                         glm_out <- glm(
-                            formula = stats::formula(formula),
+                            formula = formula(formula),
                             family = 'binomial',
                             data = data,
                             weights = weight_sch_current,
@@ -764,7 +770,7 @@ choose_ranef_model_summary_funs_logistic <- function(random_effects_formula,
                             na.action) {
                         return(
                             glm(
-                                stats::formula(formula),
+                                formula(formula),
                                 data = data,
                                 family = 'binomial',
                                 na.action = na.action,
@@ -817,7 +823,7 @@ choose_ranef_model_summary_funs_logistic <- function(random_effects_formula,
                             withCallingHandlers({
                                 # Catch non-integer # successes first
                                 fit1 <- lme4::glmer(
-                                    stats::formula(formula),
+                                    formula(formula),
                                     data = data,
                                     family = 'binomial',
                                     na.action = na.action,
@@ -852,7 +858,7 @@ choose_ranef_model_summary_funs_logistic <- function(random_effects_formula,
                         withCallingHandlers({
                             # Catch non-integer # successes first
                             fit1 <- lme4::glmer(
-                                stats::formula(formula),
+                                formula(formula),
                                 data = data,
                                 family = 'binomial',
                                 na.action = na.action,
@@ -885,7 +891,7 @@ choose_ranef_model_summary_funs_logistic <- function(random_effects_formula,
                     while (index < length(optimizers)) {
                         glm_out <- tryCatch({
                             lme4::glmer(
-                                stats::formula(formula),
+                                formula(formula),
                                 data = data,
                                 family = 'binomial',
                                 na.action = na.action,
@@ -911,7 +917,7 @@ choose_ranef_model_summary_funs_logistic <- function(random_effects_formula,
                     if (is.character(glm_out)) {
                         return(
                             lme4::glmer(
-                                stats::formula(formula),
+                                formula(formula),
                                 data = data,
                                 family = 'binomial',
                                 na.action = na.action,
@@ -957,7 +963,8 @@ check_for_zero_one_obs <- function(formula,
                                     dat_sub,
                                     groups,
                                     ordereds,
-                                    features,
+                                    # features,
+                                    fn,
                                     x,
                                     model,
                                     feature_specific_covariate_name) {
@@ -991,7 +998,7 @@ check_for_zero_one_obs <- function(formula,
         
         colnames(output$para) <-
             c('coef', 'stderr' , 'pval', 'name')
-        output$para$feature <- colnames(features)[x]
+        output$para$feature <- fn #colnames(features)[x]
         output$para$error <-
             ifelse(
                 model == "logistic",
@@ -1009,7 +1016,8 @@ check_missing_first_factor_level <- function(formula,
                                             dat_sub,
                                             groups,
                                             ordereds,
-                                            features,
+                                            # features,
+                                            fn,
                                             x,
                                             feature_specific_covariate_name) {
     missing_first_factor_level <- FALSE
@@ -1062,7 +1070,7 @@ check_missing_first_factor_level <- function(formula,
         
         colnames(output$para) <-
             c('coef', 'stderr' , 'pval', 'name')
-        output$para$feature <- colnames(features)[x]
+        output$para$feature <- fn # colnames(features)[x]
         output$para$error <-
             "No data points have the baseline factor level"
         return(output)
@@ -1079,7 +1087,8 @@ fit_augmented_logistic <- function(ranef_function,
                                 groups,
                                 ordereds,
                                 dat_sub,
-                                features,
+                                # features,
+                                fn,
                                 x) {
     warning_message <- NA
     error_message <- NA
@@ -1091,7 +1100,7 @@ fit_augmented_logistic <- function(ranef_function,
             withCallingHandlers({
                 # Catch non-integer # successes first
                 formula_new <-
-                    stats::formula(paste0(
+                    formula(paste0(
                         c(
                             safe_deparse(formula),
                             groups,
@@ -1129,7 +1138,7 @@ fit_augmented_logistic <- function(ranef_function,
             })
         }, warning = function(w) {
             message(sprintf("Feature %s : %s", 
-                            colnames(features)[x], w))
+                            fn, w))
             logging::logwarn(paste(
                 "Fitting problem for feature",
                 x,
@@ -1171,7 +1180,8 @@ non_augmented <- function(ranef_function,
                         groups,
                         ordereds,
                         dat_sub,
-                        features,
+                        # features,
+                        fn,
                         x) {
 
     warning_message <- NA
@@ -1180,7 +1190,7 @@ non_augmented <- function(ranef_function,
     fit1 <- tryCatch({
         withCallingHandlers({
             formula_new <-
-                stats::formula(paste0(
+                formula(paste0(
                     c(safe_deparse(formula), groups, ordereds),
                     collapse = " + "
                 ))
@@ -1192,7 +1202,7 @@ non_augmented <- function(ranef_function,
             fit1
         }, warning = function(w) {
             message(sprintf("Feature %s : %s", 
-                            colnames(features)[x], w))
+                            fn, w))
             logging::logwarn(paste(
                 "Fitting problem for feature",
                 x,
@@ -1276,8 +1286,8 @@ run_group_models <- function(ranef_function,
                             fit_new <-
                                 model_function(
                                     formula = stats::update.formula(
-                                        stats::formula(fit),
-                                        stats::formula(
+                                        formula(fit),
+                                        formula(
                                             paste0('~.-', group)
                                         )
                                     ),
@@ -1290,8 +1300,8 @@ run_group_models <- function(ranef_function,
                             fit_new <-
                                 model_function(
                                     stats::update.formula(
-                                        stats::formula(fit),
-                                        stats::formula(
+                                        formula(fit),
+                                        formula(
                                             paste0('~.-', group)
                                         )
                                     ),
@@ -1574,7 +1584,8 @@ fitting_wrap_up <- function(fit_properly,
                             dat_sub,
                             groups,
                             ordereds,
-                            features,
+                            # features,
+                            fn,
                             x,
                             ranef_function,
                             feature_specific_covariate_name) {
@@ -1642,7 +1653,7 @@ fitting_wrap_up <- function(fit_properly,
     
     colnames(output$para) <-
         c('coef', 'stderr' , 'pval', 'name')
-    output$para$feature <- colnames(features)[x]
+    output$para$feature <- fn # colnames(features)[x]
     output$para$error <-
         fit_and_message[[length(fit_and_message)]]
     output$para$error[is.na(output$para$error) &
@@ -2219,7 +2230,7 @@ fit.model <- function(features,
     match.arg(correction,
             c("BH", "holm", "hochberg", "hommel", "bonferroni", "BY"))
     check_formulas_valid(formula, random_effects_formula)
-    formula <- stats::formula(formula)
+    formula <- formula(formula)
 
     extract_out <- extract_special_predictor(formula, 'group')
     formula <- extract_out[[1]]
@@ -2264,7 +2275,7 @@ fit.model <- function(features,
     
     if (length(strata) > 0 & model == 'linear') {
         formula <-
-            stats::formula(paste0(safe_deparse(formula), ' + (1 | ', strata, ')'))
+            formula(paste0(safe_deparse(formula), ' + (1 | ', strata, ')'))
         random_effects_formula <- formula
     }
     
@@ -2309,24 +2320,24 @@ fit.model <- function(features,
    
     # There's probably a less repetitive way to do this V 
     mirai::everywhere({}, 
-               metadata = metadata,
-               random_effects_formula = random_effects_formula,
-               groups = groups,
-               ordereds = ordereds,
-               features = features,
-               model = model,
-               feature_specific_covariate = feature_specific_covariate,
-               feature_specific_covariate_name = feature_specific_covariate_name,
-               formula = formula,
-               summary_function = summary_function,
-               ranef_function = ranef_function,
-               model_function = model_function,
-               augment = augment,
-               median_comparison = median_comparison,
-               save_models = save_models)
+                      metadata = metadata,
+                      random_effects_formula = random_effects_formula,
+                      groups = groups,
+                      ordereds = ordereds,
+                      # features = features,
+                      model = model,
+                      feature_specific_covariate = feature_specific_covariate,
+                      feature_specific_covariate_name = feature_specific_covariate_name,
+                      formula = formula,
+                      summary_function = summary_function,
+                      ranef_function = ranef_function,
+                      model_function = model_function,
+                      augment = augment,
+                      median_comparison = median_comparison,
+                      save_models = save_models)
     
-    mirai::everywhere(library(stats))
-    mirai::everywhere(library(lme4))
+    mirai::everywhere({library(stats); library(methods)}) # TODO find the functions needed from stats and add scoped calls to avoid this.
+    # mirai::everywhere(library(lme4))
     
     func_to_run <- function(fv, fn, fi) {
         # Extract Features One by One
@@ -2364,7 +2375,8 @@ fit.model <- function(features,
             dat_sub,
             groups,
             ordereds,
-            features, # TODO: avoid handing the full matrix to all daemons... Will need to fix functions like this one
+            # features, # TODO: avoid handing the full matrix to all daemons... Will need to fix functions like this one
+            fn = fn,
             fi,
             model,
             feature_specific_covariate_name)
@@ -2379,7 +2391,8 @@ fit.model <- function(features,
             dat_sub,
             groups,
             ordereds,
-            features,
+            # features,
+            fn = fn,
             fi,
             feature_specific_covariate_name)
         
@@ -2399,7 +2412,8 @@ fit.model <- function(features,
                 groups,
                 ordereds,
                 dat_sub,
-                features,
+                # features,
+                fn = fn,
                 fi)
         } else { # linear or non-augmented logistic
             fitting_out <- maaslin3:::non_augmented(
@@ -2410,7 +2424,8 @@ fit.model <- function(features,
                 groups,
                 ordereds,
                 dat_sub,
-                features,
+                # features,
+                fn = fn,
                 fi)
         }
         
@@ -2530,10 +2545,15 @@ fit.model <- function(features,
                                 dat_sub,
                                 groups,
                                 ordereds,
-                                features,
+                                # features,
+                                fn = fn,
                                 fi,
                                 ranef_function,
                                 feature_specific_covariate_name)
+        
+        # output$r = ranef_function
+        # output$m = model_function
+        # output$s = summary_function
         
         return(output)
     }
@@ -2554,10 +2574,10 @@ fit.model <- function(features,
     map_input = data.frame(fv = I(feat_list), fn = feat_nm, fi = feat_i)
     
     outputs <- mirai::mirai_map(map_input, func_to_run)[.progress]
-    
-    #cli::cli_alert_success("Passed mirai_map()")
-    #cli::cli_alert("First result: ")
-    #print(outputs[[1]])
+   
+    # cli::cli_alert_success("Passed mirai_map()")
+    # cli::cli_alert("First result: ")
+    # print(outputs[[1]])
     # outputs <-
     #     pbapply::pblapply(seq_len(ncol(features)), cl = cluster, func_to_run)
     

@@ -1419,7 +1419,7 @@ maaslin_compute_formula <- function(data,
                             random_effects_formula_text)
             random_effects_formula <-
                 tryCatch(
-                    as.formula(random_effects_formula_text),
+                    stats::as.formula(random_effects_formula_text),
                     error = function(e)
                         stop(
                             sprintf(
@@ -1526,7 +1526,7 @@ maaslin_compute_formula <- function(data,
     logging::loginfo("Formula for fixed effects: %s", formula_text)
     formula <-
         tryCatch(
-            as.formula(formula_text),
+            stats::as.formula(formula_text),
             error = function(e)
                 stop(
                     sprintf(
@@ -1598,7 +1598,7 @@ maaslin_check_formula <- function(data,
 
     formula <-
         tryCatch(
-            as.formula(input_formula),
+            stats::as.formula(input_formula),
             error = function(e)
                 stop(sprintf("Invalid formula: %s",
                             input_formula))
@@ -1829,7 +1829,7 @@ maaslin_process_metadata <- function(metadata,
             term_labels <- '1'
         }
         tmp_formula <-
-            formula(paste0("~ ", paste0(term_labels, collapse = " + ")))
+            stats::formula(paste0("~ ", paste0(term_labels, collapse = " + ")))
         formula_terms <- all.vars(tmp_formula)
         if (is.null(feature_specific_covariate_name)) {
             fixed_effects <- formula_terms

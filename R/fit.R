@@ -387,13 +387,15 @@ add_joint_signif <-
             
             merged_signif <- merged_signif %>%
                 dplyr::left_join(merged_signif_tmp %>% 
-                            dplyr::select(dplyr::all_of(overlapping_cols), 
-                                            .data$logistic_error), 
+                            collapse::fselect(c(overlapping_cols, "logistic_error")), 
                             by = overlapping_cols) %>%
                 dplyr::mutate(logistic_error = dplyr::coalesce(
                     .data$logistic_error.y, 
-                    .data$logistic_error.x)) %>%
-                dplyr::select(-.data$logistic_error.x, -.data$logistic_error.y)
+                    .data$logistic_error.x))
+            
+            collapse::fselect(merged_signif, c("logistic_error.x",
+                                               "logistic_error.y")) <- NULL
+            
         }
         
         merged_signif <- create_combined_pval(merged_signif,
@@ -2638,10 +2640,8 @@ fit.model <- function(features,
     ##############################
     
     paras <- paras[order(paras$pval, decreasing = FALSE), ]
-    paras <-
-        dplyr::select(paras,
-                    c('feature', 'metadata', 'value'),
-                    dplyr::everything())
+    
+    paras <- collapse::colorderv(paras, c('feature', 'metadata', 'value'))
     paras$model <- model
     rownames(paras) <- NULL
     

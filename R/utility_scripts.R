@@ -592,17 +592,14 @@ maaslin_contrast_test <- function(
                             correction)
         if (!is.null(fit_data_abundance)) {
             fit_data_abundance$results <- results[[1]]
-            fit_data_abundance$results <- fit_data_abundance$results %>%
-                dplyr::select(-.data$metadata,
-                        -.data$value,
-                        -.data$name)
+            
+            collapse::fselect(fit_data_abundance$results,
+                              c("metadata", "value", "name")) <- NULL
         }
         if (!is.null(fit_data_prevalence)) {
             fit_data_prevalence$results <- results[[2]]
-            fit_data_prevalence$results <- fit_data_prevalence$results %>%
-                dplyr::select(-.data$metadata,
-                        -.data$value,
-                        -.data$name)
+            collapse::fselect(fit_data_prevalence$results,
+                              c("metadata", "value", "name")) <- NULL
         }
     } else if (evaluate_only == 'abundance') {
         if (!is.null(fit_data_abundance)) {

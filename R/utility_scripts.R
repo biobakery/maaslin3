@@ -609,9 +609,9 @@ maaslin_contrast_test <- function(
             fit_data_abundance$results$qval_joint <-
                 fit_data_abundance$results$qval
             
-            fit_data_abundance$results <- collapse::frename(fit_data_abundance$results,
-                                                            "pval_individual" = "pval",
-                                                            "qval_individual" = "qval")
+            collapse::setrename(fit_data_abundance$results,
+                                 "pval_individual" = "pval",
+                                 "qval_individual" = "qval")
         }
     } else if (evaluate_only == 'prevalence') {
         fit_data_prevalence$results$pval_joint <-
@@ -620,9 +620,9 @@ maaslin_contrast_test <- function(
         fit_data_prevalence$results$qval_joint <-
             fit_data_prevalence$results$qval
         
-        fit_data_prevalence$results <- collapse::frename(fit_data_prevalence$results,
-                                                         "pval_individual" = "pval",
-                                                         "qval_individual" = "qval")
+        collapse::setrename(fit_data_prevalence$results,
+                             "pval_individual" = "pval",
+                             "qval_individual" = "qval")
     }
     
     if (!is.null(fit_data_prevalence)) {

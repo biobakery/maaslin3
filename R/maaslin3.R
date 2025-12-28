@@ -2289,9 +2289,9 @@ maaslin_fit <- function(filtered_data,
             fit_data_abundance$results$qval_joint <-
                 fit_data_abundance$results$qval
             
-            fit_data_abundance$results <- collapse::frename(outputs$results,
-                                                            "pval_individual" = "pval",
-                                                            "qval_individual" = "qval" )
+            collapse::setrename(outputs$results,
+                                "pval_individual" = "pval",
+                                "qval_individual" = "qval" )
             
         } else if (evaluate_only == 'prevalence') {
             fit_data_prevalence$results$pval_joint <-
@@ -2299,9 +2299,9 @@ maaslin_fit <- function(filtered_data,
             fit_data_prevalence$results$qval_joint <-
                 fit_data_prevalence$results$qval
             
-            fit_data_prevalence$results <- collapse::frename(fit_data_prevalence$results,
-                                                             "pval_individual" = "pval",
-                                                             "qval_individual" = "qval")
+            collapse::setrename(fit_data_prevalence$results,
+                                "pval_individual" = "pval",
+                                "qval_individual" = "qval")
         }
     }
     
@@ -2358,6 +2358,7 @@ maaslin_fit <- function(filtered_data,
 
         # Reorder columns
         fit_data_prevalence$results <- fit_data_prevalence$results[,col_order]
+        
     } else {
         fit_data_prevalence <- NULL
     }

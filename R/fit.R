@@ -1592,6 +1592,9 @@ fitting_wrap_up <- function(fit_properly,
     if (fit_properly) {
         output$residuals <- stats::residuals(fit)
         output$fitted <- stats::fitted(fit)
+        # ^ It would be better to unname these and put them together in a
+        # co-indexed data frame. TODO:
+        
         if (!(is.null(random_effects_formula))) {
             # Returns a list with a table for each random effect
             l <- ranef_function(fit)
@@ -1656,17 +1659,26 @@ fitting_wrap_up <- function(fit_properly,
         # fit. It's just a redundant copy of the metadata. Same for these
         # elements of the reponse module in fit@resp.
         output$fit@frame <- data.frame()
+        # For some reason this makes the models_*.rds file a lot larger TODO:
+        # identify why or better yet save only what's needed.
+        
+        # The response slot is big too.
         # output$fit@resp$mu <- vector("numeric")
         # output$fit@resp$y <- vector("numeric")
 
-        # TODO: check if this can/should be done for the other model types like lm/glm/clogit
-        # The "y" element of clogit objects looks suspiciously large.
+        # TODO: check if this can/should be done for the other model types like
+        # lm/glm/clogit The "y" element of clogit objects looks suspiciously
+        # large. It would be best of all to just extract the
+        # parameters/statistics of interest and drop everything else. If one
+        # really wants access to the full fit object it would be best to save
+        # individual feature fits to their own RDS files under fits/models_*/
+        # from within func_to_run() and avoid returning it. That would save
+        # time, memory, and avoid creating huge models_logistic.rds files.
 
         # The fits also contain redundant copies of the fitted / residual values
         # too. Those can/should be deleted too probably.
 
         # OOP - What I want is a banana. What I get is a gorilla holding a banana.
-
     }
     
     colnames(output$para) <-
@@ -2597,12 +2609,30 @@ fit.model <- function(features,
     feat_i = seq_len(ncol(features))
     
     # purrr::list_transpose() would be a better way to do this V.
-    map_input = data.frame(fv = I(feat_list), fn = feat_nm, fi = feat_i)
+    map_input = data.frame(fv = I(feat_list), # feature value, name, index
+                           fn = feat_nm, 
+                           fi = feat_i)
     
-    outputs <- mirai::mirai_map(map_input, func_to_run)[.progress]
-   
-    #cli::cli_alert_success("Passed mirai_map()")
-    #cli::cli_alert("First result: ")
+    if (mirai::daemons_set()) {
+        outputs <- mirai::mirai_map(map_input, func_to_run)[.progress]
+        # ^ TODO, figure out how to ensure this writes to the log file
+    } else {
+        outputs <- mapply(func_to_run, 
+                          map_input$fv,
+                          map_input$fn,
+                          map_input$fi,
+                          SIMPLIFY = TRUE)
+        # mirai_map() deliberately doesn't fall back to serial without daemons set: https://github.com/r-lib/mirai/issues/397
+        
+        # To get progress here:
+        # lightest: error out and tell user to set daemons with mirai::require_daemons()
+        # alternative: utils::txtProgressBar + a loop
+        # alternative 2: reintroduce pbapply dependency (it's pretty light)
+    }
+    
+    cli::cli_alert_success("Passed mirai_map()")
+    print(head(names(outputs)))
+    # cli::cli_alert("First result: ")
     # print(outputs[[1]]$fit)
     # outputs <-
     #     pbapply::pblapply(seq_len(ncol(features)), cl = cluster, func_to_run)

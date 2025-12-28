@@ -605,21 +605,24 @@ maaslin_contrast_test <- function(
         if (!is.null(fit_data_abundance)) {
             fit_data_abundance$results$pval_joint <-
                 fit_data_abundance$results$pval
+            
             fit_data_abundance$results$qval_joint <-
                 fit_data_abundance$results$qval
-            fit_data_abundance$results <- fit_data_abundance$results %>%
-                dplyr::rename(pval_individual = .data$pval,
-                            qval_individual = .data$qval)
+            
+            fit_data_abundance$results <- collapse::frename(fit_data_abundance$results,
+                                                            "pval_individual" = "pval",
+                                                            "qval_individual" = "qval")
         }
     } else if (evaluate_only == 'prevalence') {
         fit_data_prevalence$results$pval_joint <-
             fit_data_prevalence$results$pval
+        
         fit_data_prevalence$results$qval_joint <-
             fit_data_prevalence$results$qval
-        fit_data_prevalence$results <-
-            fit_data_prevalence$results %>%
-            dplyr::rename(pval_individual = .data$pval,
-                            qval_individual = .data$qval)
+        
+        fit_data_prevalence$results <- collapse::frename(fit_data_prevalence$results,
+                                                         "pval_individual" = "pval",
+                                                         "qval_individual" = "qval")
     }
     
     if (!is.null(fit_data_prevalence)) {

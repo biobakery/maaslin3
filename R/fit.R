@@ -417,15 +417,16 @@ append_joint <- function(outputs, merged_signif, association_type) {
                                 "name",
                                 "pval_joint",
                                 "qval_joint")]
-        outputs$results <- outputs$results %>%
-            dplyr::rename(
-                pval_individual = .data$pval,
-                qval_individual = .data$qval
-            )
+        
+        outputs$results <- collapse::frename(outputs$results,
+                                             "pval_individual" = "pval",
+                                             "qval_individual" = "qval"
+        )
         
         merged_signif <- merge(outputs$results,
-                                merged_signif,
-                                by = c("feature", "metadata", "value", "name"))
+                               merged_signif,
+                               by = c("feature", "metadata", "value", "name"))
+        
     } else if (association_type == 'prevalence') {
         merged_signif <-
             merged_signif[, c("feature",
@@ -435,17 +436,17 @@ append_joint <- function(outputs, merged_signif, association_type) {
                                 "pval_joint",
                                 "qval_joint",
                                 "logistic_error")]
-        merged_signif <- merged_signif %>%
-            dplyr::rename(
-                error = .data$logistic_error,
-            )
+        
+        merged_signif <- collapse::frename(merged_signif,
+                                           "error " = "logistic_error",
+        )
         
         outputs$results$error <- NULL
-        outputs$results <- outputs$results %>%
-            dplyr::rename(
-                pval_individual = .data$pval,
-                qval_individual = .data$qval
-            )
+        
+        outputs$results <- collapse::frename(outputs$results, 
+                                             "pval_individual" = "pval",
+                                             "qval_individual" = "qval"
+        )
 
         merged_signif <- merge(outputs$results,
                                 merged_signif,

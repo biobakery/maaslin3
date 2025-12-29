@@ -277,12 +277,10 @@ write_results <- function(output,
                         fit_data_prevalence$results)
     }
     
-    fit_data$model <-
-        dplyr::case_when(
-            fit_data$model == 'linear' ~ 'abundance',
-            fit_data$model == 'logistic' ~ 'prevalence',
-            TRUE ~ NA
-        )
+    fit_data$model <- data.table::fcase(
+            fit_data$model == 'linear', 'abundance',
+            fit_data$model == 'logistic',  'prevalence'
+    )
     
     small_random_effects_warning <- 
         paste0("<4 average observations per random effect group often inflates",

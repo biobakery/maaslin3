@@ -578,8 +578,9 @@ maaslin3_summary_plot <-
         }
 
         
-        merged_results_sig <- merged_results %>%
-            dplyr::filter(.data$feature %in% signif_taxa)
+        merged_results_sig <- merged_results |> 
+            collapse::fsubset(merged_results$feature %in% signif_taxa)
+        # TODO: consider collapse::`%iin%`
         
         # Order features
         ord_feature <-

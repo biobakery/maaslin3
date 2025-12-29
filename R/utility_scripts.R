@@ -582,7 +582,7 @@ maaslin_contrast_test <- function(
             
             dtest = fit_data_prevalence$results$test
             
-            fit_data_prevalence$results <- fit_data_prevalence$results %>%
+            fit_data_prevalence$results <- fit_data_prevalence$results |> 
                 collapse::fmutate(metadata = dtest,
                                   value    = dtest,
                                   name     = dtest)

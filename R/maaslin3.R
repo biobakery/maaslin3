@@ -39,7 +39,6 @@ if (identical(environment(), globalenv()) &&
     script_dir <- dirname(script_path)
     script_name <- basename(script_path)
     R_files <- c("fit.R", "utility_scripts.R", "viz.R")
-    `%>%` <- dplyr::`%>%`
 
     for (R_file in R_files)
     {

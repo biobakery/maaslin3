@@ -2589,7 +2589,11 @@ maaslin_plot_results_from_output <- function(output,
             all_results_file
         ))
     }
-    merged_results <- utils::read.csv(all_results_file, sep = '\t')
+    
+    merged_results <- data.table::fread(all_results_file, 
+                                        sep = '\t') |> 
+        as.data.frame()
+    
     merged_results$model[merged_results$model == 'abundance'] <- 'linear'
     merged_results$model[merged_results$model == 'prevalence'] <- 'logistic'
 
@@ -2637,12 +2641,17 @@ maaslin_plot_results_from_output <- function(output,
             ))
         }
         transformed_data <-
-            utils::read.csv(
+            data.table::fread(
                 features_file,
                 sep = '\t',
-                row.names = 1, 
                 check.names = FALSE
-            )
+            ) |> 
+            as.data.frame()
+        
+        transformed_data = transformed_data |> 
+            collapse::setRownames(transformed_data$feature)
+        
+        collapse::fselect(transformed_data, "feature") <- NULL
 
         logging::loginfo(
             paste(

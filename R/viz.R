@@ -1171,11 +1171,12 @@ make_tile_plot <- function(joined_features_metadata_prev,
         expand.grid(feature_abun = x_vals,
                     metadata = y_vals)
     
-    table_df <- complete_grid %>%
-        dplyr::left_join(count_df, by = 
-                            c("feature_abun", "metadata")) %>%
-        dplyr::mutate(count = ifelse(
-            is.na(.data$count), 0, .data$count))
+    table_df <- collapse::join(complete_grid,
+                               count_df,
+                               verbose = FALSE,
+                               on = c("feature_abun", "metadata")) 
+    
+    table_df$count = collapse::replace_na(table_df$count, value = 0)
     
     temp_plot <-
         ggplot2::ggplot(table_df,
@@ -1484,25 +1485,32 @@ maaslin3_association_plots <-
                                         metadata = metadata[, metadata_name], 
                                         check.names = FALSE)
             }
-            joined_features_metadata <-
-                dplyr::inner_join(feature_abun, metadata_sub, by = c('sample'))
+            
+            joined_features_metadata <- collapse::join(
+                feature_abun,
+                metadata_sub,
+                on = c('sample'),
+                how = "inner",
+                verbose = FALSE
+            )
             
             model_name <- features_by_metadata[row_num, 'model']
+            
             this_signif_association <-
                 merged_results[merged_results$feature == feature_name &
-                                merged_results$metadata == metadata_name &
-                                merged_results$model == model_name,]
+                                   merged_results$metadata == metadata_name &
+                                   merged_results$model == model_name,]
             
             if ('linear' == model_name) {
                 temp_plot <- make_lm_plot(this_signif_association,
-                                        joined_features_metadata,
-                                        metadata,
-                                        metadata_name,
-                                        feature_name,
-                                        normalization,
-                                        transformation,
-                                        feature_specific_covariate_name,
-                                        feature_specific_covariate)
+                                          joined_features_metadata,
+                                          metadata,
+                                          metadata_name,
+                                          feature_name,
+                                          normalization,
+                                          transformation,
+                                          feature_specific_covariate_name,
+                                          feature_specific_covariate)
             }
             
             if ('logistic' == model_name) {

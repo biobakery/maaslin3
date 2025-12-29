@@ -318,10 +318,13 @@ add_joint_signif <-
         
         # Join and check linear and logistic pieces
         merged_signif <-
-            dplyr::full_join(
-                unique(fit_data_prevalence_signif),
-                unique(fit_data_abundance_signif),
-                by = c("feature", "metadata", "value", "name")
+            collapse::join(
+                collapse::funique(fit_data_prevalence_signif),
+                collapse::funique(fit_data_abundance_signif),
+                how = "full",
+                verbose = FALSE,
+                on = c("feature", "metadata", "value", "name"),
+                overid = 2 # Pretty sure 0 would be fine, but 2 to be safe
             )
         
         # Show the difference between the logistic and linear models fit
@@ -339,6 +342,7 @@ add_joint_signif <-
                 fit_data_prevalence$results[, c("feature", "metadata", "value",
                                             "name", "coef", "null_hypothesis",
                                             "pval", "qval", "error")]
+            
             colnames(fit_data_prevalence_signif_tmp) <-
                 c("feature",
                     "metadata",
@@ -349,11 +353,13 @@ add_joint_signif <-
                     "logistic",
                     "logistic_qval",
                     "logistic_error")
+            
             fit_data_abundance_signif_tmp <-
                 new_fit_data_abundance$results[, 
                     c("feature", "metadata", "value",
                     "name", "coef", "null_hypothesis",
                     "pval", "qval", "error")]
+            
             colnames(fit_data_abundance_signif_tmp) <-
                 c("feature",
                     "metadata",
@@ -366,10 +372,13 @@ add_joint_signif <-
                     "linear_error")
             
             merged_signif_tmp <-
-                dplyr::left_join(
-                    unique(fit_data_prevalence_signif_tmp),
-                    unique(fit_data_abundance_signif_tmp),
-                    by = c("feature", "metadata", "value", "name")
+                collapse::join(
+                    collapse::funique(fit_data_prevalence_signif_tmp),
+                    collapse::funique(fit_data_abundance_signif_tmp),
+                    how = "left",
+                    verbose = FALSE,
+                    overid = 2,
+                    on = c("feature", "metadata", "value", "name")
                 )
             
             merged_signif_tmp <- 
@@ -385,16 +394,27 @@ add_joint_signif <-
                                 "logistic",
                                 "logistic_qval")
             
-            merged_signif <- merged_signif %>%
-                dplyr::left_join(merged_signif_tmp %>% 
-                            collapse::fselect(c(overlapping_cols, "logistic_error")), 
-                            by = overlapping_cols) %>%
-                dplyr::mutate(logistic_error = dplyr::coalesce(
-                    .data$logistic_error.y, 
-                    .data$logistic_error.x))
+            merged_signif <- collapse::join(merged_signif,
+                                            collapse::fselect(merged_signif_tmp,
+                                                              c(overlapping_cols, 
+                                                                "logistic_error")),
+                                            how = "left",
+                                            overid = 2,
+                                            on = overlapping_cols,
+                                            verbose = FALSE,
+                                            suffix = c("_x", "_y"))
             
-            collapse::fselect(merged_signif, c("logistic_error.x",
-                                               "logistic_error.y")) <- NULL
+            # I don't think collapse::join can perfectly mimic the .x/.y
+            # suffixing of dplyr joins. It uses _ as a separator.
+            
+            merged_signif <- collapse::fmutate(merged_signif,
+                logistic_error = data.table::fcoalesce(merged_signif$logistic_error_y,
+                                                       merged_signif$logistic_error_x)
+                )
+            
+            collapse::fselect(merged_signif,
+                              c("logistic_error_x",
+                                "logistic_error_y")) <- NULL
             
         }
         

@@ -434,16 +434,15 @@ maaslin_contrast_test <- function(
         # Count the total values for each feature (untransformed space) #
         #################################################################
         
-        fit_data_abundance$results$N <- as.numeric(plyr::mapvalues(
+        fit_data_abundance$results$N <- as.numeric(fmapvalues(
             fit_data_abundance$results$feature,
             maaslin3_fit$fit_data_abundance$results$feature,
-            maaslin3_fit$fit_data_abundance$results$N,
-            warn_missing = FALSE))
-        fit_data_abundance$results$N_not_zero <- as.numeric(plyr::mapvalues(
+            maaslin3_fit$fit_data_abundance$results$N))
+        
+        fit_data_abundance$results$N_not_zero <- as.numeric(fmapvalues(
             fit_data_abundance$results$feature,
             maaslin3_fit$fit_data_abundance$results$feature,
-            maaslin3_fit$fit_data_abundance$results$N_not_zero,
-            warn_missing = FALSE))
+            maaslin3_fit$fit_data_abundance$results$N_not_zero))
     }
     
     # Run logistic model component
@@ -466,16 +465,15 @@ maaslin_contrast_test <- function(
             rhs = rhs,
             median_comparison = median_comparison_prevalence)
         
-        fit_data_prevalence$results$N <- as.numeric(plyr::mapvalues(
+        fit_data_prevalence$results$N <- as.numeric(fmapvalues(
             fit_data_prevalence$results$feature,
             maaslin3_fit$fit_data_prevalence$results$feature,
-            maaslin3_fit$fit_data_prevalence$results$N,
-            warn_missing = FALSE))
-        fit_data_prevalence$results$N_not_zero <- as.numeric(plyr::mapvalues(
+            maaslin3_fit$fit_data_prevalence$results$N))
+        
+        fit_data_prevalence$results$N_not_zero <- as.numeric(fmapvalues(
             fit_data_prevalence$results$feature,
             maaslin3_fit$fit_data_prevalence$results$feature,
-            maaslin3_fit$fit_data_prevalence$results$N_not_zero, 
-            warn_missing = FALSE))
+            maaslin3_fit$fit_data_prevalence$results$N_not_zero))
     }
     
     # Check for highly significant likely model misfits
@@ -1178,7 +1176,7 @@ preprocess_taxa_mtx <- function(taxa_table, rna_table, rna_per_taxon) {
     
     # Create a dna table by choosing the taxa to match the rna table
     dna_table <- taxa_table[, 
-        plyr::mapvalues(colnames(rna_table), rna_vec, taxon_vec)]
+        fmapvalues(colnames(rna_table), rna_vec, taxon_vec)]
     colnames(dna_table) <- colnames(rna_table)
 
     # Transforming DNA table
@@ -1198,7 +1196,7 @@ preprocess_taxa_mtx <- function(taxa_table, rna_table, rna_per_taxon) {
             apply(rna_table[, rna_cols, drop = FALSE], 1, max, na.rm = TRUE)
         }, FUN.VALUE = numeric(nrow(rna_table)))
     max_rna_table <- max_rna_table[, 
-        plyr::mapvalues(colnames(rna_table), rna_vec, taxon_vec)]
+        fmapvalues(colnames(rna_table), rna_vec, taxon_vec)]
     colnames(max_rna_table) <- colnames(rna_table)
 
     dna_table[dna_table == -Inf & max_rna_table > 0] <- impute_val
@@ -1230,3 +1228,16 @@ maaslin_read_summarized_experiment_data <-
     ))
 }
 
+fmapvalues <- function(x, from, to) {
+    # To avoid dependency on plyr for mapvalues()
+   
+    stopifnot(length(from) == length(to)) 
+    
+    from_matches = collapse::fmatch(x, from)
+    
+    mch_id = collapse::whichNA(from_matches, invert = TRUE)
+    
+    to_set = to[from_matches[mch_id]]
+    
+    return(collapse::copyv(x, mch_id, to_set)) 
+}

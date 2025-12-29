@@ -562,14 +562,15 @@ maaslin3_summary_plot <-
                     # grab the first N feature where 
                     # N=N/(length of coef_plot_var) to
                     # plot the coef plot
-                    first_n_per <- first_n/length(coef_plot_vars)
-                    signif_taxa <- merged_results_joint_only %>% 
-                    dplyr::group_by(.data$full_metadata_name) %>%
-                    dplyr::arrange(dplyr::desc(-.data$qval_joint), 
-                                    .by_group = TRUE) %>%
-                    dplyr::slice_head(n=ceiling(first_n_per)) %>%
-                    dplyr::pull(.data$feature) %>%
-                    unique()
+                    first_n_per <- ceiling(first_n/length(coef_plot_vars))
+                    
+                    signif_taxa <- merged_results_joint_only |>
+                        collapse::roworderv(cols = c("full_metadata_name", 
+                                                     "qval_joint")) |> 
+                        collapse::fslicev("full_metadata_name",
+                                          n = first_n_per) |> 
+                        collapse::get_elem("feature") |> 
+                        collapse::funique()
                 }
             } else {
                 signif_taxa <-

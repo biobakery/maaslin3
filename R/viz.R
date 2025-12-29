@@ -112,15 +112,33 @@ make_coef_plot <- function(merged_results_sig,
                             coef_plot_vars,]
     
     # Limit plotted coefficients to median +/- 10 times distance to quartiles
-    quantile_df <- coef_plot_data %>%
-        dplyr::group_by(.data$full_metadata_name) %>%
-        dplyr::summarise(
-            lower_q = median(.data$coef) - plot_threshold * 
-                (median(.data$coef) - quantile(.data$coef, 0.25)),
-            upper_q = median(.data$coef) + plot_threshold * 
-                (quantile(.data$coef, 0.75) - median(.data$coef))
-        ) %>%
+    get_lo = function(x, pt = plot_threshold) {
+        med_x = collapse::fmedian(x)
+        
+        q_x = collapse::fquantile(x, .25)
+        
+        med_x - pt * (med_x - q_x)
+    }
+    
+    get_hi = function(x, pt = plot_threshold) {
+        med_x = collapse::fmedian(x)
+        
+        q_x = collapse::fquantile(x, .75)
+        
+        med_x + pt * (q_x - med_x)
+    }
+    
+    quantile_df <- coef_plot_data |>
+        collapse::fgroup_by("full_metadata_name") |>
+        collapse::collapv(by = "full_metadata_name",
+                          FUN = list(get_lo, get_hi),
+                          cols = "coef") |> 
+        collapse::fungroup() |> 
+        collapse::fselect("full_metadata_name", 
+                          "lower_q" = "get_lo.coef", 
+                          "upper_q" = "get_hi.coef") |> 
         data.frame(check.names = FALSE)
+        
     rownames(quantile_df) <- quantile_df$full_metadata_name
     
     # Make sure insignificant coefficients don't distort the plot
@@ -495,11 +513,11 @@ maaslin3_summary_plot <-
             return()
         }
         
-        median_df <- merged_results %>%
-            dplyr::group_by(.data$full_metadata_name, .data$model) %>%
-            dplyr::summarize(median_val = 
-                unique(.data$null_hypothesis), 
-                .groups = 'drop')
+        median_df <- merged_results |> 
+            collapse::fselect(  c("full_metadata_name", "model", "null_hypothesis")) |> 
+            collapse::fgroup_by(c("full_metadata_name", "model")) |> 
+            collapse::fmedian() |> 
+            collapse::frename("median_val" = "null_hypothesis")
 
         # Check variables can be plotted
         if (!is.null(coef_plot_vars) | !is.null(heatmap_vars)) {
@@ -534,12 +552,11 @@ maaslin3_summary_plot <-
         }
         
         # Subset associations for plotting
-        merged_results_joint_only <-
-            unique(merged_results[, c('feature', 'qval_joint', 
-                                        'full_metadata_name')])
-        merged_results_joint_only <-
-            merged_results_joint_only[
-                order(merged_results_joint_only$qval_joint),]
+        merged_results_joint_only <- merged_results |> 
+            collapse::fselect(c('feature', 'qval_joint', 'full_metadata_name')) |> 
+            collapse::funique() |> 
+            collapse::roworderv("qval_joint")
+        
         if (length(unique(merged_results_joint_only$feature)) < first_n) {
             first_n <- length(unique(merged_results_joint_only$feature))
             signif_taxa <-
@@ -593,15 +610,20 @@ maaslin3_summary_plot <-
         
         # Choose variables for plotting if not set
         if (is.null(coef_plot_vars)) {
-            mean_log_qval <- merged_results_sig %>%
-                dplyr::group_by(.data$full_metadata_name) %>%
-                dplyr::summarise(mean_value = 
-                                    mean(log(.data$qval_joint), na.rm = TRUE))
             
+            mean_log_qval <- merged_results_sig |> 
+                collapse::collapv(by   = "full_metadata_name",
+                                  cols = "qval_joint",
+                                  FUN  = \(x) collapse::fmean(log(x), na.rm = TRUE)) |> 
+                collapse::fselect("full_metadata_name", 
+                                  "mean_value" = "qval_joint")
+                
             coef_plot_vars <-
                 mean_log_qval$full_metadata_name[
                     order(mean_log_qval$mean_value)]
+            
             coef_plot_vars <- setdiff(coef_plot_vars, heatmap_vars)
+            
             if (length(coef_plot_vars) > 0) {
                 coef_plot_vars <-
                     coef_plot_vars[seq(min(2, length(coef_plot_vars)))]
@@ -610,14 +632,18 @@ maaslin3_summary_plot <-
         
         # Choose variables for plotting if not set
         if (is.null(heatmap_vars)) {
-            mean_log_qval <- merged_results_sig %>%
-                dplyr::group_by(.data$full_metadata_name) %>%
-                dplyr::summarise(mean_value = 
-                                    mean(log(.data$qval_joint), na.rm = TRUE))
+            
+            mean_log_qval <- merged_results_sig |> 
+                collapse::collapv(by   = "full_metadata_name",
+                                  cols = "qval_joint",
+                                  FUN  = \(x) collapse::fmean(log(x), na.rm = TRUE)) |> 
+                collapse::fselect("full_metadata_name", 
+                                  "mean_value" = "qval_joint")
             
             heatmap_vars <-
                 mean_log_qval$full_metadata_name[
                     order(mean_log_qval$mean_value)]
+            
             heatmap_vars <- setdiff(heatmap_vars, coef_plot_vars)
         }
         
@@ -1162,9 +1188,12 @@ make_tile_plot <- function(joined_features_metadata_prev,
     match.arg(normalization, c('Total sum scaling', 'Center log ratio', 'None'))
     match.arg(transformation, c('Log base 2', 'Pseudo-log base 2', 'None'))
     
-    count_df <- joined_features_metadata_prev %>%
-        dplyr::group_by(.data$feature_abun, .data$metadata) %>%
-        dplyr::summarise(count = dplyr::n(), .groups = 'drop')
+    count_df <- joined_features_metadata_prev |> 
+        collapse::fcountv(c("feature_abun",
+                            "metadata")) |> 
+        collapse::roworderv(c("feature_abun",
+                              "metadata")) |> 
+        collapse::frename("count" = "N")
     
     x_vals <-
         unique(joined_features_metadata_prev$feature_abun)

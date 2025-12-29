@@ -548,8 +548,8 @@ maaslin_contrast_test <- function(
         fit_data_prevalence$results <- results[[2]]
     }
     if (!is.null(fit_data_abundance)) {
-        fit_data_abundance$results <- fit_data_abundance$results %>%
-            dplyr::mutate(null_hypothesis = rhs)
+        fit_data_abundance$results <- fit_data_abundance$results |>
+            collapse::fmutate(null_hypothesis = rhs)
         
         if (subtract_median & median_comparison_abundance) {
             fit_data_abundance$results$coef <- 
@@ -559,8 +559,8 @@ maaslin_contrast_test <- function(
         }
     }
     if (!is.null(fit_data_prevalence)) {
-        fit_data_prevalence$results <- fit_data_prevalence$results %>%
-            dplyr::mutate(null_hypothesis = rhs)
+        fit_data_prevalence$results <- fit_data_prevalence$results |>
+            collapse::fmutate(null_hypothesis = rhs)
         
         if (subtract_median & median_comparison_prevalence) {
             fit_data_prevalence$results$coef <- 
@@ -573,16 +573,23 @@ maaslin_contrast_test <- function(
     # Add in joint p/q-values
     if (is.null(evaluate_only)) {
         if (!is.null(fit_data_abundance)) {
-            fit_data_abundance$results <- fit_data_abundance$results %>%
-                dplyr::mutate(metadata = .data$test,
-                    value = .data$test,
-                    name = .data$test)
+            
+            dtest = fit_data_abundance$results$test
+            
+            fit_data_abundance$results <- fit_data_abundance$results |> 
+                collapse::fmutate(metadata = dtest,
+                                  value    = dtest,
+                                  name     = dtest)
+            
         }
         if (!is.null(fit_data_prevalence)) {
+            
+            dtest = fit_data_prevalence$results$test
+            
             fit_data_prevalence$results <- fit_data_prevalence$results %>%
-                dplyr::mutate(metadata = .data$test,
-                    value = .data$test,
-                    name = .data$test)
+                collapse::fmutate(metadata = dtest,
+                                  value    = dtest,
+                                  name     = dtest)
         }
         results <-
             add_joint_signif(fit_data_abundance,

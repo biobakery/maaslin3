@@ -1904,7 +1904,9 @@ maaslin_process_metadata <- function(metadata,
 
     if (standardize) {
         logging::loginfo("Applying z-score to standardize continuous metadata")
-        metadata <- metadata %>% dplyr::mutate_if(is.numeric, scale)
+        
+        collapse::num_vars(metadata) <- collapse::fscale(collapse::num_vars(metadata))
+        
     } else {
         logging::loginfo("Bypass z-score application to metadata")
     }

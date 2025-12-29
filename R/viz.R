@@ -357,8 +357,9 @@ make_heatmap_plot <- function(merged_results_sig,
             which(value < coef_breaks)[1]
         }, FUN.VALUE = 0)
     
-    merged_results_sig <- merged_results_sig %>%
-        dplyr::mutate(coef_cat = threshold_set[threshold_indices])
+    merged_results_sig <- merged_results_sig |>  
+        collapse::fmutate(coef_cat = threshold_set[threshold_indices])
+    
     merged_results_sig$coef_cat <-
         factor(merged_results_sig$coef_cat, levels = threshold_set)
     

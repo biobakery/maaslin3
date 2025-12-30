@@ -2353,29 +2353,30 @@ fit.model <- function(features,
     small_meta = metadata |>
         dplyr::select(dplyr::all_of(fit_vars))
     
-    # There's probably a less repetitive way to do this V 
-    mirai::everywhere({}, 
-                      metadata = small_meta,
-                      random_effects_formula = random_effects_formula,
-                      groups = groups,
-                      ordereds = ordereds,
-                      # features = features,
-                      model = model,
-                      feature_specific_covariate = feature_specific_covariate,
-                      feature_specific_covariate_name = feature_specific_covariate_name,
-                      formula = formula,
-                      summary_function = summary_function,
-                      ranef_function = ranef_function,
-                      model_function = model_function,
-                      augment = augment,
-                      median_comparison = median_comparison,
-                      save_models = save_models)
-    
-    mirai::everywhere({
-        library(stats)
-        library(methods)
-    }) # TODO find the functions needed from stats and add scoped calls to avoid this.
-    # mirai::everywhere(library(lme4))
+    if (mirai::daemons_set()) {
+        # There's probably a less repetitive way to do this V 
+        mirai::everywhere({}, 
+                          metadata = small_meta,
+                          random_effects_formula = random_effects_formula,
+                          groups = groups,
+                          ordereds = ordereds,
+                          # features = features,
+                          model = model,
+                          feature_specific_covariate = feature_specific_covariate,
+                          feature_specific_covariate_name = feature_specific_covariate_name,
+                          formula = formula,
+                          summary_function = summary_function,
+                          ranef_function = ranef_function,
+                          model_function = model_function,
+                          augment = augment,
+                          median_comparison = median_comparison,
+                          save_models = save_models)
+        
+        mirai::everywhere({
+            library(stats)
+            library(methods)
+        }) # TODO find the functions needed from stats and add scoped calls to avoid this.
+    }
     
     func_to_run <- function(fv, fn, fi) {
         # Extract Features One by One
@@ -2621,7 +2622,7 @@ fit.model <- function(features,
                           map_input$fv,
                           map_input$fn,
                           map_input$fi,
-                          SIMPLIFY = TRUE)
+                          SIMPLIFY = FALSE)
         # mirai_map() deliberately doesn't fall back to serial without daemons set: https://github.com/r-lib/mirai/issues/397
         
         # To get progress here:
@@ -2630,8 +2631,6 @@ fit.model <- function(features,
         # alternative 2: reintroduce pbapply dependency (it's pretty light)
     }
     
-    cli::cli_alert_success("Passed mirai_map()")
-    print(head(names(outputs)))
     # cli::cli_alert("First result: ")
     # print(outputs[[1]]$fit)
     # outputs <-

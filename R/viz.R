@@ -1396,44 +1396,51 @@ make_logistic_plot <- function(this_signif_association,
 # Create individual plots for significant associations
 maaslin3_association_plots <-
     function(merged_results,
-            metadata,
-            features,
-            max_significance = 0.1,
-            figures_folder,
-            max_pngs = 10,
-            normalization,
-            transform,
-            feature_specific_covariate = NULL,
-            feature_specific_covariate_name = NULL,
-            feature_specific_covariate_record = NULL,
-            save_plots_rds = FALSE) {
+             metadata,
+             features,
+             max_significance = 0.1,
+             figures_folder,
+             max_pngs = 10,
+             normalization,
+             transform,
+             feature_specific_covariate = NULL,
+             feature_specific_covariate_name = NULL,
+             feature_specific_covariate_record = NULL,
+             save_plots_rds = FALSE) {
         
         
         match.arg(normalization, c("TSS", "CLR", "NONE"))
+        
         match.arg(transform, c("LOG", "PLOG", "NONE"))
         
         # Disregard abundance-induced-prevalence errors in plotting
         merged_results$error[grepl("Prevalence association possibly induced", 
-                                    merged_results$error)] <- NA
+                                   merged_results$error)] <- NA
+        
         # Disregard small random effect group warning
         merged_results$error[grepl("<4 average observations per random effect", 
-                                    merged_results$error)] <- NA
+                                   merged_results$error)] <- NA
         
         new_name_normalization <-
             c('Total sum scaling', 'Center log ratio', 'None')
+        
         names(new_name_normalization) <- c("TSS", "CLR", "NONE")
+        
         normalization <- new_name_normalization[normalization]
         
         new_name_transformation <-
             c('Log base 2', 'Pseudo-log base 2', 'None')
+        
         names(new_name_transformation) <- c("LOG", 'PLOG', "NONE")
+        
         transformation <- new_name_transformation[transform]
         
         merged_results <-
             merged_results[is.na(merged_results$error) &
-                            !is.na(merged_results$qval_individual) &
-                            merged_results$qval_individual < 
-                            max_significance,]
+                               !is.na(merged_results$qval_individual) &
+                               merged_results$qval_individual < 
+                               max_significance,]
+        
         if (nrow(merged_results) == 0) {
             logging::loginfo(paste("All associations had errors 
                                 or were insignificant."))
@@ -1452,134 +1459,234 @@ maaslin3_association_plots <-
         )
         
         saved_plots <- list()
+        
         features_by_metadata <-
             unique(merged_results[, c('feature', 'metadata', 'model')])
         
-        # Iterate through associations to make plots
-        for (row_num in seq(min(nrow(features_by_metadata), max_pngs))) {
-            feature_name <- features_by_metadata[row_num, 'feature']
-            feature_abun <- data.frame(
-                sample = rownames(features),
-                feature_abun = features[, feature_name], 
-                check.names = FALSE)
-            
-            metadata_name <- features_by_metadata[row_num, 'metadata']
-            if (!is.null(feature_specific_covariate_name)) {
-                if (metadata_name == feature_specific_covariate_name) {
-                    metadata_sub <-
-                        data.frame(
-                            sample = rownames(feature_specific_covariate),
-                            metadata = feature_specific_covariate[, 
-                                                                feature_name],
-                            check.names = FALSE
-                        )
-                } else {
-                    metadata_sub <- data.frame(sample = rownames(metadata),
-                                            metadata = 
-                                                metadata[, metadata_name], 
-                                            check.names = FALSE)
-                }
-            } else {
-                metadata_sub <- data.frame(sample = rownames(metadata),
-                                        metadata = metadata[, metadata_name], 
-                                        check.names = FALSE)
-            }
-            joined_features_metadata <-
-                dplyr::inner_join(feature_abun, metadata_sub, by = c('sample'))
-            
-            model_name <- features_by_metadata[row_num, 'model']
-            this_signif_association <-
-                merged_results[merged_results$feature == feature_name &
-                                merged_results$metadata == metadata_name &
-                                merged_results$model == model_name,]
-            
-            if ('linear' == model_name) {
-                temp_plot <- make_lm_plot(this_signif_association,
-                                        joined_features_metadata,
-                                        metadata,
-                                        metadata_name,
-                                        feature_name,
-                                        normalization,
-                                        transformation,
-                                        feature_specific_covariate_name,
-                                        feature_specific_covariate)
-            }
-            
-            if ('logistic' == model_name) {
-                temp_plot <- make_logistic_plot(this_signif_association,
-                                                joined_features_metadata,
-                                                metadata,
-                                                metadata_name,
-                                                feature_name,
-                                                normalization,
-                                                transformation,
-                                                feature_specific_covariate_name,
-                                                feature_specific_covariate)
-            }
-            
-            saved_plots[[metadata_name]][[feature_name]][[model_name]] <-
-                temp_plot
-            
-        }
+        names(features_by_metadata)[2] = "meta_var"
+        
+        assoc_num = min(nrow(features_by_metadata), max_pngs)
+        
+        to_map = features_by_metadata[seq_len(assoc_num),]
+        
+        to_map$fv = lapply(to_map$feature, \(x) {
+            features[[x]]
+        })
+        
+        stat_df = dplyr::left_join(to_map,
+                                   merged_results, 
+                                   by = c("feature", 
+                                          "meta_var" = "metadata",
+                                          "model")) |> 
+            dplyr::mutate(split_var = paste(.data$feature, 
+                                            .data$meta_var,
+                                            .data$model,
+                                            sep = "_")) 
+        
+        stat_list = split(stat_df , 
+                          stat_df$split_var) 
+        # split() sorts the resultant list by f :(
+        
+        assoc_df = data.frame(split_var = names(stat_list),
+                              assoc_stats = I(stat_list))
+        
+        to_map = to_map |> 
+            dplyr::mutate(split_var = paste(.data$feature, 
+                                            .data$meta_var,
+                                            .data$model,
+                                            sep = "_")) |> 
+            dplyr::left_join(assoc_df, by = "split_var") |> 
+            dplyr::select(-"split_var")
+        
+        # Some associations have multiple rows of statistics to attach. A join +
+        # tidyr::nest() would be simpler, but we don't have tidyr.
+        
+        # # V Attach association stats here so we don't have to pass
+        # # around/re-join merged_results at each iteration.
+        
+        small_meta = metadata |> 
+            dplyr::select(dplyr::all_of(unique(features_by_metadata$meta_var)))
         
         association_plots_folder <-
             file.path(figures_folder, 'association_plots')
+        
         if (!file.exists(association_plots_folder)) {
             dir.create(association_plots_folder)
         }
         
-        # Save all plots
-        vapply(names(saved_plots), function(metadata_variable) {
-            # Save RDS file for each metadata_variable
-            if (save_plots_rds) {
-                saveRDS(saved_plots[[metadata_variable]], 
-                        file = file.path(association_plots_folder, 
-                                        paste0(make.names(metadata_variable), 
-                                        "_gg_associations.RDS")))
-            }
+        arg_list = list(meta = small_meta,
+                        feat_rn = rownames(features),
+                        fscn = feature_specific_covariate_name,
+                        fsc = feature_specific_covariate,
+                        normalization = normalization,
+                        transformation = transformation,
+                        save_plots_rds = save_plots_rds,
+                        ap_dir = association_plots_folder)
+        
+        if (mirai::daemons_set()) {
             
-            # Iterate over each feature in the metadata_variable
-            vapply(names(saved_plots[[metadata_variable]]), function(feature) {
-                # Iterate over each model_name for the feature
-                vapply(names(saved_plots[[metadata_variable]][[feature]]), 
-                    function(model_name) {
-                    this_plot <- saved_plots[[metadata_variable]][[
-                        feature]][[model_name]]
+            # mirai::everywhere({})
+            
+            plot_list <- mirai_map(to_map, 
+                                   plot_one_assoc,
+                                   .args = arg_list)[.progress]
+        } else {
+            plot_list <- mapply(plot_one_assoc,
+                                to_map$feature,  #life without purrr::pmap :(
+                                to_map$meta_var, 
+                                to_map$model, 
+                                to_map$fv, 
+                                to_map$assoc_stats,
+                                MoreArgs = arg_list,
+                                SIMPLIFY = FALSE,
+                                USE.NAMES = FALSE)
+        }
+        
+        to_map$pl <- plot_list
+        
+        if (save_plots_rds) {
+            # save lists for each metadata variable
+             if (save_plots_rds) {
+                
+                split_plots = split(plot_list,
+                                    to_map$meta_var)  
+                
+                ap_dir = association_plots_folder
+                save_plot_list_fun = \(x, y) {
+                    saveRDS(x, 
+                            file = file.path(ap_dir, 
+                                             paste0(make.names(y), 
+                                                    "_gg_associations.RDS")))
+                }
+                
+                if (mirai::daemons_set()) {
+                    # I don't think parallelization helps much here, might be
+                    # dependent on disk. TODO: remove?
+                    plot_df = data.frame(x = I(split_plots),
+                                         y = names(split_plots))
                     
-                    # Create the subfolder for the plot
-                    association_plots_sub_folder <- file.path(
-                        association_plots_folder, 
-                        make.names(metadata_variable), model_name)
-                    if (!file.exists(association_plots_sub_folder)) {
-                        dir.create(association_plots_sub_folder, 
-                                    recursive = TRUE)
-                    }
-                    
-                    # Define the file path for saving the plot
-                    png_file <- file.path(association_plots_sub_folder, 
-                        paste0(make.names(metadata_variable), '_', 
-                        make.names(feature), "_", model_name, ".png"))
-                    
-                    # Calculate height based on plot labels
-                    height <- max(960, 18 * max(nchar(unlist(strsplit(
-                        this_plot$labels$y, '\n')))))
-                    
-                    # Try saving the plot
-                    tryCatch({
-                        withCallingHandlers({
-                            ggplot2::ggsave(filename = png_file, 
-                                            plot = this_plot, 
-                                            dpi = 600, 
-                                            width = 960 / 300, 
-                                            height = height / 300)
-                        }, warning = function(w) { 
-                            invokeRestart("muffleWarning") })
-                    })
-                    return(0)
-                }, numeric(1))
-                return(0)
-            }, numeric(1))
-            return(0)
-        }, numeric(1))
-        return(saved_plots)
+                    mirai_map(.x = plot_df,
+                              .f = save_plot_list_fun,
+                              ap_dir = association_plots_folder)[.progress]
+                } else {
+                    mapply(split_plots,
+                           names(split_plots),
+                           FUN = save_plot_list_fun)
+                }
+             }
+        } else {
+            return(invisible())
+        }
+        
+        names(plot_list) = paste(sep = "_",
+                                 to_map$meta_var, 
+                                 to_map$feature,
+                                 to_map$model)
+            
+        return(plot_list)
     }
+
+plot_one_assoc = function(feature, meta_var, model, fv, assoc_stats,
+                          meta,
+                          feat_rn,
+                          fscn, # feature_specific_covariate_name
+                          fsc,
+                          normalization,
+                          transformation,
+                          save_plots_rds,
+                          ap_dir) {
+    
+    feature_name <- feature
+    
+    feature_abun <- data.frame(
+        sample = feat_rn,
+        feature_abun = fv, # features[, feature_name], 
+        check.names = FALSE)
+    
+    metadata_name <- meta_var # features_by_metadata[row_num, 'metadata']
+    
+    if (!is.null(fscn)) {
+        if (metadata_name == fscn) {
+            metadata_sub <-
+                data.frame(
+                    sample = rownames(fsc),
+                    metadata = fsc[, feature_name],
+                    check.names = FALSE
+                )
+        } else {
+            metadata_sub <- data.frame(sample = rownames(meta),
+                                       metadata = meta[, metadata_name], 
+                                       check.names = FALSE)
+        }
+    } else {
+        metadata_sub <- data.frame(sample = rownames(meta),
+                                   metadata = meta[, metadata_name], 
+                                   check.names = FALSE)
+    }
+    
+    joined_features_metadata <-
+        dplyr::inner_join(feature_abun, 
+                          metadata_sub,
+                          by = c('sample'))
+    
+    model_name <- model # features_by_metadata[row_num, 'model']
+    
+    this_signif_association = assoc_stats
+    
+    if ('linear' == model_name) {
+        temp_plot <- maaslin3:::make_lm_plot(this_signif_association,
+                                            joined_features_metadata,
+                                            meta,
+                                            metadata_name,
+                                            feature_name,
+                                            normalization,
+                                            transformation,
+                                            fscn,
+                                            fsc)
+    }
+    
+    if ('logistic' == model_name) {
+        temp_plot <- maaslin3:::make_logistic_plot(this_signif_association,
+                                                  joined_features_metadata,
+                                                  meta,
+                                                  metadata_name,
+                                                  feature_name,
+                                                  normalization,
+                                                  transformation,
+                                                  fscn,
+                                                  fsc)
+    }
+    
+    out_dir = file.path(ap_dir,
+                        make.names(meta_var), 
+                        model)
+    
+    if (!dir.exists(out_dir)) dir.create(out_dir, recursive = TRUE)
+    
+    png_file = file.path(out_dir, 
+                         paste0(make.names(meta_var),
+                                "_",
+                                make.names(feature_name),
+                                "_",
+                                model, ".png"))
+    
+    height <- max(960, 18 * max(nchar(unlist(strsplit(
+        temp_plot$labels$y, '\n')))))
+    
+    tryCatch({
+        withCallingHandlers({
+            ggplot2::ggsave(filename = png_file, 
+                            plot = temp_plot, 
+                            dpi = 600, 
+                            width = 960 / 300, 
+                            height = height / 300)
+        }, warning = function(w) { 
+            invokeRestart("muffleWarning") })
+    })
+    
+    if (save_plots_rds) {
+        return(temp_plot)
+    } else {
+        invisible()
+    }
+}

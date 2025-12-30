@@ -949,7 +949,7 @@ maaslin_read_data <- function(input_data,
             sep = ifelse(grepl('\\.tsv$|\\.txt$', input_data),  '\t', ','),
             check.names = FALSE)
     } else if (is.data.frame(input_data)) {
-        if (!tibble::has_rownames(input_data)) {
+        if (has_auto_rownames(input_data)) {
             stop("If supplying input_data as a data frame,
                 it must have appropriate rownames!")
         }
@@ -974,7 +974,7 @@ maaslin_read_data <- function(input_data,
             sep = ifelse(grepl('\\.tsv$|\\.txt$', input_data),  '\t', ','),
             check.names = FALSE)
     } else if (is.data.frame(input_metadata)) {
-        if (!tibble::has_rownames(input_metadata)) {
+        if (has_auto_rownames(input_metadata)) {
             stop(
                 "If supplying input_metadata as a data frame,
                 it must have appropriate rownames!"
@@ -999,7 +999,7 @@ maaslin_read_data <- function(input_data,
                 sep = ifelse(grepl('\\.tsv$|\\.txt$', input_data),  '\t', ','),
                 check.names = FALSE)
     } else if (is.data.frame(unscaled_abundance)) {
-        if (!tibble::has_rownames(unscaled_abundance)) {
+        if (has_auto_rownames(unscaled_abundance)) {
             stop(
                 "If supplying unscaled_abundance as a data frame,
                 it must have appropriate rownames!"
@@ -1024,7 +1024,7 @@ maaslin_read_data <- function(input_data,
                 sep = ifelse(grepl('\\.tsv$|\\.txt$', input_data),  '\t', ','),
                 check.names = FALSE)
     } else if (is.data.frame(feature_specific_covariate)) {
-        if (!tibble::has_rownames(feature_specific_covariate)) {
+        if (has_auto_rownames(feature_specific_covariate)) {
             stop(
                 "If supplying feature_specific_covariate as a data frame,
                 it must have appropriate rownames!"

@@ -1241,3 +1241,10 @@ fmapvalues <- function(x, from, to) {
     
     return(collapse::copyv(x, mch_id, to_set)) 
 }
+
+has_auto_rownames <- function(d) {
+    # tibble::has_rownames() also checks for !is.na(.row_names_info(.data, 0L)[[1L]])
+    # i.e. that the first rowname is not NA.
+    
+    .row_names_info(d, type = 1L) < 0L
+}

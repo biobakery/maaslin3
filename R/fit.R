@@ -1077,8 +1077,8 @@ check_for_zero_one_obs <- function(formula,
             output$ranef <- NA
         output$fit <- NA
         
-        colnames(output$para) <-
-            c('coef', 'stderr' , 'pval', 'name')
+        para = setColnames(para, c('coef', 'stderr' , 'pval', 'name'))
+        
         output$para$feature <- colnames(features)[x]
         output$para$error <-
             ifelse(
@@ -1101,6 +1101,7 @@ check_missing_first_factor_level <- function(formula,
                                             x,
                                             feature_specific_covariate_name) {
     missing_first_factor_level <- FALSE
+    
     missing_first_factor_level <- any(c(vapply(colnames(dat_sub), 
                                                 function(col) {
         if (is.factor(dat_sub[, col])) {

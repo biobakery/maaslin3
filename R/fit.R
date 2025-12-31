@@ -584,7 +584,7 @@ choose_ranef_model_summary_funs_linear <- function(random_effects_formula) {
                 rows_to_add <-
                     names_to_include[!(names_to_include %in% store_names)]
                 lm_summary <-
-                    collapse::rowbind(lm_summary, matrix(rep(
+                    rbind(lm_summary, matrix(rep(
                         NaN, 4 * length(rows_to_add)
                     ), nrow = length(rows_to_add)))
                 rownames(lm_summary) <-
@@ -653,7 +653,7 @@ choose_ranef_model_summary_funs_linear <- function(random_effects_formula) {
                 rows_to_add <-
                     names_to_include[!(names_to_include %in% store_names)]
                 lm_summary <-
-                    collapse::rowbind(lm_summary, matrix(rep(
+                    rbind(lm_summary, matrix(rep(
                         NaN, 5 * length(rows_to_add)
                     ), nrow = length(rows_to_add)))
                 rownames(lm_summary) <-
@@ -787,7 +787,7 @@ choose_ranef_model_summary_funs_logistic <- function(random_effects_formula,
                             names_to_include[
                                 !(names_to_include %in% store_names)]
                         lm_summary <-
-                            collapse::rowbind(lm_summary,
+                            rbind(lm_summary,
                                 matrix(
                                     rep(
                                         NaN,
@@ -863,7 +863,7 @@ choose_ranef_model_summary_funs_logistic <- function(random_effects_formula,
                             names_to_include[
                                 !(names_to_include %in% store_names)]
                         lm_summary <-
-                            collapse::rowbind(lm_summary,
+                            rbind(lm_summary,
                                 matrix(
                                     rep(NaN, 4 * length(rows_to_add)),
                                     nrow = length(rows_to_add)
@@ -1018,7 +1018,7 @@ choose_ranef_model_summary_funs_logistic <- function(random_effects_formula,
                 rows_to_add <-
                     names_to_include[!(names_to_include %in% store_names)]
                 lm_summary <-
-                    collapse::rowbind(lm_summary, matrix(rep(
+                    rbind(lm_summary, matrix(rep(
                         NaN, 4 * length(rows_to_add)
                     ), nrow = length(rows_to_add)))
                 rownames(lm_summary) <-

@@ -531,6 +531,7 @@ function_vec <-
         "append_joint",
         "check_for_zero_one_obs",
         "check_missing_first_factor_level",
+        "check_mffl_one",
         "fit_augmented_logistic",
         "non_augmented",
         "run_group_models",
@@ -1091,6 +1092,26 @@ check_for_zero_one_obs <- function(formula,
     return (NULL)
 }
 
+check_mffl_one = function(v, i, ex, fxf) {
+    res = FALSE
+    
+    if (!is.factor(v)) return(FALSE)
+    
+    fl = collapse::ffirst(levels(v))
+    
+    fl_expr = ex[collapse::whichv(v, fl)]
+    
+    nc_fct = nchar(i)
+    
+    fxf_nms = substr(fxf, 1, nc_fct) |> collapse::funique()
+    
+    if (collapse::allNA(fl_expr) && (i %in% fxf_nms)) {
+        TRUE
+    } else {
+        FALSE
+    }
+}
+
 # If the baseline level is missing for a factor, return blank results
 check_missing_first_factor_level <- function(formula,
                                             random_effects_formula,
@@ -1102,37 +1123,24 @@ check_missing_first_factor_level <- function(formula,
                                             feature_specific_covariate_name) {
     missing_first_factor_level <- FALSE
     
-    missing_first_factor_level <- any(c(vapply(colnames(dat_sub), 
-                                                function(col) {
-        if (is.factor(dat_sub[, col])) {
-            if (all(is.na(dat_sub$expr[dat_sub[, col] == 
-                                        levels(dat_sub[, col])[1]]))) {
-                fixed_effects <-
-                    get_fixed_effects(formula,
-                                    random_effects_formula,
-                                    dat_sub,
-                                    groups,
-                                    ordereds,
-                                    feature_specific_covariate_name)
-                if (col %in% substr(fixed_effects, 1, nchar(col))) {
-                    return(TRUE)
-                }
-            }
-        }
-        return(FALSE)
-    }, logical(1))))
+    fxf <- get_fixed_effects(formula,
+                             random_effects_formula,
+                             dat_sub,
+                             groups,
+                             ordereds,
+                             feature_specific_covariate_name)
+    
+    missing_first_factor_level <- any(mapply(FUN = check_mffl_one, 
+                                             as.list(dat_sub),
+                                             colnames(dat_sub),
+                                             MoreArgs = list(ex = dat_sub$expr,
+                                                             fxf = fxf)))
     
     if (missing_first_factor_level) {
         output <- list()
         
         # List fixed effects that will be included
-        names_to_include <-
-            get_fixed_effects(formula,
-                            random_effects_formula,
-                            dat_sub,
-                            groups,
-                            ordereds,
-                            feature_specific_covariate_name)
+        names_to_include <- fxf
         
         # Build outputs
         output$para <-
@@ -1141,17 +1149,21 @@ check_missing_first_factor_level <- function(formula,
                 nrow = length(names_to_include),
                 ncol = 3
             ))
+        
         output$para$name <- names_to_include
         
         output$residuals <- NA
+        
         output$fitted <- NA
-        if (!(is.null(random_effects_formula)))
-            output$ranef <- NA
+        
+        if (!(is.null(random_effects_formula))) output$ranef <- NA
+        
         output$fit <- NA
         
-        colnames(output$para) <-
-            c('coef', 'stderr' , 'pval', 'name')
+        para = collapse::setColnames(para, c('coef', 'stderr' , 'pval', 'name')) 
+        
         output$para$feature <- colnames(features)[x]
+        
         output$para$error <-
             "No data points have the baseline factor level"
         return(output)

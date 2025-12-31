@@ -1243,8 +1243,14 @@ fmapvalues <- function(x, from, to) {
 }
 
 has_auto_rownames <- function(d) {
-    # tibble::has_rownames() also checks for !is.na(.row_names_info(.data, 0L)[[1L]])
-    # i.e. that the first rowname is not NA.
+    # tibble::has_rownames() also checks for !is.na(.row_names_info(.data,
+    # 0L)[[1L]]) i.e. that the first rowname is not NA.
     
     .row_names_info(d, type = 1L) < 0L
+}
+
+ftail = function(d, i) {
+    if (i < 0) i = nrow(d) + i
+    
+    collapse::fslice(d, how = "last", n = i)
 }

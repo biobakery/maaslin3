@@ -110,8 +110,11 @@ rownames(logistic_piece) <- NULL
 rownames(results$fit_data_abundance$results) <- NULL
 rownames(results$fit_data_prevalence$results) <- NULL
 
-expect_that(results$fit_data_abundance$results,
-            equals(linear_piece))
+expect_equal(results$fit_data_abundance$results |> 
+                 collapse::roworderv(c("feature", "metadata", "value", "name")),
+             linear_piece)
 
-expect_that(results$fit_data_prevalence$results,
-            equals(logistic_piece))
+expect_equal(results$fit_data_prevalence$results |> 
+                 collapse::roworderv(c("feature", "metadata", "value", "name")),
+            logistic_piece |> 
+                collapse::roworderv(c("feature", "metadata", "value", "name")))

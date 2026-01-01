@@ -25,10 +25,13 @@
 
 # Function to augment data for logistic fitting
 augment_data <- function(formula, random_effects_formula, dat_sub) {
-    dat_sub_new <- rbind(dat_sub, dat_sub, dat_sub)
-    dat_sub_new$expr[(nrow(dat_sub) + 1):(2 * nrow(dat_sub))] <- 1
-    dat_sub_new$expr[(nrow(dat_sub) * 2 + 1):(3 * nrow(dat_sub))] <-
-        0
+    d2 = dat_sub 
+    d3 = dat_sub 
+    
+    d2 = collapse::ftransform(d2, expr = 1)
+    d3 = collapse::ftransform(d3, expr = 0)
+    
+    dat_sub_new <- collapse::rowbind(dat_sub, d2, d3)
     
     formula <- formula(formula)
     
@@ -177,18 +180,20 @@ add_qvals <- function(fit_data_abundance, fit_data_prevalence, correction) {
     # Select out p-values and NA if errors
     if (!is.null(fit_data_abundance)) {
         abundance_pvals <- fit_data_abundance$results$pval
-        abundance_pvals <- ifelse(!is.na(fit_data_abundance$results$error),
-                                    NA,
-                                    abundance_pvals)
+        
+        abundance_pvals <- data.table::fifelse(!is.na(fit_data_abundance$results$error),
+                                               NA_real_,
+                                               abundance_pvals)
     } else {
         abundance_pvals <- c()
     }
     
     if (!is.null(fit_data_prevalence)) {
         prevalence_pvals <- fit_data_prevalence$results$pval
-        prevalence_pvals <- ifelse(!is.na(fit_data_prevalence$results$error),
-                                    NA,
-                                    prevalence_pvals)
+        
+        prevalence_pvals <- data.table::fifelse(!is.na(fit_data_prevalence$results$error),
+                                                NA_real_,
+                                                prevalence_pvals)
     } else {
         prevalence_pvals <- c()
     }
@@ -196,9 +201,10 @@ add_qvals <- function(fit_data_abundance, fit_data_prevalence, correction) {
     # Create and write combined q-vals
     combined_qvals <- as.numeric(p.adjust(c(abundance_pvals, prevalence_pvals), 
                                 method = correction))
+    
     if (!is.null(fit_data_abundance)) {
         fit_data_abundance$results$qval <- combined_qvals[
-            seq(length(abundance_pvals))]
+            seq_len(length(abundance_pvals))]
     }
     if (!is.null(fit_data_prevalence)) {
         fit_data_prevalence$results$qval <- combined_qvals[
@@ -223,55 +229,66 @@ create_combined_pval <- function(merged_signif, correction) {
     
     # If NA or model errored, use the p-value of the non-NA
     merged_signif$pval_joint <-
-        ifelse(
-            is.na(merged_signif[, "linear"]) |
+        data.table::fifelse(
+            is.na(merged_signif$linear) |
                 !is.na(merged_signif$linear_error),
-            merged_signif[, "logistic"],
+            as.numeric(merged_signif$logistic),
             merged_signif$pval_joint
         )
+    # ^ as.numeric() because fifelse checks if class(yes) == class(no) and NA is
+    # logical by default
+    
     merged_signif$pval_joint <-
-        ifelse(
-            is.na(merged_signif[, "logistic"]) |
+        data.table::fifelse(
+            is.na(merged_signif$logistic) |
                 !is.na(merged_signif$logistic_error),
-            merged_signif[, "linear"],
+            as.numeric(merged_signif$linear),
             merged_signif$pval_joint
         )
+    
     merged_signif$pval_joint <-
-        ifelse((
-            is.na(merged_signif[, "logistic"]) |
+        data.table::fifelse((
+            is.na(merged_signif$logistic) |
                 !is.na(merged_signif$logistic_error)
-        ) & (is.na(merged_signif[, "linear"]) |
-                !is.na(merged_signif$linear_error)),
-        NA,
+        ) & (is.na(merged_signif$linear) |
+                 !is.na(merged_signif$linear_error)),
+        NA_real_,
         merged_signif$pval_joint)
+    
     merged_signif$qval_joint <-
         as.numeric(p.adjust(merged_signif$pval_joint, method = correction))
+    
     return(merged_signif)
 }
 
 # Put note when abundance effect has likely turned into a prevalence effect
 flag_abundance_turned_prevalence <- function(merged_signif,
                                             max_significance) {
+    
+    tst = !is.na(merged_signif$logistic_coef) &
+        !is.na(merged_signif$linear_coef) &
+        !is.na(merged_signif$logistic) &
+        !is.na(merged_signif$linear)
+    
+    inner_tst = is.na(merged_signif$logistic_error) &
+        is.na(merged_signif$linear_error) &
+        merged_signif$linear_qval < max_significance &
+        sign(merged_signif$logistic_coef) == 
+        sign(merged_signif$linear_coef) &
+        abs(merged_signif$linear_coef) > 
+        abs(merged_signif$logistic_coef)
+    
     # Join and check linear and logistic pieces
-    merged_signif[,'logistic_error'] <- ifelse(
-            !is.na(merged_signif[,'logistic_coef']) &
-            !is.na(merged_signif[,'linear_coef']) &
-            !is.na(merged_signif[,'logistic']) &
-            !is.na(merged_signif[,'linear']),
-            ifelse(
-                is.na(merged_signif[,'logistic_error']) &
-                is.na(merged_signif[,'linear_error']) &
-                merged_signif[,'linear_qval'] < max_significance &
-                sign(merged_signif[,'logistic_coef']) == 
-                sign(merged_signif[,'linear_coef']) &
-                abs(merged_signif[,'linear_coef']) > 
-                abs(merged_signif[,'logistic_coef']),
-                paste0("Prevalence association possibly induced ",
-                "by stronger abundance association"),
-                merged_signif[,'logistic_error']
-            ),
-            merged_signif[,'logistic_error']
-        )
+    merged_signif$logistic_error <- data.table::fifelse(
+        tst,
+        data.table::fifelse(
+            inner_tst,
+            paste0("Prevalence association possibly induced ",
+                   "by stronger abundance association"),
+            merged_signif$logistic_error
+        ),
+        merged_signif$logistic_error
+    )
     
     return(merged_signif)
 }
@@ -279,17 +296,22 @@ flag_abundance_turned_prevalence <- function(merged_signif,
 # Get joint significance for abundance and prevalence associations
 add_joint_signif <-
     function(fit_data_abundance,
-            fit_data_prevalence,
-            new_fit_data_abundance,
-            max_significance,
-            correction) {
+             fit_data_prevalence,
+             new_fit_data_abundance,
+             max_significance,
+             correction) {
+        
         match.arg(correction,
-            c("BH", "holm", "hochberg", "hommel", "bonferroni", "BY"))
+                  c("BH", "holm", "hochberg", "hommel", "bonferroni", "BY"))
+        
         # Subset to shared columns
+        sel_vec = c("feature", "metadata", "value",
+                    "name", "coef", "null_hypothesis",
+                    "pval", "qval", "error")
+        
         fit_data_prevalence_signif <-
-            fit_data_prevalence$results[, c("feature", "metadata", "value",
-                                            "name", "coef", "null_hypothesis",
-                                            "pval", "qval", "error")]
+            fit_data_prevalence$results |> collapse::fselect(sel_vec)
+        
         colnames(fit_data_prevalence_signif) <-
             c("feature",
             "metadata",
@@ -300,10 +322,10 @@ add_joint_signif <-
             "logistic",
             "logistic_qval",
             "logistic_error")
+        
         fit_data_abundance_signif <-
-            fit_data_abundance$results[, c("feature", "metadata", "value",
-                                            "name", "coef", "null_hypothesis",
-                                            "pval", "qval", "error")]
+            fit_data_abundance$results |> collapse::fselect(sel_vec)
+        
         colnames(fit_data_abundance_signif) <-
             c("feature",
             "metadata",
@@ -317,10 +339,13 @@ add_joint_signif <-
         
         # Join and check linear and logistic pieces
         merged_signif <-
-            dplyr::full_join(
-                unique(fit_data_prevalence_signif),
-                unique(fit_data_abundance_signif),
-                by = c("feature", "metadata", "value", "name")
+            collapse::join(
+                collapse::funique(fit_data_prevalence_signif),
+                collapse::funique(fit_data_abundance_signif),
+                how = "full",
+                verbose = FALSE,
+                on = c("feature", "metadata", "value", "name"),
+                overid = 2 # Pretty sure 0 would be fine, but 2 to be safe
             )
         
         # Show the difference between the logistic and linear models fit
@@ -335,9 +360,8 @@ add_joint_signif <-
         
         if (!is.null(new_fit_data_abundance)) {
             fit_data_prevalence_signif_tmp <-
-                fit_data_prevalence$results[, c("feature", "metadata", "value",
-                                            "name", "coef", "null_hypothesis",
-                                            "pval", "qval", "error")]
+                fit_data_prevalence$results |> collapse::fselect(sel_vec)
+            
             colnames(fit_data_prevalence_signif_tmp) <-
                 c("feature",
                     "metadata",
@@ -348,11 +372,13 @@ add_joint_signif <-
                     "logistic",
                     "logistic_qval",
                     "logistic_error")
+            
             fit_data_abundance_signif_tmp <-
                 new_fit_data_abundance$results[, 
                     c("feature", "metadata", "value",
                     "name", "coef", "null_hypothesis",
                     "pval", "qval", "error")]
+            
             colnames(fit_data_abundance_signif_tmp) <-
                 c("feature",
                     "metadata",
@@ -365,10 +391,13 @@ add_joint_signif <-
                     "linear_error")
             
             merged_signif_tmp <-
-                dplyr::left_join(
-                    unique(fit_data_prevalence_signif_tmp),
-                    unique(fit_data_abundance_signif_tmp),
-                    by = c("feature", "metadata", "value", "name")
+                collapse::join(
+                    collapse::funique(fit_data_prevalence_signif_tmp),
+                    collapse::funique(fit_data_abundance_signif_tmp),
+                    how = "left",
+                    verbose = FALSE,
+                    overid = 2,
+                    on = c("feature", "metadata", "value", "name")
                 )
             
             merged_signif_tmp <- 
@@ -384,15 +413,28 @@ add_joint_signif <-
                                 "logistic",
                                 "logistic_qval")
             
-            merged_signif <- merged_signif %>%
-                dplyr::left_join(merged_signif_tmp %>% 
-                            dplyr::select(dplyr::all_of(overlapping_cols), 
-                                            .data$logistic_error), 
-                            by = overlapping_cols) %>%
-                dplyr::mutate(logistic_error = dplyr::coalesce(
-                    .data$logistic_error.y, 
-                    .data$logistic_error.x)) %>%
-                dplyr::select(-.data$logistic_error.x, -.data$logistic_error.y)
+            merged_signif <- collapse::join(merged_signif,
+                                            collapse::fselect(merged_signif_tmp,
+                                                              c(overlapping_cols, 
+                                                                "logistic_error")),
+                                            how = "left",
+                                            overid = 2,
+                                            on = overlapping_cols,
+                                            verbose = FALSE,
+                                            suffix = c("_x", "_y"))
+            
+            # I don't think collapse::join can perfectly mimic the .x/.y
+            # suffixing of dplyr joins.
+            
+            merged_signif <- collapse::fmutate(merged_signif,
+                logistic_error = data.table::fcoalesce(merged_signif$logistic_error_y,
+                                                       merged_signif$logistic_error_x)
+                )
+            
+            collapse::fselect(merged_signif,
+                              c("logistic_error_x",
+                                "logistic_error_y")) <- NULL
+            
         }
         
         merged_signif <- create_combined_pval(merged_signif,
@@ -406,53 +448,73 @@ add_joint_signif <-
 
 # Take logistic or linear results and add on the joint significance
 append_joint <- function(outputs, merged_signif, association_type) {
+    sel_vec = c("feature", "metadata", "value",
+                "name", "pval_joint", "qval_joint")
+    
     if (association_type == 'abundance') {
-        merged_signif <-
-            merged_signif[, c("feature",
-                                "metadata",
-                                "value",
-                                "name",
-                                "pval_joint",
-                                "qval_joint")]
-        outputs$results <- outputs$results %>%
-            dplyr::rename(
-                pval_individual = .data$pval,
-                qval_individual = .data$qval
-            )
+        
+        merged_signif <- merged_signif |> collapse::fselect(sel_vec)
+        
+        collapse::setrename(outputs$results,
+                            "pval_individual" = "pval",
+                            "qval_individual" = "qval")
+        
+        # merged_signif <- collapse::join(outputs$results,
+        #                                 merged_signif,
+        #                                 on = sel_vec[1:4],
+        #                                 how = "inner",
+        #                                 overid = 2,
+        #                                 verbose = FALSE) |> 
+        #     collapse::roworderv(sel_vec[1:4]) |> 
+        #     collapse::colorderv(sel_vec[1:4])
         
         merged_signif <- merge(outputs$results,
-                                merged_signif,
-                                by = c("feature", "metadata", "value", "name"))
+                               merged_signif,
+                               by = c("feature", "metadata", "value", "name"))
+        
+        # o = base::order(merged_signif$feature,
+        #                 merged_signif$metadata,
+        #                 merged_signif$value,
+        #                 merged_signif$name) 
+        # # ^ have to use base::order to recapitulate the locale-dependent ordering of base::merge
+        # 
+        # merged_signif = merged_signif |> 
+        #     collapse::ss(o) |> 
+        #     collapse::colorderv(neworder = sel_vec[1:4])
+        # Too slow. Just let the order be a little changed.
+        
     } else if (association_type == 'prevalence') {
-        merged_signif <-
-            merged_signif[, c("feature",
-                                "metadata",
-                                "value",
-                                "name",
-                                "pval_joint",
-                                "qval_joint",
-                                "logistic_error")]
-        merged_signif <- merged_signif %>%
-            dplyr::rename(
-                error = .data$logistic_error,
-            )
+        merged_signif <- merged_signif |> 
+            collapse::fselect(c(sel_vec,
+                                "error" = "logistic_error"))
         
         outputs$results$error <- NULL
-        outputs$results <- outputs$results %>%
-            dplyr::rename(
-                pval_individual = .data$pval,
-                qval_individual = .data$qval
-            )
-
+        
+        collapse::setrename(outputs$results, 
+                            "pval_individual" = "pval",
+                            "qval_individual" = "qval"
+        )
+        
+        # merged_signif <- collapse::join(outputs$results,
+        #                                 merged_signif,
+        #                                 on = c("feature", "metadata", 
+        #                                        "value", "name"),
+        #                                 how = "inner",
+        #                                 overid = 2,
+        #                                 verbose = FALSE) |> 
+        #     collapse::roworderv(sel_vec[1:4]) |> 
+        #     collapse::colorderv(sel_vec[1:4])
+        
         merged_signif <- merge(outputs$results,
-                                merged_signif,
-                                by = c("feature", "metadata", "value", "name"))
+                               merged_signif,
+                               by = c("feature", "metadata", "value", "name"))
         
     } else {
         stop("Invalid association_type")
     }
     
-    merged_signif <- merged_signif[order(merged_signif$qval_individual),]
+    merged_signif <- merged_signif |> 
+        collapse::roworderv("qval_individual")
     
     return(merged_signif)
 }
@@ -469,6 +531,7 @@ function_vec <-
         "append_joint",
         "check_for_zero_one_obs",
         "check_missing_first_factor_level",
+        "check_mffl_one",
         "fit_augmented_logistic",
         "non_augmented",
         "run_group_models",
@@ -499,6 +562,7 @@ choose_ranef_model_summary_funs_linear <- function(random_effects_formula) {
     if (is.null(random_effects_formula)) {
         # Fixed effects only
         ranef_function <- NULL
+        
         model_function <-
             function(formula,
                     data,
@@ -510,10 +574,12 @@ choose_ranef_model_summary_funs_linear <- function(random_effects_formula) {
                     na.action = na.action
                 ))
             }
+        
         summary_function <- function(fit, names_to_include) {
             lm_summary <- summary(fit)$coefficients
             
             store_names <- rownames(lm_summary)
+            
             if (!all(names_to_include %in% store_names)) {
                 # If deficient rank, make sure all rownames are included
                 rows_to_add <-
@@ -525,13 +591,19 @@ choose_ranef_model_summary_funs_linear <- function(random_effects_formula) {
                 rownames(lm_summary) <-
                     c(store_names, rows_to_add)
             }
-            para <- as.data.frame(lm_summary)[-1, -3]
+            
+            para <- as.data.frame(lm_summary) |> 
+                ftail(-1) |> 
+                collapse::fselect(-3)
+            
             para$name <- rownames(lm_summary)[-1]
+            
             return(para)
         }
     } else {
         # Random effects
         ranef_function <- lme4::ranef
+        
         model_function <-
             function(formula,
                     data,
@@ -588,8 +660,15 @@ choose_ranef_model_summary_funs_linear <- function(random_effects_formula) {
                 rownames(lm_summary) <-
                     c(store_names, rows_to_add)
             }
-            para <- as.data.frame(lm_summary)[-1, -c(3:4)]
+            
+            para <- as.data.frame(lm_summary) |> 
+                ftail(-1) |> 
+                collapse::fselect(-c(3:4))
+            # This yields slightly different rownames than [-1, -c(3:4)], but I
+            # don't think that matters.
+            
             para$name <- rownames(lm_summary)[-1]
+            
             return(para)
         }
     }
@@ -724,10 +803,12 @@ choose_ranef_model_summary_funs_logistic <- function(random_effects_formula,
                     
                     if ('robust se' %in% colnames(lm_summary)) {
                         para <-
-                            as.data.frame(lm_summary)[,-c(2, 4, 5)] 
+                            as.data.frame(lm_summary) |> 
+                            collapse::fselect(-c(2, 4, 5))
                         # Don't actually use robust SE
                     } else {
-                        para <- as.data.frame(lm_summary)[,-c(2, 4)]
+                        para <- as.data.frame(lm_summary) |> 
+                            collapse::fselect(-c(2, 4))
                     }
                     
                     para$name <- rownames(lm_summary)
@@ -791,7 +872,10 @@ choose_ranef_model_summary_funs_logistic <- function(random_effects_formula,
                         rownames(lm_summary) <-
                             c(store_names, rows_to_add)
                     }
-                    para <- as.data.frame(lm_summary)[-1, -3]
+                    para <- as.data.frame(lm_summary) |> 
+                        ftail(-1) |> 
+                        collapse::fselect(-3)
+                    
                     para$name <- rownames(lm_summary)[-1]
                     return(para)
                 }
@@ -941,8 +1025,13 @@ choose_ranef_model_summary_funs_logistic <- function(random_effects_formula,
                 rownames(lm_summary) <-
                     c(store_names, rows_to_add)
             }
-            para <- as.data.frame(lm_summary)[-1, -3]
+            
+            para <- as.data.frame(lm_summary) |> 
+                ftail(-1) |> 
+                collapse::fselect(-3)
+            
             para$name <- rownames(lm_summary)[-1]
+            
             return(para)
         }
     }
@@ -989,9 +1078,10 @@ check_for_zero_one_obs <- function(formula,
             output$ranef <- NA
         output$fit <- NA
         
-        colnames(output$para) <-
-            c('coef', 'stderr' , 'pval', 'name')
+        output$para = collapse::setColnames(output$para, c('coef', 'stderr' , 'pval', 'name'))
+        
         output$para$feature <- colnames(features)[x]
+        
         output$para$error <-
             ifelse(
                 model == "logistic",
@@ -1001,6 +1091,26 @@ check_for_zero_one_obs <- function(formula,
         return(output)
     }
     return (NULL)
+}
+
+check_mffl_one = function(v, i, ex, fxf) {
+    res = FALSE
+    
+    if (!is.factor(v)) return(FALSE)
+    
+    fl = collapse::ffirst(levels(v))
+    
+    fl_expr = ex[collapse::whichv(v, fl)]
+    
+    nc_fct = nchar(i)
+    
+    fxf_nms = substr(fxf, 1, nc_fct) |> collapse::funique()
+    
+    if (collapse::allNA(fl_expr) && (i %in% fxf_nms)) {
+        TRUE
+    } else {
+        FALSE
+    }
 }
 
 # If the baseline level is missing for a factor, return blank results
@@ -1013,37 +1123,25 @@ check_missing_first_factor_level <- function(formula,
                                             x,
                                             feature_specific_covariate_name) {
     missing_first_factor_level <- FALSE
-    missing_first_factor_level <- any(c(vapply(colnames(dat_sub), 
-                                                function(col) {
-        if (is.factor(dat_sub[, col])) {
-            if (all(is.na(dat_sub$expr[dat_sub[, col] == 
-                                        levels(dat_sub[, col])[1]]))) {
-                fixed_effects <-
-                    get_fixed_effects(formula,
-                                    random_effects_formula,
-                                    dat_sub,
-                                    groups,
-                                    ordereds,
-                                    feature_specific_covariate_name)
-                if (col %in% substr(fixed_effects, 1, nchar(col))) {
-                    return(TRUE)
-                }
-            }
-        }
-        return(FALSE)
-    }, logical(1))))
+    
+    fxf <- get_fixed_effects(formula,
+                             random_effects_formula,
+                             dat_sub,
+                             groups,
+                             ordereds,
+                             feature_specific_covariate_name)
+    
+    missing_first_factor_level <- any(mapply(FUN = check_mffl_one, 
+                                             as.list(dat_sub),
+                                             colnames(dat_sub),
+                                             MoreArgs = list(ex = dat_sub$expr,
+                                                             fxf = fxf)))
     
     if (missing_first_factor_level) {
         output <- list()
         
         # List fixed effects that will be included
-        names_to_include <-
-            get_fixed_effects(formula,
-                            random_effects_formula,
-                            dat_sub,
-                            groups,
-                            ordereds,
-                            feature_specific_covariate_name)
+        names_to_include <- fxf
         
         # Build outputs
         output$para <-
@@ -1052,17 +1150,21 @@ check_missing_first_factor_level <- function(formula,
                 nrow = length(names_to_include),
                 ncol = 3
             ))
+        
         output$para$name <- names_to_include
         
         output$residuals <- NA
+        
         output$fitted <- NA
-        if (!(is.null(random_effects_formula)))
-            output$ranef <- NA
+        
+        if (!(is.null(random_effects_formula))) output$ranef <- NA
+        
         output$fit <- NA
         
-        colnames(output$para) <-
-            c('coef', 'stderr' , 'pval', 'name')
+        output$para = collapse::setColnames(output$para, c('coef', 'stderr' , 'pval', 'name')) 
+        
         output$para$feature <- colnames(features)[x]
+        
         output$para$error <-
             "No data points have the baseline factor level"
         return(output)
@@ -1082,10 +1184,15 @@ fit_augmented_logistic <- function(ranef_function,
                                 features,
                                 x) {
     warning_message <- NA
+    
     error_message <- NA
+    
     calling_env <- environment()
+    
     mm_input <- NULL
+    
     weight_scheme <- NULL
+    
     fit1 <- tryCatch({
         withCallingHandlers({
             withCallingHandlers({
@@ -1149,6 +1256,7 @@ fit_augmented_logistic <- function(ranef_function,
                     class = "try-error")
         return(error_obj)
     })
+    
     if (!is.na(error_message)) {
         fit_and_message <- c(list(fit1), list(error_message))
         error_message <- NA
@@ -1158,6 +1266,7 @@ fit_augmented_logistic <- function(ranef_function,
     } else {
         fit_and_message <- c(list(fit1), NA)
     }
+    
     return(list("fit_and_message" = fit_and_message,
                 "weight_scheme" = weight_scheme,
                 "mm_input" = mm_input))
@@ -1175,8 +1284,11 @@ non_augmented <- function(ranef_function,
                         x) {
 
     warning_message <- NA
+    
     error_message <- NA
+    
     calling_envir <- environment()
+    
     fit1 <- tryCatch({
         withCallingHandlers({
             formula_new <-
@@ -1212,6 +1324,7 @@ non_augmented <- function(ranef_function,
                     class = "try-error")
         return(error_obj)
     })
+    
     if (!is.na(error_message)) {
         fit_and_message <- c(list(fit1), list(error_message))
         error_message <- NA
@@ -1221,6 +1334,7 @@ non_augmented <- function(ranef_function,
     } else {
         fit_and_message <- c(list(fit1), NA)
     }
+    
     return(list("fit_and_message" = fit_and_message,
                 "weight_scheme" = NULL,
                 "mm_input" = NULL))
@@ -1240,6 +1354,7 @@ run_group_models <- function(ranef_function,
                             output,
                             mm_input) {
     match.arg(model, c("linear", "logistic"))
+    
     output$para <- rbind(output$para,
                         setNames(do.call(rbind, lapply(groups, function(group) {
         as.data.frame(setNames(tryCatch({
@@ -1581,26 +1696,36 @@ fitting_wrap_up <- function(fit_properly,
     if (fit_properly) {
         output$residuals <- stats::residuals(fit)
         output$fitted <- stats::fitted(fit)
+        
         if (!(is.null(random_effects_formula))) {
             # Returns a list with a table for each random effect
             l <- ranef_function(fit)
             
             # Rename rows as random effect labels 
             # if only random intercepts
-            if (length(l) == 1 &
+            rl_chk = length(l) == 1 &
                 ncol(l[[1]]) == 1 &
-                colnames(l[[1]])[1] == "(Intercept)") {
+                colnames(l[[1]])[1] == "(Intercept)"
+            
+            if (rl_chk) {
+                
                 d <- as.vector(unlist(l))
-                names(d) <- unlist(lapply(l, row.names))
-                d[setdiff(unique(metadata[, names(l)]), names(d))] <-
-                    NA
-                d <- d[order(unique(metadata[, names(l)]))]
+                
+                names(d) <- row.names(l[[1]])
+                
+                d[setdiff(collapse::funique(metadata[, names(l)]), 
+                          names(d))] <- NA
+                
+                d <- d[collapse::radixorder(collapse::funique(metadata[, names(l)]))]
+                
                 output$ranef <- d
+                
             } else {
                 # Otherwise return the random effects list
                 output$ranef <- l
             }
         }
+        
         if (median_comparison) {
             output$fit <- fit
         } else {
@@ -1631,20 +1756,26 @@ fitting_wrap_up <- function(fit_properly,
                 nrow = length(names_to_include),
                 ncol = 3
             ))
+        
         output$para$name <- names_to_include
         
         output$residuals <- NA
+        
         output$fitted <- NA
-        if (!(is.null(random_effects_formula)))
-            output$ranef <- NA
+        
+        if (!(is.null(random_effects_formula))) output$ranef <- NA
+        
         output$fit <- NA
     }
     
     colnames(output$para) <-
         c('coef', 'stderr' , 'pval', 'name')
+    
     output$para$feature <- colnames(features)[x]
+    
     output$para$error <-
         fit_and_message[[length(fit_and_message)]]
+    
     output$para$error[is.na(output$para$error) &
                         is.na(output$para$pval)] <-
         'Fitting error (NA p-value returned from fitting procedure)'
@@ -1671,8 +1802,11 @@ run_median_comparison_ordered <- function(paras_sub,
     use_this_coef <- !is.na(paras_sub$pval) & paras_sub$pval < 0.95
     
     n_coefs <- nrow(paras_sub)
+    
     sigmas <- paras_sub$stderr
+    
     coefs <- paras_sub$coef
+    
     sigma_sq_med <- var(coefs[use_this_coef], na.rm=TRUE)
     
     # Variance from asymptotic distribution
@@ -1688,7 +1822,9 @@ run_median_comparison_ordered <- function(paras_sub,
     })
     
     sim_medians <- sim_results[1, ]
+    
     all_sims <- sim_results[-1, , drop = FALSE]
+    
     cov_adjust <- apply(all_sims, 1, function(x){cov(x, sim_medians)})
     
     # Necessary offsets for contrast testing
@@ -2192,7 +2328,8 @@ run_median_comparison <- function(paras,
                                 model)
     })
     
-    final_paras <- rbind(final_paras, do.call(rbind, final_paras_list))
+    final_paras <- collapse::rowbind(final_paras, 
+                                     collapse::rowbind(final_paras_list))
 
     paras <- final_paras
     return(paras)
@@ -2531,10 +2668,11 @@ fit.model <- function(features,
         parallel::stopCluster(cluster)
     
     # bind the results for each feature
-    paras <-
-        do.call(rbind, lapply(outputs, function(x) {
-            return(x$para)
-        }))
+    paras <- collapse::rowbind(lapply(outputs, function(x) {
+        return(x$para)
+    }))
+    
+    
     residuals <-
         do.call(rbind, lapply(outputs, function(x) {
             return(x$residuals)
@@ -2546,6 +2684,7 @@ fit.model <- function(features,
         do.call(rbind, lapply(outputs, function(x) {
             return(x$fitted)
         }))
+    
     row.names(fitted) <- colnames(features)
     
     fits <-
@@ -2575,11 +2714,14 @@ fit.model <- function(features,
     }
     
     if (!(is.null(random_effects_formula))) {
-        ranef <-
-            do.call(rbind, lapply(outputs, function(x) {
-                return(x$ranef)
-            }))
-        row.names(ranef) <- colnames(features)
+        
+        l <- lapply(outputs, function(x) {
+            return(x$ranef)
+        })
+        
+        ranef <- do.call(rbind, l) |> 
+            collapse::setRownames(colnames(features))
+            
     }
     
     #####################################################
@@ -2637,10 +2779,8 @@ fit.model <- function(features,
     ##############################
     
     paras <- paras[order(paras$pval, decreasing = FALSE), ]
-    paras <-
-        dplyr::select(paras,
-                    c('feature', 'metadata', 'value'),
-                    dplyr::everything())
+    
+    paras <- collapse::colorderv(paras, c('feature', 'metadata', 'value'))
     paras$model <- model
     rownames(paras) <- NULL
     

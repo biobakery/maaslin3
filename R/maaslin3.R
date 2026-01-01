@@ -39,7 +39,6 @@ if (identical(environment(), globalenv()) &&
     script_dir <- dirname(script_path)
     script_name <- basename(script_path)
     R_files <- c("fit.R", "utility_scripts.R", "viz.R")
-    `%>%` <- dplyr::`%>%`
 
     for (R_file in R_files)
     {
@@ -962,7 +961,7 @@ maaslin_read_data <- function(input_data,
             sep = ifelse(grepl('\\.tsv$|\\.txt$', input_data),  '\t', ','),
             check.names = FALSE)
     } else if (is.data.frame(input_data)) {
-        if (!tibble::has_rownames(input_data)) {
+        if (has_auto_rownames(input_data)) {
             stop("If supplying input_data as a data frame,
                 it must have appropriate rownames!")
         }
@@ -987,7 +986,7 @@ maaslin_read_data <- function(input_data,
             sep = ifelse(grepl('\\.tsv$|\\.txt$', input_data),  '\t', ','),
             check.names = FALSE)
     } else if (is.data.frame(input_metadata)) {
-        if (!tibble::has_rownames(input_metadata)) {
+        if (has_auto_rownames(input_metadata)) {
             stop(
                 "If supplying input_metadata as a data frame,
                 it must have appropriate rownames!"
@@ -1012,7 +1011,7 @@ maaslin_read_data <- function(input_data,
                 sep = ifelse(grepl('\\.tsv$|\\.txt$', input_data),  '\t', ','),
                 check.names = FALSE)
     } else if (is.data.frame(unscaled_abundance)) {
-        if (!tibble::has_rownames(unscaled_abundance)) {
+        if (has_auto_rownames(unscaled_abundance)) {
             stop(
                 "If supplying unscaled_abundance as a data frame,
                 it must have appropriate rownames!"
@@ -1037,7 +1036,7 @@ maaslin_read_data <- function(input_data,
                 sep = ifelse(grepl('\\.tsv$|\\.txt$', input_data),  '\t', ','),
                 check.names = FALSE)
     } else if (is.data.frame(feature_specific_covariate)) {
-        if (!tibble::has_rownames(feature_specific_covariate)) {
+        if (has_auto_rownames(feature_specific_covariate)) {
             stop(
                 "If supplying feature_specific_covariate as a data frame,
                 it must have appropriate rownames!"
@@ -1916,7 +1915,9 @@ maaslin_process_metadata <- function(metadata,
 
     if (standardize) {
         logging::loginfo("Applying z-score to standardize continuous metadata")
-        metadata <- metadata %>% dplyr::mutate_if(is.numeric, scale)
+        
+        collapse::num_vars(metadata) <- collapse::fscale(collapse::num_vars(metadata))
+        
     } else {
         logging::loginfo("Bypass z-score application to metadata")
     }
@@ -2297,20 +2298,23 @@ maaslin_fit <- function(filtered_data,
         } else if (evaluate_only == 'abundance') {
             fit_data_abundance$results$pval_joint <-
                 fit_data_abundance$results$pval
+            
             fit_data_abundance$results$qval_joint <-
                 fit_data_abundance$results$qval
-            fit_data_abundance$results <- fit_data_abundance$results %>%
-                dplyr::rename(pval_individual = .data$pval,
-                            qval_individual = .data$qval)
+            
+            collapse::setrename(outputs$results,
+                                "pval_individual" = "pval",
+                                "qval_individual" = "qval" )
+            
         } else if (evaluate_only == 'prevalence') {
             fit_data_prevalence$results$pval_joint <-
                 fit_data_prevalence$results$pval
             fit_data_prevalence$results$qval_joint <-
                 fit_data_prevalence$results$qval
-            fit_data_prevalence$results <-
-                fit_data_prevalence$results %>%
-                dplyr::rename(pval_individual = .data$pval,
-                            qval_individual = .data$qval)
+            
+            collapse::setrename(fit_data_prevalence$results,
+                                "pval_individual" = "pval",
+                                "qval_individual" = "qval")
         }
     }
     
@@ -2367,6 +2371,7 @@ maaslin_fit <- function(filtered_data,
 
         # Reorder columns
         fit_data_prevalence$results <- fit_data_prevalence$results[,col_order]
+        
     } else {
         fit_data_prevalence <- NULL
     }
@@ -2596,7 +2601,11 @@ maaslin_plot_results_from_output <- function(output,
             all_results_file
         ))
     }
-    merged_results <- utils::read.csv(all_results_file, sep = '\t')
+    
+    merged_results <- data.table::fread(all_results_file, 
+                                        sep = '\t') |> 
+        as.data.frame()
+    
     merged_results$model[merged_results$model == 'abundance'] <- 'linear'
     merged_results$model[merged_results$model == 'prevalence'] <- 'logistic'
 
@@ -2644,12 +2653,17 @@ maaslin_plot_results_from_output <- function(output,
             ))
         }
         transformed_data <-
-            utils::read.csv(
+            data.table::fread(
                 features_file,
                 sep = '\t',
-                row.names = 1, 
                 check.names = FALSE
-            )
+            ) |> 
+            as.data.frame()
+        
+        transformed_data = transformed_data |> 
+            collapse::setRownames(transformed_data$feature)
+        
+        collapse::fselect(transformed_data, "feature") <- NULL
 
         logging::loginfo(
             paste(

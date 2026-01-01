@@ -29,7 +29,9 @@ fit_out <- maaslin3(input_data = taxa_table,
                     cores=1, 
                     verbosity = 'WARN')
 
-maaslin_results = read.table(file.path(output_tmp, "significant_results.tsv"), header = TRUE, stringsAsFactors=FALSE)
+maaslin_results = read.table(file.path(output_tmp, "significant_results.tsv"), 
+                             header = TRUE, 
+                             stringsAsFactors = FALSE)
 
 expect_that(expected_results_run1$metadata[1:50],equals(maaslin_results$metadata[1:50]))
 expect_that(expected_results_run1$feature[1:50],equals(maaslin_results$feature[1:50]))

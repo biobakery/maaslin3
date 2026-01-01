@@ -11,14 +11,14 @@ expect_error(maaslin_process_metadata(metadata = metadata,
                          standardize = T))
 
 metadata_out <- metadata
-metadata_out$a <- scale(metadata_out$a)
-metadata_out$b <- scale(metadata_out$b)
+metadata_out$a <- scale(metadata_out$a)[,1]
+metadata_out$b <- scale(metadata_out$b)[,1]
 metadata_out$c <- factor(metadata_out$c)
-expect_that(maaslin_process_metadata(metadata = metadata, 
+expect_equal(maaslin_process_metadata(metadata = metadata, 
                                       formula = formula('~ a + b + c'), 
                                       reference = 'c,a',
                                       standardize = T),
-            equals(metadata_out))
+             metadata_out)
 
 metadata$c <- factor(metadata$c)
 expect_that(maaslin_process_metadata(metadata = metadata, 

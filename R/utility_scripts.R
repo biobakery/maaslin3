@@ -277,12 +277,10 @@ write_results <- function(output,
                         fit_data_prevalence$results)
     }
     
-    fit_data$model <-
-        dplyr::case_when(
-            fit_data$model == 'linear' ~ 'abundance',
-            fit_data$model == 'logistic' ~ 'prevalence',
-            TRUE ~ NA
-        )
+    fit_data$model <- data.table::fcase(
+            fit_data$model == 'linear', 'abundance',
+            fit_data$model == 'logistic',  'prevalence'
+    )
     
     small_random_effects_warning <- 
         paste0("<4 average observations per random effect group often inflates",
@@ -436,16 +434,15 @@ maaslin_contrast_test <- function(
         # Count the total values for each feature (untransformed space) #
         #################################################################
         
-        fit_data_abundance$results$N <- as.numeric(plyr::mapvalues(
+        fit_data_abundance$results$N <- as.numeric(fmapvalues(
             fit_data_abundance$results$feature,
             maaslin3_fit$fit_data_abundance$results$feature,
-            maaslin3_fit$fit_data_abundance$results$N,
-            warn_missing = FALSE))
-        fit_data_abundance$results$N_not_zero <- as.numeric(plyr::mapvalues(
+            maaslin3_fit$fit_data_abundance$results$N))
+        
+        fit_data_abundance$results$N_not_zero <- as.numeric(fmapvalues(
             fit_data_abundance$results$feature,
             maaslin3_fit$fit_data_abundance$results$feature,
-            maaslin3_fit$fit_data_abundance$results$N_not_zero,
-            warn_missing = FALSE))
+            maaslin3_fit$fit_data_abundance$results$N_not_zero))
     }
     
     # Run logistic model component
@@ -468,16 +465,15 @@ maaslin_contrast_test <- function(
             rhs = rhs,
             median_comparison = median_comparison_prevalence)
         
-        fit_data_prevalence$results$N <- as.numeric(plyr::mapvalues(
+        fit_data_prevalence$results$N <- as.numeric(fmapvalues(
             fit_data_prevalence$results$feature,
             maaslin3_fit$fit_data_prevalence$results$feature,
-            maaslin3_fit$fit_data_prevalence$results$N,
-            warn_missing = FALSE))
-        fit_data_prevalence$results$N_not_zero <- as.numeric(plyr::mapvalues(
+            maaslin3_fit$fit_data_prevalence$results$N))
+        
+        fit_data_prevalence$results$N_not_zero <- as.numeric(fmapvalues(
             fit_data_prevalence$results$feature,
             maaslin3_fit$fit_data_prevalence$results$feature,
-            maaslin3_fit$fit_data_prevalence$results$N_not_zero, 
-            warn_missing = FALSE))
+            maaslin3_fit$fit_data_prevalence$results$N_not_zero))
     }
     
     # Check for highly significant likely model misfits
@@ -548,8 +544,8 @@ maaslin_contrast_test <- function(
         fit_data_prevalence$results <- results[[2]]
     }
     if (!is.null(fit_data_abundance)) {
-        fit_data_abundance$results <- fit_data_abundance$results %>%
-            dplyr::mutate(null_hypothesis = rhs)
+        fit_data_abundance$results <- fit_data_abundance$results |>
+            collapse::fmutate(null_hypothesis = rhs)
         
         if (subtract_median & median_comparison_abundance) {
             fit_data_abundance$results$coef <- 
@@ -559,8 +555,8 @@ maaslin_contrast_test <- function(
         }
     }
     if (!is.null(fit_data_prevalence)) {
-        fit_data_prevalence$results <- fit_data_prevalence$results %>%
-            dplyr::mutate(null_hypothesis = rhs)
+        fit_data_prevalence$results <- fit_data_prevalence$results |>
+            collapse::fmutate(null_hypothesis = rhs)
         
         if (subtract_median & median_comparison_prevalence) {
             fit_data_prevalence$results$coef <- 
@@ -573,16 +569,23 @@ maaslin_contrast_test <- function(
     # Add in joint p/q-values
     if (is.null(evaluate_only)) {
         if (!is.null(fit_data_abundance)) {
-            fit_data_abundance$results <- fit_data_abundance$results %>%
-                dplyr::mutate(metadata = .data$test,
-                    value = .data$test,
-                    name = .data$test)
+            
+            dtest = fit_data_abundance$results$test
+            
+            fit_data_abundance$results <- fit_data_abundance$results |> 
+                collapse::fmutate(metadata = dtest,
+                                  value    = dtest,
+                                  name     = dtest)
+            
         }
         if (!is.null(fit_data_prevalence)) {
-            fit_data_prevalence$results <- fit_data_prevalence$results %>%
-                dplyr::mutate(metadata = .data$test,
-                    value = .data$test,
-                    name = .data$test)
+            
+            dtest = fit_data_prevalence$results$test
+            
+            fit_data_prevalence$results <- fit_data_prevalence$results |> 
+                collapse::fmutate(metadata = dtest,
+                                  value    = dtest,
+                                  name     = dtest)
         }
         results <-
             add_joint_signif(fit_data_abundance,
@@ -592,37 +595,37 @@ maaslin_contrast_test <- function(
                             correction)
         if (!is.null(fit_data_abundance)) {
             fit_data_abundance$results <- results[[1]]
-            fit_data_abundance$results <- fit_data_abundance$results %>%
-                dplyr::select(-.data$metadata,
-                        -.data$value,
-                        -.data$name)
+            
+            collapse::fselect(fit_data_abundance$results,
+                              c("metadata", "value", "name")) <- NULL
         }
         if (!is.null(fit_data_prevalence)) {
             fit_data_prevalence$results <- results[[2]]
-            fit_data_prevalence$results <- fit_data_prevalence$results %>%
-                dplyr::select(-.data$metadata,
-                        -.data$value,
-                        -.data$name)
+            collapse::fselect(fit_data_prevalence$results,
+                              c("metadata", "value", "name")) <- NULL
         }
     } else if (evaluate_only == 'abundance') {
         if (!is.null(fit_data_abundance)) {
             fit_data_abundance$results$pval_joint <-
                 fit_data_abundance$results$pval
+            
             fit_data_abundance$results$qval_joint <-
                 fit_data_abundance$results$qval
-            fit_data_abundance$results <- fit_data_abundance$results %>%
-                dplyr::rename(pval_individual = .data$pval,
-                            qval_individual = .data$qval)
+            
+            collapse::setrename(fit_data_abundance$results,
+                                 "pval_individual" = "pval",
+                                 "qval_individual" = "qval")
         }
     } else if (evaluate_only == 'prevalence') {
         fit_data_prevalence$results$pval_joint <-
             fit_data_prevalence$results$pval
+        
         fit_data_prevalence$results$qval_joint <-
             fit_data_prevalence$results$qval
-        fit_data_prevalence$results <-
-            fit_data_prevalence$results %>%
-            dplyr::rename(pval_individual = .data$pval,
-                            qval_individual = .data$qval)
+        
+        collapse::setrename(fit_data_prevalence$results,
+                             "pval_individual" = "pval",
+                             "qval_individual" = "qval")
     }
     
     if (!is.null(fit_data_prevalence)) {
@@ -1173,7 +1176,7 @@ preprocess_taxa_mtx <- function(taxa_table, rna_table, rna_per_taxon) {
     
     # Create a dna table by choosing the taxa to match the rna table
     dna_table <- taxa_table[, 
-        plyr::mapvalues(colnames(rna_table), rna_vec, taxon_vec)]
+        fmapvalues(colnames(rna_table), rna_vec, taxon_vec)]
     colnames(dna_table) <- colnames(rna_table)
 
     # Transforming DNA table
@@ -1193,7 +1196,7 @@ preprocess_taxa_mtx <- function(taxa_table, rna_table, rna_per_taxon) {
             apply(rna_table[, rna_cols, drop = FALSE], 1, max, na.rm = TRUE)
         }, FUN.VALUE = numeric(nrow(rna_table)))
     max_rna_table <- max_rna_table[, 
-        plyr::mapvalues(colnames(rna_table), rna_vec, taxon_vec)]
+        fmapvalues(colnames(rna_table), rna_vec, taxon_vec)]
     colnames(max_rna_table) <- colnames(rna_table)
 
     dna_table[dna_table == -Inf & max_rna_table > 0] <- impute_val
@@ -1241,4 +1244,31 @@ nrw_fmt = function(record) {
     text <- paste(nrw_ts(record$timestamp), paste(record$levelname, record$logger, 
                                           msg, sep = ":"))
     return(text)
+}
+
+fmapvalues <- function(x, from, to) {
+    # To avoid dependency on plyr for mapvalues()
+   
+    stopifnot(length(from) == length(to)) 
+    
+    from_matches = collapse::fmatch(x, from)
+    
+    mch_id = collapse::whichNA(from_matches, invert = TRUE)
+    
+    to_set = to[from_matches[mch_id]]
+    
+    return(collapse::copyv(x, mch_id, to_set)) 
+}
+
+has_auto_rownames <- function(d) {
+    # tibble::has_rownames() also checks for !is.na(.row_names_info(.data,
+    # 0L)[[1L]]) i.e. that the first rowname is not NA.
+    
+    .row_names_info(d, type = 1L) < 0L
+}
+
+ftail = function(d, i) {
+    if (i < 0) i = nrow(d) + i
+    
+    collapse::fslice(d, how = "last", n = i)
 }

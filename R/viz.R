@@ -112,15 +112,33 @@ make_coef_plot <- function(merged_results_sig,
                             coef_plot_vars,]
     
     # Limit plotted coefficients to median +/- 10 times distance to quartiles
-    quantile_df <- coef_plot_data %>%
-        dplyr::group_by(.data$full_metadata_name) %>%
-        dplyr::summarise(
-            lower_q = median(.data$coef) - plot_threshold * 
-                (median(.data$coef) - quantile(.data$coef, 0.25)),
-            upper_q = median(.data$coef) + plot_threshold * 
-                (quantile(.data$coef, 0.75) - median(.data$coef))
-        ) %>%
+    get_lo = function(x, pt = plot_threshold) {
+        med_x = collapse::fmedian(x)
+        
+        q_x = collapse::fquantile(x, .25)
+        
+        med_x - pt * (med_x - q_x)
+    }
+    
+    get_hi = function(x, pt = plot_threshold) {
+        med_x = collapse::fmedian(x)
+        
+        q_x = collapse::fquantile(x, .75)
+        
+        med_x + pt * (q_x - med_x)
+    }
+    
+    quantile_df <- coef_plot_data |>
+        collapse::fgroup_by("full_metadata_name") |>
+        collapse::collapv(by = "full_metadata_name",
+                          FUN = list(get_lo, get_hi),
+                          cols = "coef") |> 
+        collapse::fungroup() |> 
+        collapse::fselect("full_metadata_name", 
+                          "lower_q" = "get_lo.coef", 
+                          "upper_q" = "get_hi.coef") |> 
         data.frame(check.names = FALSE)
+        
     rownames(quantile_df) <- quantile_df$full_metadata_name
     
     # Make sure insignificant coefficients don't distort the plot
@@ -357,8 +375,9 @@ make_heatmap_plot <- function(merged_results_sig,
             which(value < coef_breaks)[1]
         }, FUN.VALUE = 0)
     
-    merged_results_sig <- merged_results_sig %>%
-        dplyr::mutate(coef_cat = threshold_set[threshold_indices])
+    merged_results_sig <- merged_results_sig |>  
+        collapse::fmutate(coef_cat = threshold_set[threshold_indices])
+    
     merged_results_sig$coef_cat <-
         factor(merged_results_sig$coef_cat, levels = threshold_set)
     
@@ -494,11 +513,11 @@ maaslin3_summary_plot <-
             return()
         }
         
-        median_df <- merged_results %>%
-            dplyr::group_by(.data$full_metadata_name, .data$model) %>%
-            dplyr::summarize(median_val = 
-                unique(.data$null_hypothesis), 
-                .groups = 'drop')
+        median_df <- merged_results |> 
+            collapse::fselect(  c("full_metadata_name", "model", "null_hypothesis")) |> 
+            collapse::fgroup_by(c("full_metadata_name", "model")) |> 
+            collapse::fmedian() |> 
+            collapse::frename("median_val" = "null_hypothesis")
 
         # Check variables can be plotted
         if (!is.null(coef_plot_vars) | !is.null(heatmap_vars)) {
@@ -533,12 +552,11 @@ maaslin3_summary_plot <-
         }
         
         # Subset associations for plotting
-        merged_results_joint_only <-
-            unique(merged_results[, c('feature', 'qval_joint', 
-                                        'full_metadata_name')])
-        merged_results_joint_only <-
-            merged_results_joint_only[
-                order(merged_results_joint_only$qval_joint),]
+        merged_results_joint_only <- merged_results |> 
+            collapse::fselect(c('feature', 'qval_joint', 'full_metadata_name')) |> 
+            collapse::funique() |> 
+            collapse::roworderv("qval_joint")
+        
         if (length(unique(merged_results_joint_only$feature)) < first_n) {
             first_n <- length(unique(merged_results_joint_only$feature))
             signif_taxa <-
@@ -561,14 +579,15 @@ maaslin3_summary_plot <-
                     # grab the first N feature where 
                     # N=N/(length of coef_plot_var) to
                     # plot the coef plot
-                    first_n_per <- first_n/length(coef_plot_vars)
-                    signif_taxa <- merged_results_joint_only %>% 
-                    dplyr::group_by(.data$full_metadata_name) %>%
-                    dplyr::arrange(dplyr::desc(-.data$qval_joint), 
-                                    .by_group = TRUE) %>%
-                    dplyr::slice_head(n=ceiling(first_n_per)) %>%
-                    dplyr::pull(.data$feature) %>%
-                    unique()
+                    first_n_per <- ceiling(first_n/length(coef_plot_vars))
+                    
+                    signif_taxa <- merged_results_joint_only |>
+                        collapse::roworderv(cols = c("full_metadata_name", 
+                                                     "qval_joint")) |> 
+                        collapse::fslicev("full_metadata_name",
+                                          n = first_n_per) |> 
+                        collapse::get_elem("feature") |> 
+                        collapse::funique()
                 }
             } else {
                 signif_taxa <-
@@ -577,8 +596,9 @@ maaslin3_summary_plot <-
         }
 
         
-        merged_results_sig <- merged_results %>%
-            dplyr::filter(.data$feature %in% signif_taxa)
+        merged_results_sig <- merged_results |> 
+            collapse::fsubset(merged_results$feature %in% signif_taxa)
+        # TODO: consider collapse::`%iin%`
         
         # Order features
         ord_feature <-
@@ -590,15 +610,20 @@ maaslin3_summary_plot <-
         
         # Choose variables for plotting if not set
         if (is.null(coef_plot_vars)) {
-            mean_log_qval <- merged_results_sig %>%
-                dplyr::group_by(.data$full_metadata_name) %>%
-                dplyr::summarise(mean_value = 
-                                    mean(log(.data$qval_joint), na.rm = TRUE))
             
+            mean_log_qval <- merged_results_sig |> 
+                collapse::collapv(by   = "full_metadata_name",
+                                  cols = "qval_joint",
+                                  FUN  = \(x) collapse::fmean(log(x), na.rm = TRUE)) |> 
+                collapse::fselect("full_metadata_name", 
+                                  "mean_value" = "qval_joint")
+                
             coef_plot_vars <-
                 mean_log_qval$full_metadata_name[
                     order(mean_log_qval$mean_value)]
+            
             coef_plot_vars <- setdiff(coef_plot_vars, heatmap_vars)
+            
             if (length(coef_plot_vars) > 0) {
                 coef_plot_vars <-
                     coef_plot_vars[seq(min(2, length(coef_plot_vars)))]
@@ -607,14 +632,18 @@ maaslin3_summary_plot <-
         
         # Choose variables for plotting if not set
         if (is.null(heatmap_vars)) {
-            mean_log_qval <- merged_results_sig %>%
-                dplyr::group_by(.data$full_metadata_name) %>%
-                dplyr::summarise(mean_value = 
-                                    mean(log(.data$qval_joint), na.rm = TRUE))
+            
+            mean_log_qval <- merged_results_sig |> 
+                collapse::collapv(by   = "full_metadata_name",
+                                  cols = "qval_joint",
+                                  FUN  = \(x) collapse::fmean(log(x), na.rm = TRUE)) |> 
+                collapse::fselect("full_metadata_name", 
+                                  "mean_value" = "qval_joint")
             
             heatmap_vars <-
                 mean_log_qval$full_metadata_name[
                     order(mean_log_qval$mean_value)]
+            
             heatmap_vars <- setdiff(heatmap_vars, coef_plot_vars)
         }
         
@@ -1159,9 +1188,12 @@ make_tile_plot <- function(joined_features_metadata_prev,
     match.arg(normalization, c('Total sum scaling', 'Center log ratio', 'None'))
     match.arg(transformation, c('Log base 2', 'Pseudo-log base 2', 'None'))
     
-    count_df <- joined_features_metadata_prev %>%
-        dplyr::group_by(.data$feature_abun, .data$metadata) %>%
-        dplyr::summarise(count = dplyr::n(), .groups = 'drop')
+    count_df <- joined_features_metadata_prev |> 
+        collapse::fcountv(c("feature_abun",
+                            "metadata")) |> 
+        collapse::roworderv(c("feature_abun",
+                              "metadata")) |> 
+        collapse::frename("count" = "N")
     
     x_vals <-
         unique(joined_features_metadata_prev$feature_abun)
@@ -1171,11 +1203,12 @@ make_tile_plot <- function(joined_features_metadata_prev,
         expand.grid(feature_abun = x_vals,
                     metadata = y_vals)
     
-    table_df <- complete_grid %>%
-        dplyr::left_join(count_df, by = 
-                            c("feature_abun", "metadata")) %>%
-        dplyr::mutate(count = ifelse(
-            is.na(.data$count), 0, .data$count))
+    table_df <- collapse::join(complete_grid,
+                               count_df,
+                               verbose = FALSE,
+                               on = c("feature_abun", "metadata")) 
+    
+    table_df$count = collapse::replace_na(table_df$count, value = 0)
     
     temp_plot <-
         ggplot2::ggplot(table_df,
@@ -1484,25 +1517,32 @@ maaslin3_association_plots <-
                                         metadata = metadata[, metadata_name], 
                                         check.names = FALSE)
             }
-            joined_features_metadata <-
-                dplyr::inner_join(feature_abun, metadata_sub, by = c('sample'))
+            
+            joined_features_metadata <- collapse::join(
+                feature_abun,
+                metadata_sub,
+                on = c('sample'),
+                how = "inner",
+                verbose = FALSE
+            )
             
             model_name <- features_by_metadata[row_num, 'model']
+            
             this_signif_association <-
                 merged_results[merged_results$feature == feature_name &
-                                merged_results$metadata == metadata_name &
-                                merged_results$model == model_name,]
+                                   merged_results$metadata == metadata_name &
+                                   merged_results$model == model_name,]
             
             if ('linear' == model_name) {
                 temp_plot <- make_lm_plot(this_signif_association,
-                                        joined_features_metadata,
-                                        metadata,
-                                        metadata_name,
-                                        feature_name,
-                                        normalization,
-                                        transformation,
-                                        feature_specific_covariate_name,
-                                        feature_specific_covariate)
+                                          joined_features_metadata,
+                                          metadata,
+                                          metadata_name,
+                                          feature_name,
+                                          normalization,
+                                          transformation,
+                                          feature_specific_covariate_name,
+                                          feature_specific_covariate)
             }
             
             if ('logistic' == model_name) {

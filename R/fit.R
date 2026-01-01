@@ -887,6 +887,7 @@ choose_ranef_model_summary_funs_logistic <- function(random_effects_formula,
     } else {
         # Random effects
         ranef_function <- lme4::ranef
+        
         if (augment) {
             model_function <-
                 function(formula,
@@ -1015,7 +1016,7 @@ choose_ranef_model_summary_funs_logistic <- function(random_effects_formula,
                 }
         }
         summary_function <- function(fit, names_to_include) {
-            lm_summary <- coef(summary(fit))
+            lm_summary <- summary(fit)$coefficients
             
             store_names <- rownames(lm_summary)
             if (!all(names_to_include %in% store_names)) {

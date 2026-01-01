@@ -2504,7 +2504,7 @@ fit.model <- function(features,
     fit_vars = all.vars(formula) |> tail(-1)
     
     small_meta = metadata |>
-        dplyr::select(dplyr::all_of(fit_vars))
+        collapse::fselect(fit_vars)
     
     if (mirai::daemons_set()) {
         # There's probably a less repetitive way to do this V 

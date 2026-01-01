@@ -2328,7 +2328,8 @@ run_median_comparison <- function(paras,
                                 model)
     })
     
-    final_paras <- rbind(final_paras, do.call(rbind, final_paras_list))
+    final_paras <- collapse::rowbind(final_paras, 
+                                     collapse::rowbind(final_paras_list))
 
     paras <- final_paras
     return(paras)
@@ -2667,10 +2668,11 @@ fit.model <- function(features,
         parallel::stopCluster(cluster)
     
     # bind the results for each feature
-    paras <-
-        do.call(rbind, lapply(outputs, function(x) {
-            return(x$para)
-        }))
+    paras <- collapse::rowbind(lapply(outputs, function(x) {
+        return(x$para)
+    }))
+    
+    
     residuals <-
         do.call(rbind, lapply(outputs, function(x) {
             return(x$residuals)
@@ -2682,6 +2684,7 @@ fit.model <- function(features,
         do.call(rbind, lapply(outputs, function(x) {
             return(x$fitted)
         }))
+    
     row.names(fitted) <- colnames(features)
     
     fits <-
@@ -2711,11 +2714,11 @@ fit.model <- function(features,
     }
     
     if (!(is.null(random_effects_formula))) {
-        ranef <-
-            do.call(rbind, lapply(outputs, function(x) {
-                return(x$ranef)
-            }))
-        row.names(ranef) <- colnames(features)
+        ranef <- collapse::rowbind(lapply(outputs, function(x) {
+            return(x$ranef)
+        })) |> 
+            collapse::setRownames(colnames(features))
+            
     }
     
     #####################################################

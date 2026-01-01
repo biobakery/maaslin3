@@ -1225,3 +1225,17 @@ maaslin_read_summarized_experiment_data <-
     ))
 }
 
+nrw_ts = function(ts) {
+    as.POSIXct(ts) |>  
+        format(format = "%Y-%m-%d %H:%M:%OS2")
+}
+
+nrw_fmt = function(record) {
+    # 5-6 digits of precision on the timestamp is verbose and makes it hard to
+    # read. Limit it to two digits.
+    
+    msg <- trimws(record$msg)
+    text <- paste(nrw_ts(record$timestamp), paste(record$levelname, record$logger, 
+                                          msg, sep = ":"))
+    return(text)
+}

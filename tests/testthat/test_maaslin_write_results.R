@@ -26,7 +26,8 @@ results <- maaslin_fit(data_in_tss,
                        min_prevalence = 0, 
                        min_variance = 0,
                        data = data_in, 
-                       median_comparison_abundance = FALSE)
+                       median_comparison_abundance = FALSE,
+                       out_dir = tempdir())
 
 maaslin_write_results(output = output_tmp,
                       fit_data_abundance = results$fit_data_abundance, 

@@ -26,7 +26,8 @@ results <- maaslin_fit(data_in_tss,
                        min_prevalence = 0, 
                        min_variance = 0,
                        data = data_in, 
-                       median_comparison_abundance = FALSE)
+                       median_comparison_abundance = FALSE,
+                       out_dir = tempdir())
 
 plot_out <- maaslin_plot_results(output = output_tmp,
                      transformed_data = data_in_tss_log,

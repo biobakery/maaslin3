@@ -15,7 +15,9 @@ groups = NULL
 ordereds = NULL
 
 features = matrix(rnorm(n*3), nrow = n)
+colnames(features) = tail(LETTERS, 3)
 x = 1
+fn = colnames(features)[x]
 feature_specific_covariate_name = NULL
 
 # copied from the original function
@@ -76,6 +78,7 @@ goal = list(para = structure(list(coef = c(NA, NA, NA),
                                   stderr = c(NA, NA, NA),
                                   pval = c(NA, NA, NA),
                                   name = c("x", "yB", "yC"), 
+                                  feature = rep(fn, 3),
                                   error = c("No data points have the baseline factor level", 
                                             "No data points have the baseline factor level",
                                             "No data points have the baseline factor level")), 
@@ -88,5 +91,5 @@ goal = list(para = structure(list(coef = c(NA, NA, NA),
 
 expect_equal(goal,
              check_missing_first_factor_level(formula, random_effects_formula,
-                                              dat_sub, groups, ordereds, features, x, 
+                                              dat_sub, groups, ordereds, fn,
                                               feature_specific_covariate_name))

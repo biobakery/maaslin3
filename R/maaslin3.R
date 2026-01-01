@@ -1430,7 +1430,7 @@ maaslin_compute_formula <- function(data,
                             random_effects_formula_text)
             random_effects_formula <-
                 tryCatch(
-                    as.formula(random_effects_formula_text),
+                    stats::as.formula(random_effects_formula_text),
                     error = function(e)
                         stop(
                             sprintf(
@@ -1537,7 +1537,7 @@ maaslin_compute_formula <- function(data,
     logging::loginfo("Formula for fixed effects: %s", formula_text)
     formula <-
         tryCatch(
-            as.formula(formula_text),
+            stats::as.formula(formula_text),
             error = function(e)
                 stop(
                     sprintf(
@@ -1609,7 +1609,7 @@ maaslin_check_formula <- function(data,
 
     formula <-
         tryCatch(
-            as.formula(input_formula),
+            stats::as.formula(input_formula),
             error = function(e)
                 stop(sprintf("Invalid formula: %s",
                             input_formula))
@@ -1840,7 +1840,7 @@ maaslin_process_metadata <- function(metadata,
             term_labels <- '1'
         }
         tmp_formula <-
-            formula(paste0("~ ", paste0(term_labels, collapse = " + ")))
+            stats::formula(paste0("~ ", paste0(term_labels, collapse = " + ")))
         formula_terms <- all.vars(tmp_formula)
         if (is.null(feature_specific_covariate_name)) {
             fixed_effects <- formula_terms
@@ -2002,7 +2002,8 @@ maaslin_fit <- function(filtered_data,
                         min_abundance = 0,
                         min_prevalence = 0,
                         max_prevalence = 1.01,
-                        min_variance = 0) {
+                        min_variance = 0,
+                        out_dir) {
 
     match.arg(correction, correction_choices)
 
@@ -2056,7 +2057,8 @@ maaslin_fit <- function(filtered_data,
                 feature_specific_covariate_name =
                     feature_specific_covariate_name,
                 feature_specific_covariate_record =
-                    feature_specific_covariate_record
+                    feature_specific_covariate_record,
+                out_dir = out_dir
             )
 
         #################################################################
@@ -2112,7 +2114,8 @@ maaslin_fit <- function(filtered_data,
                 feature_specific_covariate_name =
                     feature_specific_covariate_name,
                 feature_specific_covariate_record =
-                    feature_specific_covariate_record
+                    feature_specific_covariate_record,
+                out_dir = out_dir
             )
 
         logging::loginfo("Counting total values for each feature")
@@ -2259,7 +2262,8 @@ maaslin_fit <- function(filtered_data,
                 feature_specific_covariate_name =
                     feature_specific_covariate_name,
                 feature_specific_covariate_record =
-                    feature_specific_covariate_record
+                    feature_specific_covariate_record,
+                out_dir = out_dir
             )
 
         results <- add_qvals(new_fit_data_abundance,
@@ -2781,6 +2785,10 @@ maaslin3 <- function(input_data,
     match.arg(verbosity, c("FINEST", "FINER", "FINE", "DEBUG", "INFO",
                             "WARN", "ERROR"))
     logging::logReset()
+    
+    if (cores != 1) {
+        stop("The `cores` argument is deprecated. Enable parallelization with e.g. `mirai::daemons(2)`")
+    }
 
     # Allow for lower case variables
     normalization <- toupper(normalization)
@@ -2963,7 +2971,8 @@ maaslin3 <- function(input_data,
         min_abundance,
         min_prevalence,
         max_prevalence,
-        min_variance
+        min_variance,
+        out_dir = output
     )
 
     # Write results

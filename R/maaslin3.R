@@ -2304,7 +2304,7 @@ maaslin_fit <- function(filtered_data,
     
     if (!is.null(fit_data_prevalence)) {
         if (!is.null(random_effects_formula)) {
-            bars <- lme4::findbars(random_effects_formula)
+            bars <- reformulas::findbars(random_effects_formula)
             random_names <- vapply(bars, function(x) deparse(x[[3]]), 
                 FUN.VALUE = character(1))
             for (random_name in random_names) {

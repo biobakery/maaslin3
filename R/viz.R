@@ -1536,7 +1536,7 @@ maaslin3_association_plots <-
                            how = "left",
                            verbose = FALSE)
         
-        get_vars(to_mat, "split_var") <- NULL
+        get_vars(to_map, "split_var") <- NULL
         
         # Some associations have multiple rows of statistics to attach. A join +
         # tidyr::nest() would be simpler, but we don't have tidyr.

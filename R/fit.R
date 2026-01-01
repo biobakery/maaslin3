@@ -1078,9 +1078,10 @@ check_for_zero_one_obs <- function(formula,
             output$ranef <- NA
         output$fit <- NA
         
-        para = setColnames(para, c('coef', 'stderr' , 'pval', 'name'))
+        output$para = collapse::setColnames(output$para, c('coef', 'stderr' , 'pval', 'name'))
         
         output$para$feature <- colnames(features)[x]
+        
         output$para$error <-
             ifelse(
                 model == "logistic",
@@ -1160,7 +1161,7 @@ check_missing_first_factor_level <- function(formula,
         
         output$fit <- NA
         
-        para = collapse::setColnames(para, c('coef', 'stderr' , 'pval', 'name')) 
+        output$para = collapse::setColnames(output$para, c('coef', 'stderr' , 'pval', 'name')) 
         
         output$para$feature <- colnames(features)[x]
         
@@ -1183,10 +1184,15 @@ fit_augmented_logistic <- function(ranef_function,
                                 features,
                                 x) {
     warning_message <- NA
+    
     error_message <- NA
+    
     calling_env <- environment()
+    
     mm_input <- NULL
+    
     weight_scheme <- NULL
+    
     fit1 <- tryCatch({
         withCallingHandlers({
             withCallingHandlers({
@@ -1250,6 +1256,7 @@ fit_augmented_logistic <- function(ranef_function,
                     class = "try-error")
         return(error_obj)
     })
+    
     if (!is.na(error_message)) {
         fit_and_message <- c(list(fit1), list(error_message))
         error_message <- NA
@@ -1259,6 +1266,7 @@ fit_augmented_logistic <- function(ranef_function,
     } else {
         fit_and_message <- c(list(fit1), NA)
     }
+    
     return(list("fit_and_message" = fit_and_message,
                 "weight_scheme" = weight_scheme,
                 "mm_input" = mm_input))
@@ -1276,8 +1284,11 @@ non_augmented <- function(ranef_function,
                         x) {
 
     warning_message <- NA
+    
     error_message <- NA
+    
     calling_envir <- environment()
+    
     fit1 <- tryCatch({
         withCallingHandlers({
             formula_new <-
@@ -1313,6 +1324,7 @@ non_augmented <- function(ranef_function,
                     class = "try-error")
         return(error_obj)
     })
+    
     if (!is.na(error_message)) {
         fit_and_message <- c(list(fit1), list(error_message))
         error_message <- NA
@@ -1322,6 +1334,7 @@ non_augmented <- function(ranef_function,
     } else {
         fit_and_message <- c(list(fit1), NA)
     }
+    
     return(list("fit_and_message" = fit_and_message,
                 "weight_scheme" = NULL,
                 "mm_input" = NULL))
@@ -1341,6 +1354,7 @@ run_group_models <- function(ranef_function,
                             output,
                             mm_input) {
     match.arg(model, c("linear", "logistic"))
+    
     output$para <- rbind(output$para,
                         setNames(do.call(rbind, lapply(groups, function(group) {
         as.data.frame(setNames(tryCatch({
@@ -1682,26 +1696,36 @@ fitting_wrap_up <- function(fit_properly,
     if (fit_properly) {
         output$residuals <- stats::residuals(fit)
         output$fitted <- stats::fitted(fit)
+        
         if (!(is.null(random_effects_formula))) {
             # Returns a list with a table for each random effect
             l <- ranef_function(fit)
             
             # Rename rows as random effect labels 
             # if only random intercepts
-            if (length(l) == 1 &
+            rl_chk = length(l) == 1 &
                 ncol(l[[1]]) == 1 &
-                colnames(l[[1]])[1] == "(Intercept)") {
+                colnames(l[[1]])[1] == "(Intercept)"
+            
+            if (rl_chk) {
+                
                 d <- as.vector(unlist(l))
-                names(d) <- unlist(lapply(l, row.names))
-                d[setdiff(unique(metadata[, names(l)]), names(d))] <-
-                    NA
-                d <- d[order(unique(metadata[, names(l)]))]
+                
+                names(d) <- row.names(l[[1]])
+                
+                d[setdiff(collapse::funique(metadata[, names(l)]), 
+                          names(d))] <- NA
+                
+                d <- d[collapse::radixorder(collapse::funique(metadata[, names(l)]))]
+                
                 output$ranef <- d
+                
             } else {
                 # Otherwise return the random effects list
                 output$ranef <- l
             }
         }
+        
         if (median_comparison) {
             output$fit <- fit
         } else {
@@ -1732,20 +1756,26 @@ fitting_wrap_up <- function(fit_properly,
                 nrow = length(names_to_include),
                 ncol = 3
             ))
+        
         output$para$name <- names_to_include
         
         output$residuals <- NA
+        
         output$fitted <- NA
-        if (!(is.null(random_effects_formula)))
-            output$ranef <- NA
+        
+        if (!(is.null(random_effects_formula))) output$ranef <- NA
+        
         output$fit <- NA
     }
     
     colnames(output$para) <-
         c('coef', 'stderr' , 'pval', 'name')
+    
     output$para$feature <- colnames(features)[x]
+    
     output$para$error <-
         fit_and_message[[length(fit_and_message)]]
+    
     output$para$error[is.na(output$para$error) &
                         is.na(output$para$pval)] <-
         'Fitting error (NA p-value returned from fitting procedure)'
@@ -1772,8 +1802,11 @@ run_median_comparison_ordered <- function(paras_sub,
     use_this_coef <- !is.na(paras_sub$pval) & paras_sub$pval < 0.95
     
     n_coefs <- nrow(paras_sub)
+    
     sigmas <- paras_sub$stderr
+    
     coefs <- paras_sub$coef
+    
     sigma_sq_med <- var(coefs[use_this_coef], na.rm=TRUE)
     
     # Variance from asymptotic distribution
@@ -1789,7 +1822,9 @@ run_median_comparison_ordered <- function(paras_sub,
     })
     
     sim_medians <- sim_results[1, ]
+    
     all_sims <- sim_results[-1, , drop = FALSE]
+    
     cov_adjust <- apply(all_sims, 1, function(x){cov(x, sim_medians)})
     
     # Necessary offsets for contrast testing

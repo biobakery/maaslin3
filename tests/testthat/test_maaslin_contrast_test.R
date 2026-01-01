@@ -33,8 +33,7 @@ results <- maaslin_fit(data_in_tss,
                        min_prevalence = 0, 
                        min_variance = 0,
                        data = data_in, 
-                       save_models = TRUE,
-                       out_dir = out_dir)
+                       save_models = TRUE)
 
 contrast_mat <- matrix(c(0, -1, 1), 
                        ncol = 3, nrow = 1, byrow = TRUE)
@@ -57,8 +56,7 @@ results2 <- maaslin_fit(data_in_tss,
                        min_prevalence = 0, 
                        min_variance = 0,
                        data = data_in, 
-                       save_models = TRUE,
-                       out_dir = out_dir)
+                       save_models = TRUE)
 
 new_mod_results <- results2$fit_data_abundance$results[
     results2$fit_data_abundance$results$value == 'c',]

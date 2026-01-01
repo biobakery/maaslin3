@@ -2002,8 +2002,7 @@ maaslin_fit <- function(filtered_data,
                         min_abundance = 0,
                         min_prevalence = 0,
                         max_prevalence = 1.01,
-                        min_variance = 0,
-                        out_dir) {
+                        min_variance = 0) {
 
     match.arg(correction, correction_choices)
 
@@ -2057,8 +2056,7 @@ maaslin_fit <- function(filtered_data,
                 feature_specific_covariate_name =
                     feature_specific_covariate_name,
                 feature_specific_covariate_record =
-                    feature_specific_covariate_record,
-                out_dir = out_dir
+                    feature_specific_covariate_record
             )
 
         #################################################################
@@ -2114,8 +2112,7 @@ maaslin_fit <- function(filtered_data,
                 feature_specific_covariate_name =
                     feature_specific_covariate_name,
                 feature_specific_covariate_record =
-                    feature_specific_covariate_record,
-                out_dir = out_dir
+                    feature_specific_covariate_record
             )
 
         logging::loginfo("Counting total values for each feature")
@@ -2262,9 +2259,7 @@ maaslin_fit <- function(filtered_data,
                 feature_specific_covariate_name =
                     feature_specific_covariate_name,
                 feature_specific_covariate_record =
-                    feature_specific_covariate_record,
-                out_dir = out_dir
-            )
+                    feature_specific_covariate_record)
 
         results <- add_qvals(new_fit_data_abundance,
                             fit_data_prevalence,
@@ -2971,8 +2966,7 @@ maaslin3 <- function(input_data,
         min_abundance,
         min_prevalence,
         max_prevalence,
-        min_variance,
-        out_dir = output
+        min_variance
     )
 
     # Write results

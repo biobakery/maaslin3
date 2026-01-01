@@ -1124,9 +1124,7 @@ check_missing_first_factor_level <- function(formula,
                                             dat_sub,
                                             groups,
                                             ordereds,
-                                            # features,
                                             fn,
-                                            x,
                                             feature_specific_covariate_name) {
     missing_first_factor_level <- FALSE
     
@@ -2584,9 +2582,7 @@ fit.model <- function(features,
             dat_sub,
             groups,
             ordereds,
-            # features,
             fn = fn,
-            fi,
             feature_specific_covariate_name)
         
         if (!is.null(check_out)) {

@@ -2714,9 +2714,12 @@ fit.model <- function(features,
     }
     
     if (!(is.null(random_effects_formula))) {
-        ranef <- collapse::rowbind(lapply(outputs, function(x) {
+        
+        l <- lapply(outputs, function(x) {
             return(x$ranef)
-        })) |> 
+        })
+        
+        ranef <- do.call(rbind, l) |> 
             collapse::setRownames(colnames(features))
             
     }

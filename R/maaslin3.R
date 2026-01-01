@@ -1989,7 +1989,8 @@ maaslin_fit <- function(filtered_data,
                         min_abundance = 0,
                         min_prevalence = 0,
                         max_prevalence = 1.01,
-                        min_variance = 0) {
+                        min_variance = 0,
+                        out_dir) {
 
     match.arg(correction, correction_choices)
 
@@ -2043,7 +2044,8 @@ maaslin_fit <- function(filtered_data,
                 feature_specific_covariate_name =
                     feature_specific_covariate_name,
                 feature_specific_covariate_record =
-                    feature_specific_covariate_record
+                    feature_specific_covariate_record,
+                out_dir = out_dir
             )
 
         #################################################################
@@ -2099,7 +2101,8 @@ maaslin_fit <- function(filtered_data,
                 feature_specific_covariate_name =
                     feature_specific_covariate_name,
                 feature_specific_covariate_record =
-                    feature_specific_covariate_record
+                    feature_specific_covariate_record,
+                out_dir = out_dir
             )
 
         logging::loginfo("Counting total values for each feature")
@@ -2246,7 +2249,8 @@ maaslin_fit <- function(filtered_data,
                 feature_specific_covariate_name =
                     feature_specific_covariate_name,
                 feature_specific_covariate_record =
-                    feature_specific_covariate_record
+                    feature_specific_covariate_record,
+                out_dir = out_dir
             )
 
         results <- add_qvals(new_fit_data_abundance,
@@ -2755,6 +2759,10 @@ maaslin3 <- function(input_data,
     match.arg(verbosity, c("FINEST", "FINER", "FINE", "DEBUG", "INFO",
                             "WARN", "ERROR"))
     logging::logReset()
+    
+    if (cores != 1) {
+        stop("The `cores` argument is deprecated. Enable parallelization with e.g. `mirai::daemons(2)`")
+    }
 
     # Allow for lower case variables
     normalization <- toupper(normalization)
@@ -2937,7 +2945,8 @@ maaslin3 <- function(input_data,
         min_abundance,
         min_prevalence,
         max_prevalence,
-        min_variance
+        min_variance,
+        out_dir = output
     )
 
     # Write results

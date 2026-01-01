@@ -22,6 +22,8 @@ data_in_tss <- data.frame(t(apply(data_in, MARGIN = 1,
 data_in_tss[data_in_tss == 0] <- NA
 data_in_tss_log <- log2(data_in_tss)
 
+out_dir = tempdir()
+
 results <- maaslin_fit(data_in_tss,
                        data_in_tss_log,
                        metadata,
@@ -31,7 +33,8 @@ results <- maaslin_fit(data_in_tss,
                        min_prevalence = 0, 
                        min_variance = 0,
                        data = data_in, 
-                       save_models = TRUE)
+                       save_models = TRUE,
+                       out_dir = out_dir)
 
 contrast_mat <- matrix(c(0, -1, 1), 
                        ncol = 3, nrow = 1, byrow = TRUE)
@@ -44,6 +47,7 @@ contrast_test_out <- maaslin_contrast_test(results,
                       contrast_mat)
 
 metadata$var2 <- factor(metadata$var2, levels = c('b', 'a', 'c'))
+
 results2 <- maaslin_fit(data_in_tss,
                        data_in_tss_log,
                        metadata,
@@ -53,7 +57,8 @@ results2 <- maaslin_fit(data_in_tss,
                        min_prevalence = 0, 
                        min_variance = 0,
                        data = data_in, 
-                       save_models = TRUE)
+                       save_models = TRUE,
+                       out_dir = out_dir)
 
 new_mod_results <- results2$fit_data_abundance$results[
     results2$fit_data_abundance$results$value == 'c',]
@@ -76,4 +81,6 @@ expect_that(new_mod_results2$coef, equals(contrast_test_out$fit_data_prevalence$
 expect_that(new_mod_results2$stderr, equals(contrast_test_out$fit_data_prevalence$results$stderr))
 expect_equal(new_mod_results2$pval_individual, 
              contrast_test_out$fit_data_prevalence$results$pval_individual, tolerance = 0.01)
+
+unlink(out_dir, recursive = TRUE)
 

@@ -1586,9 +1586,11 @@ fitting_wrap_up <- function(fit_properly,
                             ordereds,
                             # features,
                             fn,
+                            model,
                             x,
                             ranef_function,
-                            feature_specific_covariate_name) {
+                            feature_specific_covariate_name,
+                            out_dir) {
     if (fit_properly) {
         output$residuals <- stats::residuals(fit)
         output$fitted <- stats::fitted(fit)
@@ -1615,15 +1617,32 @@ fitting_wrap_up <- function(fit_properly,
                 output$ranef <- l
             }
         }
+        
+        fit_dir = file.path(out_dir, "fits", paste0("models_", model))
+        
+        if (!dir.exists(fit_dir)) dir.create(fit_dir, recursive = TRUE)
+        
         if (median_comparison) {
-            output$fit <- fit
-        } else {
+            
             if (save_models) {
-                output$fit <- fit
-            } else {
-                output$fit <- NA
+                fit_out = file.path(fit_dir, paste0(make.names(fn),
+                                                    ".rds"))
             }
+            
+        } else {
+            
+            if (save_models) {
+                # TODO: SAVE 
+                fit_out = file.path(fit_dir, paste0(make.names(fn),
+                                                    ".rds"))
+                
+                output$fit <- fit
+            } 
+            
+            output$fit <- NA
+            
         }
+        
     } else {
         # Fitting issue
         logging::logwarn(paste("Fitting problem for feature",
@@ -2255,7 +2274,8 @@ fit.model <- function(features,
                     subtract_median = FALSE,
                     feature_specific_covariate = NULL,
                     feature_specific_covariate_name = NULL,
-                    feature_specific_covariate_record = NULL) {
+                    feature_specific_covariate_record = NULL,
+                    out_dir) {
     match.arg(model, c("linear", "logistic"))
     match.arg(correction,
             c("BH", "holm", "hochberg", "hommel", "bonferroni", "BY"))
@@ -2362,6 +2382,7 @@ fit.model <- function(features,
                           ordereds = ordereds,
                           # features = features,
                           model = model,
+                          out_dir = out_dir,
                           feature_specific_covariate = feature_specific_covariate,
                           feature_specific_covariate_name = feature_specific_covariate_name,
                           formula = formula,
@@ -2586,13 +2607,13 @@ fit.model <- function(features,
                                 ordereds,
                                 # features,
                                 fn = fn,
+                                model = model,
+                                out_dir = out_dir,
                                 fi,
                                 ranef_function,
                                 feature_specific_covariate_name)
-        
-        # output$r = ranef_function
-        # output$m = model_function
-        # output$s = summary_function
+       
+        output$fit <- NULL
         
         return(output)
     }

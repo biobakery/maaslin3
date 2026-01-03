@@ -319,7 +319,6 @@ fit_out <- maaslin3(input_data = taxa_table,
                     median_comparison_abundance = TRUE,
                     median_comparison_prevalence = FALSE,
                     max_pngs = 100,
-                    cores = 1,
                     save_models = TRUE)
 ```
 
@@ -663,9 +662,6 @@ will be plotted.
 
 #### Technical/miscellaneous parameters ####
 
-* `cores` (default `1`): How many cores to use when fitting models.
-(Using multiple cores will likely be faster only for large datasets or
-complex models.)
 * `save_models` (default `FALSE`): Whether to return the fit models and
 save them to an RData file.
 * `verbosity` (default `'FINEST'`): The level of verbosity for the 
@@ -673,6 +669,10 @@ save them to an RData file.
 * `save_plots_rds` (default `FALSE`): Whether to save the plots as RDS files.
 * `assay.type` (default `1`): A string or index to select the assay when using
 a `SummarizedExperiment` object.
+* One core is used by default. You can enable parallelization by creating
+background [daemons](https://mirai.r-lib.org/reference/daemons.html) using the
+[mirai](https://mirai.r-lib.org/index.html) package e.g. call
+`mirai::daemons(2)` before running the `maaslin3()` command to use two cores.
 
 ## Troubleshooting ##
 

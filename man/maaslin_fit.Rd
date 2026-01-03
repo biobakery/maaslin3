@@ -103,8 +103,7 @@ maaslin_fit(filtered_data,
     separability.}
     \item{evaluate_only}{Whether to evaluate just the abundnace
     ("abundance") or prevalence ("prevalence") models}
-    \item{cores}{How many cores to use when fitting models. (Using multiple
-    cores will likely be faster only for large datasets or complex models.}
+    \item{cores}{Deprecated. Use \link[=mirai]{daemons} to enable parallelization.}
     \item{save_models}{Whether to return the fit models and save them to an
     RData file.}
     \item{data}{The original data (only necessary if warn_prevalence is

@@ -29,8 +29,10 @@
 ###############################################################
 
 # this evaluates to true if script is being called directly as an executable
-if (identical(environment(), globalenv()) &&
-    !length(grep("^source\\(", sys.calls()))) {
+cmd_line_chk = identical(environment(), globalenv()) &&
+    !length(grep("^source\\(", sys.calls()))
+
+if (cmd_line_chk) {
     # source all R in Maaslin3 package, relative to this folder
     # same method as original maaslin
     script_options <- commandArgs(trailingOnly = FALSE)
@@ -45,6 +47,9 @@ if (identical(environment(), globalenv()) &&
         if (!(R_file == script_name))
             source(file.path(script_dir, R_file))
     }
+    
+    # After parsing the command line arguments below, we'll use the cores
+    # argument to set the daemons.
 }
 
 #### Set the default options ####
@@ -95,7 +100,7 @@ args$coef_plot_vars <- NULL
 args$heatmap_vars <- NULL
 args$plot_associations <- TRUE
 args$max_pngs <- 30
-args$cores <- 1
+args$cores <- "1"
 args$save_models <- FALSE
 args$save_plots_rds <- FALSE
 args$reference <- NULL
@@ -569,12 +574,13 @@ options <-
     optparse::add_option(
         options,
         c("--cores"),
-        type = "double",
+        type = "character",
         dest = "cores",
         default = args$cores,
         help = paste(
-            "The number of R processes to",
-            "run in parallel [ Default: %default ]"
+            "Either an integer passed to `mirai::daemons()` or a path to an R",
+            "script with custom daemons() setup that will be parsed and", 
+            "evaluated with source()."
         )
     )
 options <-
@@ -925,7 +931,7 @@ maaslin_log_arguments <- function(input_data,
     )
     logging::logdebug("Augment: %s", augment)
     logging::logdebug("Evaluate only: %s", evaluate_only)
-    logging::logdebug("Cores: %d", cores)
+    logging::logdebug("Number of mirai daemons: %d", mirai::info()["connections"])
     logging::logdebug("Balanced Summary plot: %s", summary_plot_balanced)
 
 
@@ -3036,9 +3042,7 @@ maaslin3 <- function(input_data,
 # If running on the command line, get arguments and call maaslin function #
 ###########################################################################
 
-# this evaluates to true if script is being called directly as an executable
-if (identical(environment(), globalenv()) &&
-    !length(grep("^source\\(", sys.calls()))) {
+if (cmd_line_chk) {
 
     # get command line options and positional arguments
     parsed_arguments <- optparse::parse_args(options,
@@ -3055,6 +3059,24 @@ if (identical(environment(), globalenv()) &&
             )
         )
     }
+    
+    # Hack to allow users to set daemons
+    cores_val = tryCatch(as.integer(current_args$cores),
+             warning = function(err) {
+                 msg = paste0("Command line cores argument not parseable as",
+                              "integer, will attempt to source()")
+                 
+                 logging::loginfo(msg)
+                 
+                 source(current_args$cores)
+                 
+             })
+    
+    if (is.integer(cores_val)) mirai::daemons(cores_val)
+   
+    # Now that the daemons are set, assign cores back to the only value that
+    # won't error out with a deprecation warning, 1.
+    current_args$cores = 1
 
     # call maaslin with the command line options
     fit_data <-

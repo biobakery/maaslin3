@@ -338,8 +338,7 @@ fit_out <- maaslin3(input_data = taxa_table,
                     max_significance = 0.1,
                     median_comparison_abundance = TRUE,
                     median_comparison_prevalence = FALSE,
-                    max_pngs = 20,
-                    cores = 1)
+                    max_pngs = 20)
 ```
 
 The `maaslin3` wrapper function runs all steps at once, but equivalent
@@ -358,8 +357,7 @@ maaslin_log_arguments(input_data = taxa_table,
                     max_significance = 0.1,
                     median_comparison_abundance = TRUE,
                     median_comparison_prevalence = FALSE,
-                    max_pngs = 20,
-                    cores = 1)
+                    max_pngs = 20)
 
 read_data_list <- maaslin_read_data(taxa_table,
                                     metadata)
@@ -399,8 +397,7 @@ maaslin_results = maaslin_fit(filtered_data,
                             random_effects_formula,
                             data = data,
                             median_comparison_abundance = TRUE,
-                            median_comparison_prevalence = FALSE,
-                            cores = 1)
+                            median_comparison_prevalence = FALSE)
 
 maaslin_write_results(output = 'hmp2_output',
                     maaslin_results$fit_data_abundance,
@@ -903,9 +900,6 @@ will be plotted.
 
 #### Technical/miscellaneous parameters ####
 
-* `cores` (default `1`): How many cores to use when fitting models.
-(Using multiple cores will likely be faster only for large datasets or
-complex models.)
 * `save_models` (default `FALSE`): Whether to return the fit models and
 save them to an RData file.
 * `verbosity` (default `'FINEST'`): The level of verbosity for the 
@@ -913,6 +907,10 @@ save them to an RData file.
 * `save_plots_rds` (default `FALSE`): Whether to save the plots as RDS files.
 * `assay.type` (default `1`): A string or index to select the assay when using
 a `SummarizedExperiment` object.
+* Enable parallelization by creating background 
+[daemons](https://mirai.r-lib.org/reference/daemons.html) using 
+[mirai](https://mirai.r-lib.org/articles/mirai.html) e.g. call 
+`mirai::daemons(2)` before running `maaslin3()` to use two cores.
 
 ## Tool comparison ##
 

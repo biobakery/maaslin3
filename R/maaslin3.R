@@ -3071,10 +3071,10 @@ if (cmd_line_chk) {
     # Hack to allow users to set daemons
     cores_val = tryCatch(as.integer(current_args$cores),
              warning = function(err) {
-                 msg = paste0("Command line cores argument not parseable as",
-                              "integer, will attempt to source()")
+                 msg = paste("Command line cores argument not parseable as",
+                             "integer, will attempt to source()")
                  
-                 logging::loginfo(msg)
+                 message(msg)
                  
                  source(current_args$cores)
                  

@@ -2,6 +2,7 @@ library(testthat)
 library(maaslin3)
 
 output_tmp <- tempfile()
+mirai::daemons(0)
 maaslin_log_arguments(input_data = 'something1', 
                       input_metadata = 'something2',
                       output = output_tmp, 
@@ -40,7 +41,7 @@ maaslin_log_arguments(input_data = 'something1',
                       heatmap_vars = 'something19',
                       plot_associations = TRUE,
                       max_pngs = 8,
-                      cores = 9,
+                      cores = 1,
                       save_models = FALSE,
                       verbosity = 'FINEST',
                       summary_plot_balanced=FALSE)
@@ -83,7 +84,7 @@ lines_to_compare <- c("Writing function arguments to log file",
                         "Small random effects: FALSE",
                         "Augment: TRUE",
                         "Evaluate only:",
-                        "Cores: 9",
+                        "Number of mirai daemons: 0",
                         "Balanced Summary plot: FALSE",
                         "Verifying options selected are valid")
 

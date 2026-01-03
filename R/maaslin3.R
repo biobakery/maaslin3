@@ -931,7 +931,15 @@ maaslin_log_arguments <- function(input_data,
     )
     logging::logdebug("Augment: %s", augment)
     logging::logdebug("Evaluate only: %s", evaluate_only)
-    logging::logdebug("Number of mirai daemons: %d", mirai::info()["connections"])
+    
+    n_con = mirai::info()["connections"]
+    
+    n_daemon = ifelse(is.null(n_con),
+                      0,
+                      n_con)
+    
+    logging::logdebug("Number of mirai daemons: %d", n_daemon)
+    
     logging::logdebug("Balanced Summary plot: %s", summary_plot_balanced)
 
 

@@ -3080,7 +3080,7 @@ if (cmd_line_chk) {
                  
              })
     
-    if (is.integer(cores_val)) mirai::daemons(cores_val)
+    if (is.integer(cores_val) && cores_val > 1) mirai::daemons(cores_val)
    
     # Now that the daemons are set, assign cores back to the only value that
     # won't error out with a deprecation warning, 1.

@@ -1567,7 +1567,7 @@ maaslin3_association_plots <-
             
             # mirai::everywhere({})
             
-            plot_list <- mirai_map(to_map, 
+            plot_list <- mirai::mirai_map(to_map, 
                                    plot_one_assoc,
                                    .args = arg_list)[.progress]
         } else {
@@ -1605,7 +1605,7 @@ maaslin3_association_plots <-
                     plot_df = data.frame(x = I(split_plots),
                                          y = names(split_plots))
                     
-                    mirai_map(.x = plot_df,
+                    mirai::mirai_map(.x = plot_df,
                               .f = save_plot_list_fun,
                               ap_dir = association_plots_folder)[.progress]
                 } else {

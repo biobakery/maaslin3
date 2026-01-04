@@ -1062,7 +1062,7 @@ check_for_zero_one_obs <- function(formula,
         
         # List fixed effects that will be included
         names_to_include <-
-            get_fixed_effects(formula,
+            maaslin3:::get_fixed_effects(formula,
                             random_effects_formula,
                             dat_sub,
                             groups,
@@ -1129,14 +1129,14 @@ check_missing_first_factor_level <- function(formula,
                                             feature_specific_covariate_name) {
     missing_first_factor_level <- FALSE
     
-    fxf <- get_fixed_effects(formula,
+    fxf <- maaslin3:::get_fixed_effects(formula,
                              random_effects_formula,
                              dat_sub,
                              groups,
                              ordereds,
                              feature_specific_covariate_name)
     
-    missing_first_factor_level <- any(mapply(FUN = check_mffl_one, 
+    missing_first_factor_level <- any(mapply(FUN = maaslin3:::check_mffl_one, 
                                              as.list(dat_sub),
                                              colnames(dat_sub),
                                              MoreArgs = list(ex = dat_sub$expr,
@@ -1753,7 +1753,7 @@ fitting_wrap_up <- function(fit_properly,
                             "returning NA"))
         
         names_to_include <-
-            get_fixed_effects(formula,
+            maaslin3:::get_fixed_effects(formula,
                             random_effects_formula,
                             dat_sub,
                             groups,
@@ -2271,6 +2271,7 @@ run_median_comparison <- function(paras,
     match.arg(model, c("linear", "logistic"))
     logging::loginfo("Performing tests against medians")
     
+    
     if (length(ordereds) > 0) {
         ordered_levels <- unlist(lapply(ordereds, function(ordered) {
             unlist(paste0(ordered, levels(metadata[[ordered]])[-1]))
@@ -2504,7 +2505,10 @@ fit.model <- function(features,
                           model_function = model_function,
                           augment = augment,
                           median_comparison = median_comparison,
-                          save_models = save_models)
+                          get_fixed_effects = get_fixed_effects,
+                          safe_deparse = safe_deparse,
+                          save_models = save_models,
+                          ftail = ftail)
         
         mirai::everywhere({
             library(stats)
@@ -2614,13 +2618,14 @@ fit.model <- function(features,
         if (all(!inherits(fit, "try-error"))) {
             names_to_include <-
                 maaslin3:::get_fixed_effects(formula,
-                    random_effects_formula,
-                    dat_sub,
-                    character(0),
-                    character(0),
-                    feature_specific_covariate_name)
+                                             random_effects_formula,
+                                             dat_sub,
+                                             character(0),
+                                             character(0),
+                                             feature_specific_covariate_name)
             # Suppress warnings about variance-covariance matrix calculation
             fit_properly <- FALSE
+            
             withCallingHandlers({
                 tryCatch({
                     output$para <-
@@ -2682,9 +2687,12 @@ fit.model <- function(features,
                     # Don't worry about dropped factor levels
                     missing_names <- names_to_include[
                         !(names_to_include %in% rownames(output$para))]
+                    
                     character_cols <- maaslin3:::get_character_cols(dat_sub)
+                    
                     if (!all(missing_names %in% character_cols)) {
                         fit_properly <- FALSE
+                        
                         fit_and_message[[length(fit_and_message)]] <-
                             "Metadata dropped during fitting (rank deficient)"
                     } else {
@@ -2759,9 +2767,16 @@ fit.model <- function(features,
         # alternative: utils::txtProgressBar + a loop
         # alternative 2: reintroduce pbapply dependency (it's pretty light)
     }
+   
+    # Check to run once on a daemon: 
+    # print(mirai::mirai(func_to_run(map_input$fv[[1]],
+    #                   map_input$fn[1],
+    #                   map_input$fi[1]),
+    #                   func_to_run = func_to_run,
+    #                   map_input = map_input)[])
     
     # cli::cli_alert("First result: ")
-    # print(outputs[[1]]$fit)
+    # print(outputs[[1]])
     # outputs <-
     #     pbapply::pblapply(seq_len(ncol(features)), cl = cluster, func_to_run)
     
@@ -2773,8 +2788,7 @@ fit.model <- function(features,
     paras <- collapse::rowbind(lapply(outputs, function(x) {
         return(x$para)
     }))
-    
-    
+   
     residuals <-
         do.call(rbind, lapply(outputs, function(x) {
             return(x$residuals)

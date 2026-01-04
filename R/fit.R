@@ -2395,7 +2395,7 @@ fit.model <- function(features,
     match.arg(correction,
             c("BH", "holm", "hochberg", "hommel", "bonferroni", "BY"))
     check_formulas_valid(formula, random_effects_formula)
-    formula <- stats::formula(formula)
+    formula <- stats::as.formula(formula, env = baseenv())
 
     extract_out <- extract_special_predictor(formula, 'group')
     formula <- extract_out[[1]]

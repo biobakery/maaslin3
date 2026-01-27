@@ -40,3 +40,23 @@ expect_that(data_in_new$metadata, equals(metadata))
 expect_that(data_in_new$feature_specific_covariate, equals(covar_data))
 expect_that(data_in_new$unscaled_abundance, equals(unscaled))
 
+test_that("Can read SE", {
+    
+    # fake data
+    taxa_mat = matrix(rnorm(12), nrow = 3,
+                      dimnames = list(paste0("ft_", 1:3),
+                                      paste0("samp_", 1:4)))
+    
+    m = data.frame(grp = sample(0:1, size = 4, replace = TRUE),
+                   x = rnorm(4),
+                   row.names = paste0("samp_", 1:4))
+    
+    # construct SE here
+    se = SummarizedExperiment::SummarizedExperiment(assays = list(values = taxa_mat),
+                                                    colData = m)
+     
+    se_read = maaslin_read_summarized_experiment_data(se)
+
+    expect_equal(se_read, list(data = as.data.frame(t(taxa_mat)), metadata = m))
+})
+

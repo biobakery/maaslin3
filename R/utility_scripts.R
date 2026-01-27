@@ -1211,17 +1211,20 @@ preprocess_taxa_mtx <- function(taxa_table, rna_table, rna_per_taxon) {
 
 maaslin_read_summarized_experiment_data <- 
     function(summarized_experiment, assay.type = 1) {
-    if (!inherits(summarized_experiment, "SummarizedExperiment")) {
-        stop("Input must be a SummarizedExperiment object")
+        
+        rlang::check_installed("SummarizedExperiment")
+        
+        if (!inherits(summarized_experiment, "SummarizedExperiment")) {
+            stop("Input must be a SummarizedExperiment object")
+        }
+        
+        data <- as.data.frame(t(SummarizedExperiment::assay(
+            summarized_experiment, assay.type)))
+        metadata <- as.data.frame(
+            SummarizedExperiment::colData(summarized_experiment))
+        return(list(
+            "data" = data,
+            "metadata" = metadata
+        ))
     }
-    
-    data <- as.data.frame(t(SummarizedExperiment::assay(
-        summarized_experiment, assay.type)))
-    metadata <- as.data.frame(
-        SummarizedExperiment::colData(summarized_experiment))
-    return(list(
-        "data" = data,
-        "metadata" = metadata
-    ))
-}
 

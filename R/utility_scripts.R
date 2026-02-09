@@ -1211,17 +1211,34 @@ preprocess_taxa_mtx <- function(taxa_table, rna_table, rna_per_taxon) {
 
 maaslin_read_summarized_experiment_data <- 
     function(summarized_experiment, assay.type = 1) {
-    if (!inherits(summarized_experiment, "SummarizedExperiment")) {
-        stop("Input must be a SummarizedExperiment object")
+        
+        rlang::check_installed("SummarizedExperiment")
+        
+        if (!inherits(summarized_experiment, "SummarizedExperiment")) {
+            stop("Input must be a SummarizedExperiment object")
+        }
+        
+        data <- as.data.frame(t(SummarizedExperiment::assay(
+            summarized_experiment, assay.type)))
+        metadata <- as.data.frame(
+            SummarizedExperiment::colData(summarized_experiment))
+        return(list(
+            "data" = data,
+            "metadata" = metadata
+        ))
     }
-    
-    data <- as.data.frame(t(SummarizedExperiment::assay(
-        summarized_experiment, assay.type)))
-    metadata <- as.data.frame(
-        SummarizedExperiment::colData(summarized_experiment))
-    return(list(
-        "data" = data,
-        "metadata" = metadata
-    ))
+
+nrw_ts = function(ts) {
+    as.POSIXct(ts) |>  
+        format(format = "%Y-%m-%d %H:%M:%OS2")
 }
 
+nrw_fmt = function(record) {
+    # 5-6 digits of precision on the timestamp is verbose and makes it hard to
+    # read. Limit it to two digits.
+    
+    msg <- trimws(record$msg)
+    text <- paste(nrw_ts(record$timestamp), paste(record$levelname, record$logger, 
+                                          msg, sep = ":"))
+    return(text)
+}

@@ -111,12 +111,12 @@ get_fixed_effects <-
             # Remove all the random effects from the formula
             for (pattern in patterns) {
                 fixed_effects_only <- gsub(pattern, "",
-                                        paste0(trimws(safe_deparse(
+                                        safe_deparse(
                                             formula(gsub(
                                                 "^expr ", "",
                                                 safe_deparse(formula)
                                             ))
-                                        )), collapse = " "),
+                                        ),
                                         fixed = TRUE)
                 fixed_effects_only <-
                     gsub("[+ ]+$", "", fixed_effects_only)
@@ -2243,7 +2243,7 @@ fit.model <- function(features,
             grouping <- ifelse(grouping == make.names(grouping),
                 grouping, paste0('`', grouping, '`'))
             new_formula <- as.formula(
-                paste(deparse(fixed_part), "+", 
+                paste(safe_deparse(fixed_part), "+", 
                     paste(grouping, collapse = " + ")),
                 env = environment(formula)
             )

@@ -813,7 +813,7 @@ maaslin_log_arguments <- function(input_data,
 
     # If formula is a formula object, convert it back to a string
     if (methods::is(formula, "formula")) {
-        formula <- paste0(trimws(deparse(formula)), collapse = " ")
+        formula <- safe_deparse(formula)
     }
 
     # create an output folder
@@ -1561,8 +1561,7 @@ maaslin_check_formula <- function(data,
                                 input_formula = NULL,
                                 feature_specific_covariate_name = NULL) {
     if (methods::is(input_formula, "formula")) {
-        input_formula <-
-            paste0(trimws(deparse(input_formula)), collapse = " ")
+        input_formula <- safe_deparse(input_formula)
     }
 
     random_effects_formula <- NULL
@@ -2766,7 +2765,7 @@ maaslin3 <- function(input_data,
 
     # If formula is a formula object, convert it back to a string
     if (methods::is(formula, "formula")) {
-        formula <- paste0(trimws(deparse(formula)), collapse = " ")
+        formula <- safe_deparse(formula)
     }
 
     if (inherits(input_data, "SummarizedExperiment")) {

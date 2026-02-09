@@ -104,19 +104,19 @@ get_fixed_effects <-
                 names_to_include[names_to_include != "(Intercept)"]
         } else {
             # Random effects
-            patterns <- paste0("(", unlist(lme4::findbars(formula(
+            patterns <- paste0("(", unlist(reformulas::findbars(formula(
                 gsub("^expr ", "", safe_deparse(formula))
             ))), ")")
             
             # Remove all the random effects from the formula
             for (pattern in patterns) {
                 fixed_effects_only <- gsub(pattern, "",
-                                        paste0(trimws(safe_deparse(
+                                        safe_deparse(
                                             formula(gsub(
                                                 "^expr ", "",
                                                 safe_deparse(formula)
                                             ))
-                                        )), collapse = " "),
+                                        ),
                                         fixed = TRUE)
                 fixed_effects_only <-
                     gsub("[+ ]+$", "", fixed_effects_only)
@@ -2235,7 +2235,7 @@ fit.model <- function(features,
     
     if (small_random_effects & model == 'logistic') {
         fixed_part <- lme4::nobars(formula)
-        random_terms <- lme4::findbars(formula)
+        random_terms <- reformulas::findbars(formula)
         if (length(random_terms) > 0) {
             grouping <- unique(
                 vapply(random_terms, function(x) deparse(x[[3]]), 
@@ -2243,7 +2243,7 @@ fit.model <- function(features,
             grouping <- ifelse(grouping == make.names(grouping),
                 grouping, paste0('`', grouping, '`'))
             new_formula <- as.formula(
-                paste(deparse(fixed_part), "+", 
+                paste(safe_deparse(fixed_part), "+", 
                     paste(grouping, collapse = " + ")),
                 env = environment(formula)
             )

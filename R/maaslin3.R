@@ -813,7 +813,7 @@ maaslin_log_arguments <- function(input_data,
 
     # If formula is a formula object, convert it back to a string
     if (methods::is(formula, "formula")) {
-        formula <- paste0(trimws(deparse(formula)), collapse = " ")
+        formula <- safe_deparse(formula)
     }
 
     # create an output folder
@@ -834,9 +834,21 @@ maaslin_log_arguments <- function(input_data,
     }
 
     logging::logReset()
+    
     logging::basicConfig(level = verbosity)
+    
+    logging::removeHandler("basic.stdout")
+    
+    logging::addHandler(logging::writeToConsole,
+                        handler = "basic.stdout",
+                        logger = "",
+                        level = 20,
+                        formatter = nrw_fmt)
+    
     logging::addHandler(logging::writeToFile,
-                        file = log_file, level = verbosity)
+                        file = log_file, level = verbosity,
+                        formatter = nrw_fmt)
+    
     logging::setLevel(20, logging::getHandler('basic.stdout'))
 
     logging::loginfo("Writing function arguments to log file")
@@ -1561,8 +1573,7 @@ maaslin_check_formula <- function(data,
                                 input_formula = NULL,
                                 feature_specific_covariate_name = NULL) {
     if (methods::is(input_formula, "formula")) {
-        input_formula <-
-            paste0(trimws(deparse(input_formula)), collapse = " ")
+        input_formula <- safe_deparse(input_formula)
     }
 
     random_effects_formula <- NULL
@@ -2304,7 +2315,7 @@ maaslin_fit <- function(filtered_data,
     
     if (!is.null(fit_data_prevalence)) {
         if (!is.null(random_effects_formula)) {
-            bars <- lme4::findbars(random_effects_formula)
+            bars <- reformulas::findbars(random_effects_formula)
             random_names <- vapply(bars, function(x) deparse(x[[3]]), 
                 FUN.VALUE = character(1))
             for (random_name in random_names) {
@@ -2766,7 +2777,7 @@ maaslin3 <- function(input_data,
 
     # If formula is a formula object, convert it back to a string
     if (methods::is(formula, "formula")) {
-        formula <- paste0(trimws(deparse(formula)), collapse = " ")
+        formula <- safe_deparse(formula)
     }
 
     if (inherits(input_data, "SummarizedExperiment")) {

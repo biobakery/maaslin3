@@ -91,6 +91,7 @@ args$median_comparison_prevalence_threshold <- 0
 args$subtract_median <- FALSE
 args$warn_prevalence <- TRUE
 args$small_random_effects <- FALSE
+args$bypass_small_group_warning <- FALSE
 args$augment <- TRUE
 args$evaluate_only <- NULL
 args$unscaled_abundance <- NULL
@@ -465,6 +466,18 @@ options <-
 options <-
     optparse::add_option(
         options,
+        c("--bypass_small_group_warning"),
+        type = "logical",
+        dest = "bypass_small_group_warning",
+        default = args$bypass_small_group_warning,
+        help = paste(
+            "Bypass the warning when there are <4 average",
+            "observations per random effect group [ Default: %default ]"
+        )
+    )
+options <-
+    optparse::add_option(
+        options,
         c("--augment"),
         type = "logical",
         dest = "augment",
@@ -798,6 +811,7 @@ maaslin_log_arguments <- function(input_data,
                                 subtract_median = FALSE,
                                 warn_prevalence = TRUE,
                                 small_random_effects = FALSE,
+                                bypass_small_group_warning = FALSE,
                                 augment = TRUE,
                                 evaluate_only = NULL,
                                 plot_summary_plot = TRUE,
@@ -931,6 +945,10 @@ maaslin_log_arguments <- function(input_data,
     logging::logdebug(
         "Small random effects: %s",
         small_random_effects
+    )
+    logging::logdebug(
+        "Bypass small group warning: %s",
+        bypass_small_group_warning
     )
     logging::logdebug("Augment: %s", augment)
     logging::logdebug("Evaluate only: %s", evaluate_only)
@@ -2012,6 +2030,7 @@ maaslin_fit <- function(filtered_data,
                         subtract_median = FALSE,
                         warn_prevalence = TRUE,
                         small_random_effects = FALSE,
+                        bypass_small_group_warning = FALSE,
                         augment = TRUE,
                         evaluate_only = NULL,
                         cores = 1,
@@ -2352,7 +2371,8 @@ maaslin_fit <- function(filtered_data,
             for (random_name in random_names) {
                 random_table <- table(metadata[random_name])
                 random_table <- random_table[random_table > 0]
-                if (mean(random_table) < 4 & !small_random_effects) {
+                if (mean(random_table) < 4 & !small_random_effects &
+                    !bypass_small_group_warning) {
                     fit_data_prevalence$results$error <- 
                         data.table::fifelse(is.na(fit_data_prevalence$results$error),
     paste0("<4 average observations per random effect group often inflates ",
@@ -2790,6 +2810,7 @@ maaslin3 <- function(input_data,
                     subtract_median = FALSE,
                     warn_prevalence = TRUE,
                     small_random_effects = FALSE,
+                    bypass_small_group_warning = FALSE,
                     augment = TRUE,
                     evaluate_only = NULL,
                     plot_summary_plot = TRUE,
@@ -2875,6 +2896,7 @@ maaslin3 <- function(input_data,
         subtract_median,
         warn_prevalence,
         small_random_effects,
+        bypass_small_group_warning,
         augment,
         evaluate_only,
         plot_summary_plot,
@@ -2994,6 +3016,7 @@ maaslin3 <- function(input_data,
         subtract_median,
         warn_prevalence,
         small_random_effects,
+        bypass_small_group_warning,
         augment,
         evaluate_only,
         cores = 1,
@@ -3138,6 +3161,7 @@ if (cmd_line_chk) {
             subtract_median = current_args$subtract_median,
             warn_prevalence = current_args$warn_prevalence,
             small_random_effects = current_args$small_random_effects,
+            bypass_small_group_warning = current_args$bypass_small_group_warning,
             formula = current_args$formula,
             correction = current_args$correction,
             standardize = current_args$standardize,

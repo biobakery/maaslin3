@@ -26,6 +26,7 @@ maaslin_fit(filtered_data,
             subtract_median = FALSE,
             warn_prevalence = TRUE,
             small_random_effects = FALSE,
+            bypass_small_group_warning = FALSE,
             augment = TRUE,
             evaluate_only = NULL,
             cores = 1,
@@ -99,6 +100,9 @@ maaslin_fit(filtered_data,
     \item{small_random_effects}{Automatically replace random effects with 
     fixed effects in the logistic prevalence model to handle low numbers
     of observations per group.}
+    \item{bypass_small_group_warning}{When \code{TRUE}, bypass the warning
+    that is normally added to results when there are fewer than 4 average
+    observations per random effect group.}
     \item{augment}{Add extra lowly-weighted 0s and 1s to avoid linear
     separability.}
     \item{evaluate_only}{Whether to evaluate just the abundnace

@@ -404,6 +404,7 @@ maaslin_contrast_test <- function(
                         median_comparison_prevalence = FALSE,
                         subtract_median = FALSE,
                         small_random_effects = FALSE,
+                        bypass_small_group_warning = FALSE,
                         evaluate_only = NULL) {
     
     match.arg(correction, correction_choices)
@@ -630,7 +631,7 @@ maaslin_contrast_test <- function(
             any(unlist(lapply(maaslin3_fit$fit_data_prevalence$fits, 
                 FUN = function(x){is(x,"glmerMod")})))
         
-        if (used_random_effects) {
+        if (used_random_effects & !bypass_small_group_warning) {
             if (any(grepl('<4 average observations per random effect', 
                 maaslin3_fit$fit_data_prevalence$results$error))) {
                 fit_data_prevalence$results$error <- 

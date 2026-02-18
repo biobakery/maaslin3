@@ -483,6 +483,9 @@ from 0, of the same sign, and larger in absolute value.
 * `small_random_effects` (default `FALSE`): Automatically replace random 
 effects with fixed effects in the logistic prevalence model to handle low 
 numbers of observations per group.
+* `bypass_small_group_warning` (default `FALSE`): When `TRUE`, bypass the 
+warning that is normally added to results when there are fewer than 4 average 
+observations per random effect group.
 * `augment` (default `TRUE`): To avoid linear separability in the
 logistic regression, at each input data point, add an extra 0 and an
 extra 1 observation weighted as the number of predictors divided by two

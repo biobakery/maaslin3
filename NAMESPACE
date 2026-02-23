@@ -24,8 +24,6 @@ importFrom("stats", "as.formula", "coef", "glm", "lm", "na.exclude",
     "model.matrix", "pbeta", "quantile", "terms",
     "update.formula", "var", "vcov", "rnorm", "cov", "setNames")
 importFrom("utils", "capture.output", "read.table", "write.table")
-importFrom("dplyr", "%>%")
-importFrom("plyr", "mapvalues")
 importFrom("stats", "sd", "na.omit")
 importFrom("utils","type.convert")
 importFrom("rlang", ".data", "check_installed")

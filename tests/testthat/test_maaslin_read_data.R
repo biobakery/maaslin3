@@ -55,7 +55,7 @@ test_that("Can read SE", {
     se = SummarizedExperiment::SummarizedExperiment(assays = list(values = taxa_mat),
                                                     colData = m)
      
-    se_read = maaslin_read_summarized_experiment_data(se)
+    se_read = maaslin3:::maaslin_read_summarized_experiment_data(se)
 
     expect_equal(se_read, list(data = as.data.frame(t(taxa_mat)), metadata = m))
 })

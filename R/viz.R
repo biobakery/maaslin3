@@ -89,9 +89,9 @@ preprocess_merged_results <- function(merged_results) {
         return(NULL)
     }
     merged_results$model <-
-        ifelse(merged_results$model == 'linear', 'Abundance', 'Prevalence')
+        data.table::fifelse(merged_results$model == 'linear', 'Abundance', 'Prevalence')
     merged_results$full_metadata_name <-
-        ifelse(
+        data.table::fifelse(
             merged_results$metadata == merged_results$value,
             merged_results$metadata,
             paste0(merged_results$metadata, ' ', merged_results$value)
@@ -793,7 +793,7 @@ make_scatterplot <- function(joined_features_metadata_abun,
             fill = 'darkolivegreen4',
             color = 'black',
             alpha = .5,
-            shape = 22,
+            shape = 21,
             size = 1,
             stroke = 0.15
         ) +
@@ -849,11 +849,11 @@ make_scatterplot <- function(joined_features_metadata_abun,
             label = sprintf(
             "FDR: %s\nCoefficient (in full model): %sN: %s\nN (not zero): %s",
                 formatC(qval, format = "e", digits = 1),
-                ifelse(is.na(coef_val), 'NA', formatC(
+                if (is.na(coef_val)) 'NA' else formatC(
                     coef_val,
                     format = "e",
                     digits = 1
-                )),
+                ),
                 formatC(
                     N_total,
                     format = 'f',
@@ -901,7 +901,7 @@ make_boxplot_lm <- function(joined_features_metadata_abun,
             ggplot2::aes(fill = .data$metadata),
             alpha = 0.75 ,
             size = 1,
-            shape = 22,
+            shape = 21,
             stroke = 0.15,
             color = 'black',
             position = ggplot2::position_jitterdodge()
@@ -955,11 +955,9 @@ make_boxplot_lm <- function(joined_features_metadata_abun,
                     collapse = ', '
                 ),
                 paste0(
-                    ifelse(is.na(coef_val), 'NA', formatC(
-                        coef_val,
-                        format = "e",
-                        digits = 1
-                    )),
+                    vapply(coef_val, function(cv) {
+                        if (is.na(cv)) 'NA' else formatC(cv, format = "e", digits = 1)
+                    }, character(1)),
                     collapse = ', '
                 )
             ) ,
@@ -1119,7 +1117,7 @@ make_boxplot_logistic <- function(joined_features_metadata_prev,
             ggplot2::aes(fill = .data$feature_abun),
             alpha = 0.75 ,
             size = 1,
-            shape = 22,
+            shape = 21,
             stroke = 0.15,
             color = 'black',
             position = ggplot2::position_jitterdodge()
@@ -1150,11 +1148,11 @@ make_boxplot_logistic <- function(joined_features_metadata_prev,
             label = sprintf(
             "FDR: %s\nCoefficient (in full model): %s\nN: %s\nN (not zero): %s",
                 formatC(qval, format = "e", digits = 1),
-                ifelse(is.na(coef_val), 'NA', formatC(
+                if (is.na(coef_val)) 'NA' else formatC(
                     coef_val,
                     format = "e",
                     digits = 1
-                )),
+                ),
                 formatC(
                     N_total,
                     format = 'f',
@@ -1269,11 +1267,9 @@ make_tile_plot <- function(joined_features_metadata_prev,
                     collapse = ', '
                 ),
                 paste0(
-                    ifelse(is.na(coef_val), 'NA', formatC(
-                        coef_val,
-                        format = "e",
-                        digits = 1
-                    )),
+                    vapply(coef_val, function(cv) {
+                        if (is.na(cv)) 'NA' else formatC(cv, format = "e", digits = 1)
+                    }, character(1)),
                     collapse = ', '
                 )
             ) ,
@@ -1317,7 +1313,7 @@ make_logistic_plot <- function(this_signif_association,
     joined_features_metadata_prev <-
         joined_features_metadata
     joined_features_metadata_prev$feature_abun <-
-        ifelse(
+        data.table::fifelse(
             is.na(joined_features_metadata_prev$feature_abun),
             'Absent',
             'Present'

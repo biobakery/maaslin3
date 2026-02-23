@@ -912,8 +912,8 @@ choose_ranef_model_summary_funs_logistic <- function(random_effects_formula,
                                     na.action = na.action,
                                     weights = weight_sch_current,
                                     control = lme4::glmerControl(
-                                        optimizer = optimizers[index],
-                                        optCtrl = optCtrlList[[index]]
+                                        optimizer = maaslin3:::optimizers[index],
+                                        optCtrl = maaslin3:::optCtrlList[[index]]
                                     )
                                 )
                             }, warning = function(w) {
@@ -947,8 +947,8 @@ choose_ranef_model_summary_funs_logistic <- function(random_effects_formula,
                                 na.action = na.action,
                                 weights = weight_sch_current,
                                 control = lme4::glmerControl(
-                                    optimizer = optimizers[index],
-                                    optCtrl = optCtrlList[[index]]
+                                    optimizer = maaslin3:::optimizers[index],
+                                    optCtrl = maaslin3:::optCtrlList[[index]]
                                 )
                             )
                         }, warning = function(w) {
@@ -979,8 +979,8 @@ choose_ranef_model_summary_funs_logistic <- function(random_effects_formula,
                                 family = 'binomial',
                                 na.action = na.action,
                                 control = lme4::glmerControl(
-                                    optimizer = optimizers[index],
-                                    optCtrl = optCtrlList[[index]]
+                                    optimizer = maaslin3:::optimizers[index],
+                                    optCtrl = maaslin3:::optCtrlList[[index]]
                                 )
                             )
                         }, warning = function(w) {
@@ -1005,8 +1005,8 @@ choose_ranef_model_summary_funs_logistic <- function(random_effects_formula,
                                 family = 'binomial',
                                 na.action = na.action,
                                 control = lme4::glmerControl(
-                                    optimizer = optimizers[index],
-                                    optCtrl = optCtrlList[[index]]
+                                    optimizer = maaslin3:::optimizers[index],
+                                    optCtrl = maaslin3:::optCtrlList[[index]]
                                 )
                             )
                         )
@@ -1089,11 +1089,11 @@ check_for_zero_one_obs <- function(formula,
         output$para$feature <- fn #colnames(features)[x]
         
         output$para$error <-
-            ifelse(
-                model == "logistic",
-                "All logistic values are the same",
+            if (model == "logistic") {
+                "All logistic values are the same"
+            } else {
                 "All linear values are the same"
-            )
+            }
         return(output)
     }
     return (NULL)
@@ -2340,10 +2340,9 @@ run_median_comparison <- function(paras,
             }
         }
         
-        paras_sub$error <- ifelse(
+        paras_sub$error <- data.table::fifelse(
             is.na(pvals_new) & !is.na(paras_sub$pval), 
-            "P-value became NA in median comparison, 
-            try rerunning without the median comparison", 
+            "P-value became NA in median comparison, try rerunning without the median comparison", 
             paras_sub$error
         )
         
@@ -2416,7 +2415,7 @@ fit.model <- function(features,
             grouping <- unique(
                 vapply(random_terms, function(x) deparse(x[[3]]), 
                     FUN.VALUE = character(length(random_terms))))
-            grouping <- ifelse(grouping == make.names(grouping),
+            grouping <- data.table::fifelse(grouping == make.names(grouping),
                 grouping, paste0('`', grouping, '`'))
             new_formula <- stats::as.formula(
                 paste(deparse(fixed_part), "+", 

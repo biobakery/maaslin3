@@ -578,9 +578,12 @@ options <-
         dest = "cores",
         default = args$cores,
         help = paste(
-            "Either an integer passed to `mirai::daemons()` or a path to an R",
-            "script with custom daemons() setup that will be parsed and", 
-            "evaluated with source()."
+            "Number of parallel workers. An integer > 1 starts mirai daemons",
+            "for parallel computation. Alternatively, from the command line,",
+            "a path to an R script with custom mirai::daemons() setup that",
+            "will be parsed and evaluated with source().",
+            "Users can also call mirai::daemons() directly before maaslin3().",
+            "[default: %default]"
         )
     )
 options <-
@@ -934,9 +937,7 @@ maaslin_log_arguments <- function(input_data,
     
     n_con = mirai::info()["connections"]
     
-    n_daemon = ifelse(is.null(n_con),
-                      0,
-                      n_con)
+    n_daemon = if (is.null(n_con)) 0 else n_con
     
     logging::logdebug("Number of mirai daemons: %d", n_daemon)
     
@@ -972,7 +973,7 @@ maaslin_read_data <- function(input_data,
         data <- read.table(input_data,
             header = TRUE,
             row.names = 1, 
-            sep = ifelse(grepl('\\.tsv$|\\.txt$', input_data),  '\t', ','),
+            sep = if (grepl('\\.tsv$|\\.txt$', input_data)) '\t' else ',',
             check.names = FALSE)
     } else if (is.data.frame(input_data)) {
         if (has_auto_rownames(input_data)) {
@@ -997,7 +998,7 @@ maaslin_read_data <- function(input_data,
         metadata <- read.table(input_metadata,
             header = TRUE,
             row.names = 1, 
-            sep = ifelse(grepl('\\.tsv$|\\.txt$', input_data),  '\t', ','),
+            sep = if (grepl('\\.tsv$|\\.txt$', input_data)) '\t' else ',',
             check.names = FALSE)
     } else if (is.data.frame(input_metadata)) {
         if (has_auto_rownames(input_metadata)) {
@@ -1010,7 +1011,7 @@ maaslin_read_data <- function(input_data,
         rownames_tmp <- rownames(input_metadata)
         metadata <- as.data.frame(input_metadata)
         rownames(metadata) <- rownames_tmp
-    } else if (inherits(metadata, 'DataFrame')) {
+    } else if (inherits(input_metadata, 'DataFrame')) {
         metadata <- as.data.frame(input_metadata) # If it's BioC's DataFrame
     } else {
         stop("input_metadata is neither a file nor a data frame!")
@@ -1022,7 +1023,7 @@ maaslin_read_data <- function(input_data,
             read.table(unscaled_abundance,
                 header = TRUE,
                 row.names = 1, 
-                sep = ifelse(grepl('\\.tsv$|\\.txt$', input_data),  '\t', ','),
+                sep = if (grepl('\\.tsv$|\\.txt$', input_data)) '\t' else ',',
                 check.names = FALSE)
     } else if (is.data.frame(unscaled_abundance)) {
         if (has_auto_rownames(unscaled_abundance)) {
@@ -1047,7 +1048,7 @@ maaslin_read_data <- function(input_data,
             read.table(feature_specific_covariate,
                 header = TRUE,
                 row.names = 1, 
-                sep = ifelse(grepl('\\.tsv$|\\.txt$', input_data),  '\t', ','),
+                sep = if (grepl('\\.tsv$|\\.txt$', input_data)) '\t' else ',',
                 check.names = FALSE)
     } else if (is.data.frame(feature_specific_covariate)) {
         if (has_auto_rownames(feature_specific_covariate)) {
@@ -1432,7 +1433,7 @@ maaslin_compute_formula <- function(data,
             random_effects_formula_text <-
                 paste("expr ~ (1 | ",
                     paste(
-                        ifelse(random_effects == make.names(random_effects), 
+                        data.table::fifelse(random_effects == make.names(random_effects), 
                             random_effects, 
                             paste0('`', random_effects, '`')),
                         ")",
@@ -1515,13 +1516,17 @@ maaslin_compute_formula <- function(data,
     metadata <- metadata[, effects_names, drop = FALSE]
 
     # create the fixed effects formula text
-    formula_effects <- ifelse(fixed_effects == make.names(fixed_effects), 
-        fixed_effects, 
-        paste0('`', fixed_effects, '`'))
+    if (length(fixed_effects) > 0) {
+        formula_effects <- data.table::fifelse(fixed_effects == make.names(fixed_effects), 
+            fixed_effects, 
+            paste0('`', fixed_effects, '`'))
+    } else {
+        formula_effects <- character(0)
+    }
     if (length(group_effects) > 0) {
         formula_effects <-
             union(formula_effects, paste0("group(", 
-                ifelse(group_effects == make.names(group_effects), 
+                data.table::fifelse(group_effects == make.names(group_effects), 
                 group_effects, 
                 paste0('`', group_effects, '`')), ")"))
     }
@@ -1529,7 +1534,7 @@ maaslin_compute_formula <- function(data,
         formula_effects <-
             union(formula_effects,
                 paste0("ordered(", 
-                    ifelse(ordered_effects == make.names(ordered_effects), 
+                    data.table::fifelse(ordered_effects == make.names(ordered_effects), 
                     ordered_effects, 
                     paste0('`', ordered_effects, '`')), ")"))
     }
@@ -1537,7 +1542,7 @@ maaslin_compute_formula <- function(data,
         formula_effects <-
             union(formula_effects,
                 paste0("strata(", 
-                    ifelse(strata_effects == make.names(strata_effects), 
+                    data.table::fifelse(strata_effects == make.names(strata_effects), 
                         strata_effects, 
                         paste0('`', strata_effects, '`')), ")"))
     }
@@ -2020,6 +2025,19 @@ maaslin_fit <- function(filtered_data,
 
     match.arg(correction, correction_choices)
 
+    started_daemons <- FALSE
+    if (cores > 1) {
+        if (mirai::daemons_set()) {
+            warning("Daemons already set; ignoring `cores` argument. ",
+                    "Using existing daemons configuration.")
+        } else {
+            mirai::daemons(cores)
+            started_daemons <- TRUE
+            on.exit(mirai::daemons(0), add = TRUE)
+            logging::loginfo("Started %d mirai daemons via `cores` argument", cores)
+        }
+    }
+
     if (!is.null(feature_specific_covariate)) {
         tryCatch({
             feature_specific_covariate <-
@@ -2168,12 +2186,10 @@ maaslin_fit <- function(filtered_data,
         current_errors_for_likely_issues <-
             fit_data_prevalence$results$error[current_likely_error_subsetter]
         fit_data_prevalence$results$error[current_likely_error_subsetter] <-
-            ifelse(
+            data.table::fifelse(
                 !is.na(current_errors_for_likely_issues),
                 current_errors_for_likely_issues,
-                "A large coefficient (>15 in absolute value) or small
-                p-value (< 10^-10) was obtained from a feature present
-                in <5% of samples. Check this is intended."
+                "A large coefficient (>15 in absolute value) or small p-value (< 10^-10) was obtained from a feature present in <5% of samples. Check this is intended."
             )
 
         current_likely_error_subsetter <-
@@ -2196,12 +2212,10 @@ maaslin_fit <- function(filtered_data,
         current_errors_for_likely_issues <-
             fit_data_prevalence$results$error[current_likely_error_subsetter]
         fit_data_prevalence$results$error[current_likely_error_subsetter] <-
-            ifelse(
+            data.table::fifelse(
                 !is.na(current_errors_for_likely_issues),
                 current_errors_for_likely_issues,
-                "A large coefficient (>15 in absolute value) or small p-value
-                (< 10^-10) was obtained from a feature present in >95% of
-                samples. Check this is intended."
+                "A large coefficient (>15 in absolute value) or small p-value (< 10^-10) was obtained from a feature present in >95% of samples. Check this is intended."
             )
     } else {
         fit_data_prevalence <- NULL
@@ -2315,7 +2329,7 @@ maaslin_fit <- function(filtered_data,
             fit_data_abundance$results$qval_joint <-
                 fit_data_abundance$results$qval
             
-            collapse::setrename(outputs$results,
+            collapse::setrename(fit_data_abundance$results,
                                 "pval_individual" = "pval",
                                 "qval_individual" = "qval" )
             
@@ -2341,7 +2355,7 @@ maaslin_fit <- function(filtered_data,
                 random_table <- random_table[random_table > 0]
                 if (mean(random_table) < 4 & !small_random_effects) {
                     fit_data_prevalence$results$error <- 
-                        ifelse(is.na(fit_data_prevalence$results$error),
+                        data.table::fifelse(is.na(fit_data_prevalence$results$error),
     paste0("<4 average observations per random effect group often inflates ",
         "coefficients and deflates p-values: consider setting ",
         "small_random_effects=TRUE and see tutorial"), 
@@ -2795,8 +2809,17 @@ maaslin3 <- function(input_data,
                             "WARN", "ERROR"))
     logging::logReset()
     
-    if (cores != 1) {
-        stop("The `cores` argument is deprecated. Enable parallelization with e.g. `mirai::daemons(2)`")
+    started_daemons <- FALSE
+    if (cores > 1) {
+        if (mirai::daemons_set()) {
+            warning("Daemons already set; ignoring `cores` argument. ",
+                    "Using existing daemons configuration.")
+        } else {
+            mirai::daemons(cores)
+            started_daemons <- TRUE
+            on.exit(mirai::daemons(0), add = TRUE)
+            logging::loginfo("Started %d mirai daemons via `cores` argument", cores)
+        }
     }
 
     # Allow for lower case variables
@@ -2974,7 +2997,7 @@ maaslin3 <- function(input_data,
         small_random_effects,
         augment,
         evaluate_only,
-        cores,
+        cores = 1,
         save_models = TRUE,
         data,
         min_abundance,
@@ -3068,23 +3091,17 @@ if (cmd_line_chk) {
         )
     }
     
-    # Hack to allow users to set daemons
-    cores_val = tryCatch(as.integer(current_args$cores),
+    cores_val <- tryCatch(as.integer(current_args$cores),
              warning = function(err) {
-                 msg = paste("Command line cores argument not parseable as",
+                 msg <- paste("Command line cores argument not parseable as",
                              "integer, will attempt to source()")
-                 
                  message(msg)
-                 
                  source(current_args$cores)
-                 
+                 return(1L)
              })
     
-    if (is.integer(cores_val) && cores_val > 1) mirai::daemons(cores_val)
-   
-    # Now that the daemons are set, assign cores back to the only value that
-    # won't error out with a deprecation warning, 1.
-    current_args$cores = 1
+    if (!is.integer(cores_val)) cores_val <- 1L
+    current_args$cores <- cores_val
 
     # call maaslin with the command line options
     fit_data <-

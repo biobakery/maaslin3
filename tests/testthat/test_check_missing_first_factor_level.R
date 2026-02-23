@@ -27,7 +27,7 @@ expect_true(any(c(vapply(colnames(dat_sub),
                                  if (all(is.na(dat_sub$expr[dat_sub[, col] == 
                                                             levels(dat_sub[, col])[1]]))) {
                                      fixed_effects <-
-                                         get_fixed_effects(formula,
+                                         maaslin3:::get_fixed_effects(formula,
                                                            random_effects_formula,
                                                            dat_sub,
                                                            groups,
@@ -41,7 +41,7 @@ expect_true(any(c(vapply(colnames(dat_sub),
                              return(FALSE)
                          }, logical(1)))))
 fxf <-
-        get_fixed_effects(formula,
+        maaslin3:::get_fixed_effects(formula,
                           random_effects_formula,
                           dat_sub,
                           groups,
@@ -55,7 +55,7 @@ expect_equal(any(c(vapply(colnames(dat_sub),
                                   if (all(is.na(dat_sub$expr[dat_sub[, col] == 
                                                              levels(dat_sub[, col])[1]]))) {
                                       fixed_effects <-
-                                          get_fixed_effects(formula,
+                                          maaslin3:::get_fixed_effects(formula,
                                                             random_effects_formula,
                                                             dat_sub,
                                                             groups,
@@ -68,7 +68,7 @@ expect_equal(any(c(vapply(colnames(dat_sub),
                               }
                               return(FALSE)
                           }, logical(1)))),
-             any(mapply(FUN = check_mffl_one, 
+             any(mapply(FUN = maaslin3:::check_mffl_one, 
                         as.list(dat_sub),
                         colnames(dat_sub),
                         MoreArgs = list(ex = dat_sub$expr,
@@ -90,6 +90,6 @@ goal = list(para = structure(list(coef = c(NA, NA, NA),
             fit = NA)
 
 expect_equal(goal,
-             check_missing_first_factor_level(formula, random_effects_formula,
+             maaslin3:::check_missing_first_factor_level(formula, random_effects_formula,
                                               dat_sub, groups, ordereds, fn,
                                               feature_specific_covariate_name))

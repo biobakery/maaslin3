@@ -497,12 +497,10 @@ maaslin_contrast_test <- function(
         current_errors_for_likely_issues <-
             fit_data_prevalence$results$error[current_likely_error_subsetter]
         fit_data_prevalence$results$error[current_likely_error_subsetter] <-
-            ifelse(
+            data.table::fifelse(
                 !is.na(current_errors_for_likely_issues),
                 current_errors_for_likely_issues,
-                "A large coefficient (>15 in absolute value) or small
-                p-value (< 10^-10) was obtained from a feature present
-                in <5% of samples. Check this is intended."
+                "A large coefficient (>15 in absolute value) or small p-value (< 10^-10) was obtained from a feature present in <5% of samples. Check this is intended."
             )
         
         current_likely_error_subsetter <-
@@ -525,12 +523,10 @@ maaslin_contrast_test <- function(
         current_errors_for_likely_issues <-
             fit_data_prevalence$results$error[current_likely_error_subsetter]
         fit_data_prevalence$results$error[current_likely_error_subsetter] <-
-            ifelse(
+            data.table::fifelse(
                 !is.na(current_errors_for_likely_issues),
                 current_errors_for_likely_issues,
-                "A large coefficient (>15 in absolute value) or small p-value
-                (< 10^-10) was obtained from a feature present in >95% of
-                samples. Check this is intended."
+                "A large coefficient (>15 in absolute value) or small p-value (< 10^-10) was obtained from a feature present in >95% of samples. Check this is intended."
             )
     } else {
         fit_data_prevalence <- NULL
@@ -637,7 +633,7 @@ maaslin_contrast_test <- function(
             if (any(grepl('<4 average observations per random effect', 
                 maaslin3_fit$fit_data_prevalence$results$error))) {
                 fit_data_prevalence$results$error <- 
-                    ifelse(is.na(fit_data_prevalence$results$error),
+                    data.table::fifelse(is.na(fit_data_prevalence$results$error),
                             paste0("<4 average observations per random ",
                                     "effect group often inflates ",
                                     "coefficients and deflates p-values: ",
@@ -1004,7 +1000,7 @@ maaslin_contrast_test_runner <- function(fits,
             }, numeric(1))
             
             paras_sub$error <- 
-                ifelse(!is.na(paras_sub$pval) & 
+                data.table::fifelse(!is.na(paras_sub$pval) & 
                         is.na(pvals_new),
                     "P-value became NA during median comparison",
                     paras_sub$error

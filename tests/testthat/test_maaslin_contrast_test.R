@@ -1,6 +1,5 @@
 library(testthat)
 library(maaslin3)
-library(dplyr)
 
 # The idea of these checks is that the contrast test should be the same as
 # refactoring with categorical data

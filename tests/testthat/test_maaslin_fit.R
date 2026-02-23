@@ -85,15 +85,19 @@ for (feature in c('a', 'b', 'c')) {
 }
 growing_df$qval_individual <- p.adjust(growing_df$pval_individual, 'BH')
 
-merged_df <- dplyr::full_join(growing_df[growing_df$model == 'linear',],
-                       growing_df[growing_df$model == 'logistic',], 
-                       by = c('metadata', 'value', 'name', 'feature', 'N', 
-                              'N_not_zero'))
-pval_joint <- pbeta(pmin(merged_df$pval_individual.x, 
-                        merged_df$pval_individual.y), 1, 2)
-qval_joint <- p.adjust(pval_joint, 'BH')
-growing_df$pval_joint <- rep(pval_joint, 2)
-growing_df$qval_joint <- rep(qval_joint, 2)
+merged_df <- merge(growing_df[growing_df$model == 'linear',],
+                   growing_df[growing_df$model == 'logistic',], 
+                   by = c('metadata', 'value', 'name', 'feature', 'N', 
+                          'N_not_zero'),
+                   all = TRUE)
+merged_df$pval_joint <- pbeta(pmin(merged_df$pval_individual.x, 
+                                   merged_df$pval_individual.y), 1, 2)
+merged_df$qval_joint <- p.adjust(merged_df$pval_joint, 'BH')
+joint_lookup <- merged_df[, c('feature', 'metadata', 'value', 'name',
+                               'pval_joint', 'qval_joint')]
+growing_df <- merge(growing_df, joint_lookup,
+                    by = c('feature', 'metadata', 'value', 'name'),
+                    all.x = TRUE)
 growing_df$null_hypothesis <- 0
 
 col_order <- c("feature", "metadata", "value", "name", "coef", 

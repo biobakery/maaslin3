@@ -1,4 +1,5 @@
 #!/usr/bin/env Rscript
+utils::globalVariables(".progress")
 ###############################################################################
 # MaAsLin3 fitting
 
@@ -619,8 +620,8 @@ choose_ranef_model_summary_funs_linear <- function(random_effects_formula) {
                                 data = data,
                                 na.action = na.action,
                                 control = lme4::lmerControl(
-                                    optimizer = maaslin3:::optimizers[index],
-                                    optCtrl = maaslin3:::optCtrlList[[index]]
+                                    optimizer = optimizers[index],
+                                    optCtrl = optCtrlList[[index]]
                                 )
                             )
                         )
@@ -640,8 +641,8 @@ choose_ranef_model_summary_funs_linear <- function(random_effects_formula) {
                         data = data,
                         na.action = na.action,
                         control = lme4::lmerControl(
-                            optimizer = maaslin3:::optimizers[index],
-                            optCtrl = maaslin3:::optCtrlList[[index]])
+                            optimizer = optimizers[index],
+                            optCtrl = optCtrlList[[index]])
                     )
                 )
             }
@@ -912,8 +913,8 @@ choose_ranef_model_summary_funs_logistic <- function(random_effects_formula,
                                     na.action = na.action,
                                     weights = weight_sch_current,
                                     control = lme4::glmerControl(
-                                        optimizer = maaslin3:::optimizers[index],
-                                        optCtrl = maaslin3:::optCtrlList[[index]]
+                                        optimizer = optimizers[index],
+                                        optCtrl = optCtrlList[[index]]
                                     )
                                 )
                             }, warning = function(w) {
@@ -947,8 +948,8 @@ choose_ranef_model_summary_funs_logistic <- function(random_effects_formula,
                                 na.action = na.action,
                                 weights = weight_sch_current,
                                 control = lme4::glmerControl(
-                                    optimizer = maaslin3:::optimizers[index],
-                                    optCtrl = maaslin3:::optCtrlList[[index]]
+                                    optimizer = optimizers[index],
+                                    optCtrl = optCtrlList[[index]]
                                 )
                             )
                         }, warning = function(w) {
@@ -979,8 +980,8 @@ choose_ranef_model_summary_funs_logistic <- function(random_effects_formula,
                                 family = 'binomial',
                                 na.action = na.action,
                                 control = lme4::glmerControl(
-                                    optimizer = maaslin3:::optimizers[index],
-                                    optCtrl = maaslin3:::optCtrlList[[index]]
+                                    optimizer = optimizers[index],
+                                    optCtrl = optCtrlList[[index]]
                                 )
                             )
                         }, warning = function(w) {
@@ -1005,8 +1006,8 @@ choose_ranef_model_summary_funs_logistic <- function(random_effects_formula,
                                 family = 'binomial',
                                 na.action = na.action,
                                 control = lme4::glmerControl(
-                                    optimizer = maaslin3:::optimizers[index],
-                                    optCtrl = maaslin3:::optCtrlList[[index]]
+                                    optimizer = optimizers[index],
+                                    optCtrl = optCtrlList[[index]]
                                 )
                             )
                         )
@@ -1062,7 +1063,7 @@ check_for_zero_one_obs <- function(formula,
         
         # List fixed effects that will be included
         names_to_include <-
-            maaslin3:::get_fixed_effects(formula,
+            get_fixed_effects(formula,
                             random_effects_formula,
                             dat_sub,
                             groups,
@@ -1129,14 +1130,14 @@ check_missing_first_factor_level <- function(formula,
                                             feature_specific_covariate_name) {
     missing_first_factor_level <- FALSE
     
-    fxf <- maaslin3:::get_fixed_effects(formula,
+    fxf <- get_fixed_effects(formula,
                              random_effects_formula,
                              dat_sub,
                              groups,
                              ordereds,
                              feature_specific_covariate_name)
     
-    missing_first_factor_level <- any(mapply(FUN = maaslin3:::check_mffl_one, 
+    missing_first_factor_level <- any(mapply(FUN = check_mffl_one, 
                                              as.list(dat_sub),
                                              colnames(dat_sub),
                                              MoreArgs = list(ex = dat_sub$expr,
@@ -1753,7 +1754,7 @@ fitting_wrap_up <- function(fit_properly,
                             "returning NA"))
         
         names_to_include <-
-            maaslin3:::get_fixed_effects(formula,
+            get_fixed_effects(formula,
                             random_effects_formula,
                             dat_sub,
                             groups,
@@ -2488,13 +2489,11 @@ fit.model <- function(features,
         collapse::fselect(fit_vars)
     
     if (mirai::daemons_set()) {
-        # There's probably a less repetitive way to do this V 
         mirai::everywhere({}, 
                           metadata = small_meta,
                           random_effects_formula = random_effects_formula,
                           groups = groups,
                           ordereds = ordereds,
-                          # features = features,
                           model = model,
                           feature_specific_covariate = feature_specific_covariate,
                           feature_specific_covariate_name = feature_specific_covariate_name,
@@ -2507,12 +2506,22 @@ fit.model <- function(features,
                           get_fixed_effects = get_fixed_effects,
                           safe_deparse = safe_deparse,
                           save_models = save_models,
-                          ftail = ftail)
+                          ftail = ftail,
+                          check_for_zero_one_obs = check_for_zero_one_obs,
+                          check_missing_first_factor_level = check_missing_first_factor_level,
+                          fit_augmented_logistic = fit_augmented_logistic,
+                          non_augmented = non_augmented,
+                          run_group_models = run_group_models,
+                          run_ordered_models = run_ordered_models,
+                          get_character_cols = get_character_cols,
+                          fitting_wrap_up = fitting_wrap_up,
+                          optimizers = optimizers,
+                          optCtrlList = optCtrlList)
         
         mirai::everywhere({
-            library(stats)
-            library(methods)
-        }) # TODO find the functions needed from stats and add scoped calls to avoid this.
+            requireNamespace("stats")
+            requireNamespace("methods")
+        })
     }
     
     func_to_run <- function(fv, fn, fi) {
@@ -2545,8 +2554,7 @@ fit.model <- function(features,
         }
         
         # 0 or 1 observations
-        # It might be better to hand the functions to the daemons with everywhere() rather than triple colon
-        zero_one_out <- maaslin3:::check_for_zero_one_obs(formula,
+        zero_one_out <- check_for_zero_one_obs(formula,
             random_effects_formula,
             dat_sub,
             groups,
@@ -2562,7 +2570,7 @@ fit.model <- function(features,
         }
         
         # Missing first factor level
-        check_out <- maaslin3:::check_missing_first_factor_level(formula,
+        check_out <- check_missing_first_factor_level(formula,
             random_effects_formula,
             dat_sub,
             groups,
@@ -2578,7 +2586,7 @@ fit.model <- function(features,
         if (augment &
             model == "logistic" &
             length(unique(featuresVector)) >= 2) {
-            fitting_out <- maaslin3:::fit_augmented_logistic(
+            fitting_out <- fit_augmented_logistic(
                 ranef_function,
                 model_function,
                 formula,
@@ -2590,7 +2598,7 @@ fit.model <- function(features,
                 fn = fn,
                 fi)
         } else { # linear or non-augmented logistic
-            fitting_out <- maaslin3:::non_augmented(
+            fitting_out <- non_augmented(
                 ranef_function,
                 model_function,
                 formula,
@@ -2616,7 +2624,7 @@ fit.model <- function(features,
         low_n_error <- FALSE
         if (all(!inherits(fit, "try-error"))) {
             names_to_include <-
-                maaslin3:::get_fixed_effects(formula,
+                get_fixed_effects(formula,
                                              random_effects_formula,
                                              dat_sub,
                                              character(0),
@@ -2645,7 +2653,7 @@ fit.model <- function(features,
                 n_uni_cols <- nrow(output$para)
                 
                 if (length(groups) > 0) {
-                    output <- maaslin3:::run_group_models(ranef_function,
+                    output <- run_group_models(ranef_function,
                                             model_function,
                                             groups,
                                             formula,
@@ -2660,7 +2668,7 @@ fit.model <- function(features,
                 }
                 
                 if (length(ordereds) > 0) {
-                    output <- maaslin3:::run_ordered_models(ranef_function,
+                    output <- run_ordered_models(ranef_function,
                                                 model_function,
                                                 ordereds,
                                                 fit_and_message,
@@ -2676,7 +2684,7 @@ fit.model <- function(features,
                 
                 # Check whether summaries are correct
                 names_to_include <-
-                    maaslin3:::get_fixed_effects(formula,
+                    get_fixed_effects(formula,
                                     random_effects_formula,
                                     dat_sub,
                                     groups,
@@ -2687,7 +2695,7 @@ fit.model <- function(features,
                     missing_names <- names_to_include[
                         !(names_to_include %in% rownames(output$para))]
                     
-                    character_cols <- maaslin3:::get_character_cols(dat_sub)
+                    character_cols <- get_character_cols(dat_sub)
                     
                     if (!all(missing_names %in% character_cols)) {
                         fit_properly <- FALSE
@@ -2711,7 +2719,7 @@ fit.model <- function(features,
             fit_properly <- FALSE
         }
         
-        output <- maaslin3:::fitting_wrap_up(fit_properly,
+        output <- fitting_wrap_up(fit_properly,
                                 fit_and_message,
                                 output,
                                 fit,

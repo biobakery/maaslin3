@@ -1,10 +1,8 @@
 library(testthat)
 library(maaslin3)
 
-# The optimizers and optCtrlList vectors must be accessible via the maaslin3
-# namespace so that closures serialized to mirai daemons can resolve them.
-# A previous bug left bare references to these in the logistic model functions,
-# which would fail on daemons with "object 'optimizers' not found".
+# The optimizers and optCtrlList vectors are passed to mirai daemons via
+# everywhere(). Verify they exist in the package namespace.
 
 test_that("optimizers and optCtrlList are accessible via maaslin3 namespace", {
     expect_true(is.character(maaslin3:::optimizers))

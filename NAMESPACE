@@ -23,7 +23,7 @@ importFrom("stats", "as.formula", "coef", "glm", "lm", "na.exclude",
     "p.adjust", "update", "relevel", "anova", "approx", "filter", "median",
     "model.matrix", "pbeta", "quantile", "terms",
     "update.formula", "var", "vcov", "rnorm", "cov", "setNames")
-importFrom("utils", "capture.output", "read.table", "write.table")
+importFrom("utils", "capture.output", "read.table", "write.table", "tail")
 importFrom("stats", "sd", "na.omit")
 importFrom("utils","type.convert")
 importFrom("rlang", ".data", "check_installed")

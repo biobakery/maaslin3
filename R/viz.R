@@ -1,4 +1,5 @@
 #!/usr/bin/env Rscript
+utils::globalVariables(".progress")
 ###############################################################################
 # MaAsLin3 visualizations
 
@@ -1560,8 +1561,9 @@ maaslin3_association_plots <-
                         ap_dir = association_plots_folder)
         
         if (mirai::daemons_set()) {
-            
-            # mirai::everywhere({})
+            mirai::everywhere({},
+                              make_lm_plot = make_lm_plot,
+                              make_logistic_plot = make_logistic_plot)
             
             plot_list <- mirai::mirai_map(to_map, 
                                    plot_one_assoc,
@@ -1672,9 +1674,7 @@ plot_one_assoc = function(feature, meta_var, model, fv, assoc_stats,
     this_signif_association = assoc_stats
     
     if ('linear' == model_name) {
-        # Have to triple colon here because it could be called from a daemon
-        # without m3 attached.
-        temp_plot <- maaslin3:::make_lm_plot(this_signif_association,
+        temp_plot <- make_lm_plot(this_signif_association,
                                             joined_features_metadata,
                                             meta,
                                             metadata_name,
@@ -1686,7 +1686,7 @@ plot_one_assoc = function(feature, meta_var, model, fv, assoc_stats,
     }
     
     if ('logistic' == model_name) {
-        temp_plot <- maaslin3:::make_logistic_plot(this_signif_association,
+        temp_plot <- make_logistic_plot(this_signif_association,
                                                   joined_features_metadata,
                                                   meta,
                                                   metadata_name,

@@ -13,7 +13,7 @@ License: MIT + file LICENSE
 Imports: data.table, collapse, lmerTest, lme4, optparse, logging, mirai,
         multcomp, ggplot2, RColorBrewer, patchwork, scales,
         rlang, ggnewscale, survival, methods, BiocGenerics, reformulas
-Suggests: knitr, testthat (>= 2.1.0), rmarkdown, markdown, kableExtra, SummarizedExperiment, TreeSummarizedExperiment
+Suggests: knitr, testthat (>= 2.1.0), rmarkdown, markdown, kableExtra, dplyr, SummarizedExperiment, TreeSummarizedExperiment
 VignetteBuilder: knitr
 Collate: fit.R utility_scripts.R viz.R maaslin3.R
 URL: http://huttenhower.sph.harvard.edu/maaslin3

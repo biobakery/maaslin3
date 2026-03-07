@@ -120,7 +120,7 @@ get_fixed_effects <-
                                                 "^expr ", "",
                                                 safe_deparse(formula)
                                             ))
-                                        ),
+                                        )), collapse = " "),
                                         fixed = TRUE)
                 fixed_effects_only <-
                     gsub("[+ ]+$", "", fixed_effects_only)

@@ -1,4 +1,5 @@
 #!/usr/bin/env Rscript
+utils::globalVariables(".progress")
 ###############################################################################
 # MaAsLin3 fitting
 
@@ -25,12 +26,15 @@
 
 # Function to augment data for logistic fitting
 augment_data <- function(formula, random_effects_formula, dat_sub) {
-    dat_sub_new <- rbind(dat_sub, dat_sub, dat_sub)
-    dat_sub_new$expr[(nrow(dat_sub) + 1):(2 * nrow(dat_sub))] <- 1
-    dat_sub_new$expr[(nrow(dat_sub) * 2 + 1):(3 * nrow(dat_sub))] <-
-        0
+    d2 = dat_sub 
+    d3 = dat_sub 
     
-    formula <- formula(formula)
+    d2 = collapse::ftransform(d2, expr = 1)
+    d3 = collapse::ftransform(d3, expr = 0)
+    
+    dat_sub_new <- collapse::rowbind(dat_sub, d2, d3)
+    
+    formula <- stats::formula(formula)
     
     if (is.null(random_effects_formula)) {
         # No random effects
@@ -76,8 +80,8 @@ extract_special_predictor <- function(formula, predictor_type) {
     if (substr(formula_tmp, nchar(formula_tmp), nchar(formula_tmp)) == '~') {
         formula_tmp <- paste0(formula_tmp, '1')
     }
-    formula <- formula(formula_tmp)
-    formula <- formula(gsub("~ \\+", "~", safe_deparse(formula)))
+    formula <- stats::formula(formula_tmp)
+    formula <- stats::formula(gsub("~ \\+", "~", safe_deparse(formula)))
     
     if (predictor_type == "strata" & length(groups) > 1) {
         stop("Only one strata allowed. Please change the formula.")
@@ -97,43 +101,43 @@ get_fixed_effects <-
         names_to_include <- c()
         if (is.null(random_effects_formula)) {
             # Fixed and group effects only
-            names_to_include <- colnames(model.matrix(formula(gsub(
+            names_to_include <- colnames(model.matrix(stats::formula(gsub(
                 "^expr ", "", safe_deparse(formula)
             )), dat_sub))
             names_to_include <-
                 names_to_include[names_to_include != "(Intercept)"]
         } else {
             # Random effects
-            patterns <- paste0("(", unlist(reformulas::findbars(formula(
+            patterns <- paste0("(", unlist(reformulas::findbars(stats::formula(
                 gsub("^expr ", "", safe_deparse(formula))
             ))), ")")
             
             # Remove all the random effects from the formula
             for (pattern in patterns) {
                 fixed_effects_only <- gsub(pattern, "",
-                                        safe_deparse(
-                                            formula(gsub(
+                                        paste0(trimws(safe_deparse(
+                                            stats::formula(gsub(
                                                 "^expr ", "",
                                                 safe_deparse(formula)
                                             ))
-                                        ),
+                                        )), collapse = " "),
                                         fixed = TRUE)
                 fixed_effects_only <-
                     gsub("[+ ]+$", "", fixed_effects_only)
                 fixed_effects_only <-
                     gsub("\\+\\s*\\++", "+", fixed_effects_only)
-                formula <- formula(fixed_effects_only)
+                formula <- stats::formula(fixed_effects_only)
             }
             
             if (!is.null(feature_specific_covariate_name)) {
-                names_to_include <- colnames(model.matrix(formula(gsub(
+                names_to_include <- colnames(model.matrix(stats::formula(gsub(
                     paste0(feature_specific_covariate_name, " \\+|^expr "), 
                     "", safe_deparse(formula)
                 )), dat_sub))
                 names_to_include <- c(names_to_include, 
                                         feature_specific_covariate_name)
             } else {
-                names_to_include <- colnames(model.matrix(formula(gsub(
+                names_to_include <- colnames(model.matrix(stats::formula(gsub(
                     "^expr ", "", safe_deparse(formula)
                 )), dat_sub))
             }
@@ -177,18 +181,20 @@ add_qvals <- function(fit_data_abundance, fit_data_prevalence, correction) {
     # Select out p-values and NA if errors
     if (!is.null(fit_data_abundance)) {
         abundance_pvals <- fit_data_abundance$results$pval
-        abundance_pvals <- ifelse(!is.na(fit_data_abundance$results$error),
-                                    NA,
-                                    abundance_pvals)
+        
+        abundance_pvals <- data.table::fifelse(!is.na(fit_data_abundance$results$error),
+                                               NA_real_,
+                                               abundance_pvals)
     } else {
         abundance_pvals <- c()
     }
     
     if (!is.null(fit_data_prevalence)) {
         prevalence_pvals <- fit_data_prevalence$results$pval
-        prevalence_pvals <- ifelse(!is.na(fit_data_prevalence$results$error),
-                                    NA,
-                                    prevalence_pvals)
+        
+        prevalence_pvals <- data.table::fifelse(!is.na(fit_data_prevalence$results$error),
+                                                NA_real_,
+                                                prevalence_pvals)
     } else {
         prevalence_pvals <- c()
     }
@@ -196,9 +202,10 @@ add_qvals <- function(fit_data_abundance, fit_data_prevalence, correction) {
     # Create and write combined q-vals
     combined_qvals <- as.numeric(p.adjust(c(abundance_pvals, prevalence_pvals), 
                                 method = correction))
+    
     if (!is.null(fit_data_abundance)) {
         fit_data_abundance$results$qval <- combined_qvals[
-            seq(length(abundance_pvals))]
+            seq_len(length(abundance_pvals))]
     }
     if (!is.null(fit_data_prevalence)) {
         fit_data_prevalence$results$qval <- combined_qvals[
@@ -223,55 +230,66 @@ create_combined_pval <- function(merged_signif, correction) {
     
     # If NA or model errored, use the p-value of the non-NA
     merged_signif$pval_joint <-
-        ifelse(
-            is.na(merged_signif[, "linear"]) |
+        data.table::fifelse(
+            is.na(merged_signif$linear) |
                 !is.na(merged_signif$linear_error),
-            merged_signif[, "logistic"],
+            as.numeric(merged_signif$logistic),
             merged_signif$pval_joint
         )
+    # ^ as.numeric() because fifelse checks if class(yes) == class(no) and NA is
+    # logical by default
+    
     merged_signif$pval_joint <-
-        ifelse(
-            is.na(merged_signif[, "logistic"]) |
+        data.table::fifelse(
+            is.na(merged_signif$logistic) |
                 !is.na(merged_signif$logistic_error),
-            merged_signif[, "linear"],
+            as.numeric(merged_signif$linear),
             merged_signif$pval_joint
         )
+    
     merged_signif$pval_joint <-
-        ifelse((
-            is.na(merged_signif[, "logistic"]) |
+        data.table::fifelse((
+            is.na(merged_signif$logistic) |
                 !is.na(merged_signif$logistic_error)
-        ) & (is.na(merged_signif[, "linear"]) |
-                !is.na(merged_signif$linear_error)),
-        NA,
+        ) & (is.na(merged_signif$linear) |
+                 !is.na(merged_signif$linear_error)),
+        NA_real_,
         merged_signif$pval_joint)
+    
     merged_signif$qval_joint <-
         as.numeric(p.adjust(merged_signif$pval_joint, method = correction))
+    
     return(merged_signif)
 }
 
 # Put note when abundance effect has likely turned into a prevalence effect
 flag_abundance_turned_prevalence <- function(merged_signif,
                                             max_significance) {
+    
+    tst = !is.na(merged_signif$logistic_coef) &
+        !is.na(merged_signif$linear_coef) &
+        !is.na(merged_signif$logistic) &
+        !is.na(merged_signif$linear)
+    
+    inner_tst = is.na(merged_signif$logistic_error) &
+        is.na(merged_signif$linear_error) &
+        merged_signif$linear_qval < max_significance &
+        sign(merged_signif$logistic_coef) == 
+        sign(merged_signif$linear_coef) &
+        abs(merged_signif$linear_coef) > 
+        abs(merged_signif$logistic_coef)
+    
     # Join and check linear and logistic pieces
-    merged_signif[,'logistic_error'] <- ifelse(
-            !is.na(merged_signif[,'logistic_coef']) &
-            !is.na(merged_signif[,'linear_coef']) &
-            !is.na(merged_signif[,'logistic']) &
-            !is.na(merged_signif[,'linear']),
-            ifelse(
-                is.na(merged_signif[,'logistic_error']) &
-                is.na(merged_signif[,'linear_error']) &
-                merged_signif[,'linear_qval'] < max_significance &
-                sign(merged_signif[,'logistic_coef']) == 
-                sign(merged_signif[,'linear_coef']) &
-                abs(merged_signif[,'linear_coef']) > 
-                abs(merged_signif[,'logistic_coef']),
-                paste0("Prevalence association possibly induced ",
-                "by stronger abundance association"),
-                merged_signif[,'logistic_error']
-            ),
-            merged_signif[,'logistic_error']
-        )
+    merged_signif$logistic_error <- data.table::fifelse(
+        tst,
+        data.table::fifelse(
+            inner_tst,
+            paste0("Prevalence association possibly induced ",
+                   "by stronger abundance association"),
+            merged_signif$logistic_error
+        ),
+        merged_signif$logistic_error
+    )
     
     return(merged_signif)
 }
@@ -279,17 +297,22 @@ flag_abundance_turned_prevalence <- function(merged_signif,
 # Get joint significance for abundance and prevalence associations
 add_joint_signif <-
     function(fit_data_abundance,
-            fit_data_prevalence,
-            new_fit_data_abundance,
-            max_significance,
-            correction) {
+             fit_data_prevalence,
+             new_fit_data_abundance,
+             max_significance,
+             correction) {
+        
         match.arg(correction,
-            c("BH", "holm", "hochberg", "hommel", "bonferroni", "BY"))
+                  c("BH", "holm", "hochberg", "hommel", "bonferroni", "BY"))
+        
         # Subset to shared columns
+        sel_vec = c("feature", "metadata", "value",
+                    "name", "coef", "null_hypothesis",
+                    "pval", "qval", "error")
+        
         fit_data_prevalence_signif <-
-            fit_data_prevalence$results[, c("feature", "metadata", "value",
-                                            "name", "coef", "null_hypothesis",
-                                            "pval", "qval", "error")]
+            fit_data_prevalence$results |> collapse::fselect(sel_vec)
+        
         colnames(fit_data_prevalence_signif) <-
             c("feature",
             "metadata",
@@ -300,10 +323,10 @@ add_joint_signif <-
             "logistic",
             "logistic_qval",
             "logistic_error")
+        
         fit_data_abundance_signif <-
-            fit_data_abundance$results[, c("feature", "metadata", "value",
-                                            "name", "coef", "null_hypothesis",
-                                            "pval", "qval", "error")]
+            fit_data_abundance$results |> collapse::fselect(sel_vec)
+        
         colnames(fit_data_abundance_signif) <-
             c("feature",
             "metadata",
@@ -317,10 +340,13 @@ add_joint_signif <-
         
         # Join and check linear and logistic pieces
         merged_signif <-
-            dplyr::full_join(
-                unique(fit_data_prevalence_signif),
-                unique(fit_data_abundance_signif),
-                by = c("feature", "metadata", "value", "name")
+            collapse::join(
+                collapse::funique(fit_data_prevalence_signif),
+                collapse::funique(fit_data_abundance_signif),
+                how = "full",
+                verbose = FALSE,
+                on = c("feature", "metadata", "value", "name"),
+                overid = 2 # Pretty sure 0 would be fine, but 2 to be safe
             )
         
         # Show the difference between the logistic and linear models fit
@@ -335,9 +361,8 @@ add_joint_signif <-
         
         if (!is.null(new_fit_data_abundance)) {
             fit_data_prevalence_signif_tmp <-
-                fit_data_prevalence$results[, c("feature", "metadata", "value",
-                                            "name", "coef", "null_hypothesis",
-                                            "pval", "qval", "error")]
+                fit_data_prevalence$results |> collapse::fselect(sel_vec)
+            
             colnames(fit_data_prevalence_signif_tmp) <-
                 c("feature",
                     "metadata",
@@ -348,11 +373,13 @@ add_joint_signif <-
                     "logistic",
                     "logistic_qval",
                     "logistic_error")
+            
             fit_data_abundance_signif_tmp <-
                 new_fit_data_abundance$results[, 
                     c("feature", "metadata", "value",
                     "name", "coef", "null_hypothesis",
                     "pval", "qval", "error")]
+            
             colnames(fit_data_abundance_signif_tmp) <-
                 c("feature",
                     "metadata",
@@ -365,10 +392,13 @@ add_joint_signif <-
                     "linear_error")
             
             merged_signif_tmp <-
-                dplyr::left_join(
-                    unique(fit_data_prevalence_signif_tmp),
-                    unique(fit_data_abundance_signif_tmp),
-                    by = c("feature", "metadata", "value", "name")
+                collapse::join(
+                    collapse::funique(fit_data_prevalence_signif_tmp),
+                    collapse::funique(fit_data_abundance_signif_tmp),
+                    how = "left",
+                    verbose = FALSE,
+                    overid = 2,
+                    on = c("feature", "metadata", "value", "name")
                 )
             
             merged_signif_tmp <- 
@@ -384,15 +414,28 @@ add_joint_signif <-
                                 "logistic",
                                 "logistic_qval")
             
-            merged_signif <- merged_signif %>%
-                dplyr::left_join(merged_signif_tmp %>% 
-                            dplyr::select(dplyr::all_of(overlapping_cols), 
-                                            .data$logistic_error), 
-                            by = overlapping_cols) %>%
-                dplyr::mutate(logistic_error = dplyr::coalesce(
-                    .data$logistic_error.y, 
-                    .data$logistic_error.x)) %>%
-                dplyr::select(-.data$logistic_error.x, -.data$logistic_error.y)
+            merged_signif <- collapse::join(merged_signif,
+                                            collapse::fselect(merged_signif_tmp,
+                                                              c(overlapping_cols, 
+                                                                "logistic_error")),
+                                            how = "left",
+                                            overid = 2,
+                                            on = overlapping_cols,
+                                            verbose = FALSE,
+                                            suffix = c("_x", "_y"))
+            
+            # I don't think collapse::join can perfectly mimic the .x/.y
+            # suffixing of dplyr joins.
+            
+            merged_signif <- collapse::fmutate(merged_signif,
+                logistic_error = data.table::fcoalesce(merged_signif$logistic_error_y,
+                                                       merged_signif$logistic_error_x)
+                )
+            
+            collapse::fselect(merged_signif,
+                              c("logistic_error_x",
+                                "logistic_error_y")) <- NULL
+            
         }
         
         merged_signif <- create_combined_pval(merged_signif,
@@ -406,53 +449,73 @@ add_joint_signif <-
 
 # Take logistic or linear results and add on the joint significance
 append_joint <- function(outputs, merged_signif, association_type) {
+    sel_vec = c("feature", "metadata", "value",
+                "name", "pval_joint", "qval_joint")
+    
     if (association_type == 'abundance') {
-        merged_signif <-
-            merged_signif[, c("feature",
-                                "metadata",
-                                "value",
-                                "name",
-                                "pval_joint",
-                                "qval_joint")]
-        outputs$results <- outputs$results %>%
-            dplyr::rename(
-                pval_individual = .data$pval,
-                qval_individual = .data$qval
-            )
+        
+        merged_signif <- merged_signif |> collapse::fselect(sel_vec)
+        
+        collapse::setrename(outputs$results,
+                            "pval_individual" = "pval",
+                            "qval_individual" = "qval")
+        
+        # merged_signif <- collapse::join(outputs$results,
+        #                                 merged_signif,
+        #                                 on = sel_vec[1:4],
+        #                                 how = "inner",
+        #                                 overid = 2,
+        #                                 verbose = FALSE) |> 
+        #     collapse::roworderv(sel_vec[1:4]) |> 
+        #     collapse::colorderv(sel_vec[1:4])
         
         merged_signif <- merge(outputs$results,
-                                merged_signif,
-                                by = c("feature", "metadata", "value", "name"))
+                               merged_signif,
+                               by = c("feature", "metadata", "value", "name"))
+        
+        # o = base::order(merged_signif$feature,
+        #                 merged_signif$metadata,
+        #                 merged_signif$value,
+        #                 merged_signif$name) 
+        # # ^ have to use base::order to recapitulate the locale-dependent ordering of base::merge
+        # 
+        # merged_signif = merged_signif |> 
+        #     collapse::ss(o) |> 
+        #     collapse::colorderv(neworder = sel_vec[1:4])
+        # Too slow. Just let the order be a little changed.
+        
     } else if (association_type == 'prevalence') {
-        merged_signif <-
-            merged_signif[, c("feature",
-                                "metadata",
-                                "value",
-                                "name",
-                                "pval_joint",
-                                "qval_joint",
-                                "logistic_error")]
-        merged_signif <- merged_signif %>%
-            dplyr::rename(
-                error = .data$logistic_error,
-            )
+        merged_signif <- merged_signif |> 
+            collapse::fselect(c(sel_vec,
+                                "error" = "logistic_error"))
         
         outputs$results$error <- NULL
-        outputs$results <- outputs$results %>%
-            dplyr::rename(
-                pval_individual = .data$pval,
-                qval_individual = .data$qval
-            )
-
+        
+        collapse::setrename(outputs$results, 
+                            "pval_individual" = "pval",
+                            "qval_individual" = "qval"
+        )
+        
+        # merged_signif <- collapse::join(outputs$results,
+        #                                 merged_signif,
+        #                                 on = c("feature", "metadata", 
+        #                                        "value", "name"),
+        #                                 how = "inner",
+        #                                 overid = 2,
+        #                                 verbose = FALSE) |> 
+        #     collapse::roworderv(sel_vec[1:4]) |> 
+        #     collapse::colorderv(sel_vec[1:4])
+        
         merged_signif <- merge(outputs$results,
-                                merged_signif,
-                                by = c("feature", "metadata", "value", "name"))
+                               merged_signif,
+                               by = c("feature", "metadata", "value", "name"))
         
     } else {
         stop("Invalid association_type")
     }
     
-    merged_signif <- merged_signif[order(merged_signif$qval_individual),]
+    merged_signif <- merged_signif |> 
+        collapse::roworderv("qval_individual")
     
     return(merged_signif)
 }
@@ -469,6 +532,7 @@ function_vec <-
         "append_joint",
         "check_for_zero_one_obs",
         "check_missing_first_factor_level",
+        "check_mffl_one",
         "fit_augmented_logistic",
         "non_augmented",
         "run_group_models",
@@ -499,21 +563,24 @@ choose_ranef_model_summary_funs_linear <- function(random_effects_formula) {
     if (is.null(random_effects_formula)) {
         # Fixed effects only
         ranef_function <- NULL
+        
         model_function <-
-            function(formula,
+            function(form,
                     data,
                     weight_scheme = NULL,
                     na.action) {
-                return(lm(
-                    formula(formula),
+                return(stats::lm(
+                    stats::formula(form),
                     data = data,
                     na.action = na.action
                 ))
             }
+        
         summary_function <- function(fit, names_to_include) {
             lm_summary <- summary(fit)$coefficients
             
             store_names <- rownames(lm_summary)
+            
             if (!all(names_to_include %in% store_names)) {
                 # If deficient rank, make sure all rownames are included
                 rows_to_add <-
@@ -525,15 +592,21 @@ choose_ranef_model_summary_funs_linear <- function(random_effects_formula) {
                 rownames(lm_summary) <-
                     c(store_names, rows_to_add)
             }
-            para <- as.data.frame(lm_summary)[-1, -3]
+            
+            para <- as.data.frame(lm_summary) |> 
+                ftail(-1) |> 
+                collapse::fselect(-3)
+            
             para$name <- rownames(lm_summary)[-1]
+            
             return(para)
         }
     } else {
         # Random effects
         ranef_function <- lme4::ranef
+        
         model_function <-
-            function(formula,
+            function(form,
                     data,
                     weight_scheme = NULL,
                     na.action) {
@@ -543,7 +616,7 @@ choose_ranef_model_summary_funs_linear <- function(random_effects_formula) {
                     tryCatch({
                         return(
                             lmerTest::lmer(
-                                formula(formula),
+                                formula = form,
                                 data = data,
                                 na.action = na.action,
                                 control = lme4::lmerControl(
@@ -564,7 +637,7 @@ choose_ranef_model_summary_funs_linear <- function(random_effects_formula) {
                 
                 return(
                     lmerTest::lmer(
-                        formula(formula),
+                        formula = form,
                         data = data,
                         na.action = na.action,
                         control = lme4::lmerControl(
@@ -574,8 +647,10 @@ choose_ranef_model_summary_funs_linear <- function(random_effects_formula) {
                 )
             }
         summary_function <- function(fit, names_to_include) {
-            lm_summary <- coef(summary(fit))
-            
+            summ = lmerTest:::summary.lmerModLmerTest # Scoped calls - this will be running on daemons
+
+            lm_summary <- summ(fit)$coefficients # Couldn't figure out how to get a scoped call for coef.summary.merMod...
+
             store_names <- rownames(lm_summary)
             if (!all(names_to_include %in% store_names)) {
                 # If deficient rank, make sure all rownames are included
@@ -588,8 +663,15 @@ choose_ranef_model_summary_funs_linear <- function(random_effects_formula) {
                 rownames(lm_summary) <-
                     c(store_names, rows_to_add)
             }
-            para <- as.data.frame(lm_summary)[-1, -c(3:4)]
+            
+            para <- as.data.frame(lm_summary) |> 
+                ftail(-1) |> 
+                collapse::fselect(-c(3:4))
+            # This yields slightly different rownames than [-1, -c(3:4)], but I
+            # don't think that matters.
+            
             para$name <- rownames(lm_summary)[-1]
+            
             return(para)
         }
     }
@@ -612,7 +694,7 @@ choose_ranef_model_summary_funs_logistic <- function(random_effects_formula,
                             weight_scheme = NULL,
                             na.action) {
                         formula <-
-                            formula(paste0(
+                            stats::formula(paste0(
                                 safe_deparse(formula),
                                 ' + strata(',
                                 strata,
@@ -626,7 +708,7 @@ choose_ranef_model_summary_funs_logistic <- function(random_effects_formula,
                         
                         clogit_out <- tryCatch({
                             fit1 <- survival::clogit(
-                                formula(formula),
+                                stats::formula(formula),
                                 data = data,
                                 method = "breslow",
                                 control = survival::coxph.control(
@@ -643,7 +725,7 @@ choose_ranef_model_summary_funs_logistic <- function(random_effects_formula,
                         
                         if (is.character(clogit_out)) {
                             fit1 <- survival::clogit(
-                                formula(formula),
+                                stats::formula(formula),
                                 data = data,
                                 method = "breslow",
                                 control = survival::coxph.control(
@@ -665,7 +747,7 @@ choose_ranef_model_summary_funs_logistic <- function(random_effects_formula,
                             na.action) {
                         clogit_out <- tryCatch({
                             fit1 <- survival::clogit(
-                                formula(formula),
+                                stats::formula(formula),
                                 data = data,
                                 method = "breslow",
                                 control = survival::coxph.control(
@@ -682,7 +764,7 @@ choose_ranef_model_summary_funs_logistic <- function(random_effects_formula,
                         
                         if (is.character(clogit_out)) {
                             fit1 <- survival::clogit(
-                                formula(formula),
+                                stats::formula(formula),
                                 data = data,
                                 method = "breslow",
                                 control = survival::coxph.control(
@@ -699,7 +781,9 @@ choose_ranef_model_summary_funs_logistic <- function(random_effects_formula,
             }
             summary_function <-
                 function(fit, names_to_include) {
-                    lm_summary <- coef(summary(fit))
+                    summ = survival:::summary.coxph # Scoped calls - this will be running on daemons
+                    
+                    lm_summary <- summ(fit)$coefficients
                     
                     store_names <- rownames(lm_summary)
                     if (!all(names_to_include %in% store_names)) {
@@ -724,10 +808,12 @@ choose_ranef_model_summary_funs_logistic <- function(random_effects_formula,
                     
                     if ('robust se' %in% colnames(lm_summary)) {
                         para <-
-                            as.data.frame(lm_summary)[,-c(2, 4, 5)] 
+                            as.data.frame(lm_summary) |> 
+                            collapse::fselect(-c(2, 4, 5))
                         # Don't actually use robust SE
                     } else {
-                        para <- as.data.frame(lm_summary)[,-c(2, 4)]
+                        para <- as.data.frame(lm_summary) |> 
+                            collapse::fselect(-c(2, 4))
                     }
                     
                     para$name <- rownames(lm_summary)
@@ -747,7 +833,7 @@ choose_ranef_model_summary_funs_logistic <- function(random_effects_formula,
                             envir = environment(formula))
                         
                         glm_out <- glm(
-                            formula = formula(formula),
+                            formula = stats::formula(formula),
                             family = 'binomial',
                             data = data,
                             weights = weight_sch_current,
@@ -764,7 +850,7 @@ choose_ranef_model_summary_funs_logistic <- function(random_effects_formula,
                             na.action) {
                         return(
                             glm(
-                                formula(formula),
+                                stats::formula(formula),
                                 data = data,
                                 family = 'binomial',
                                 na.action = na.action,
@@ -791,7 +877,10 @@ choose_ranef_model_summary_funs_logistic <- function(random_effects_formula,
                         rownames(lm_summary) <-
                             c(store_names, rows_to_add)
                     }
-                    para <- as.data.frame(lm_summary)[-1, -3]
+                    para <- as.data.frame(lm_summary) |> 
+                        ftail(-1) |> 
+                        collapse::fselect(-3)
+                    
                     para$name <- rownames(lm_summary)[-1]
                     return(para)
                 }
@@ -799,6 +888,7 @@ choose_ranef_model_summary_funs_logistic <- function(random_effects_formula,
     } else {
         # Random effects
         ranef_function <- lme4::ranef
+        
         if (augment) {
             model_function <-
                 function(formula,
@@ -817,7 +907,7 @@ choose_ranef_model_summary_funs_logistic <- function(random_effects_formula,
                             withCallingHandlers({
                                 # Catch non-integer # successes first
                                 fit1 <- lme4::glmer(
-                                    formula(formula),
+                                    stats::formula(formula),
                                     data = data,
                                     family = 'binomial',
                                     na.action = na.action,
@@ -852,7 +942,7 @@ choose_ranef_model_summary_funs_logistic <- function(random_effects_formula,
                         withCallingHandlers({
                             # Catch non-integer # successes first
                             fit1 <- lme4::glmer(
-                                formula(formula),
+                                stats::formula(formula),
                                 data = data,
                                 family = 'binomial',
                                 na.action = na.action,
@@ -885,7 +975,7 @@ choose_ranef_model_summary_funs_logistic <- function(random_effects_formula,
                     while (index < length(optimizers)) {
                         glm_out <- tryCatch({
                             lme4::glmer(
-                                formula(formula),
+                                stats::formula(formula),
                                 data = data,
                                 family = 'binomial',
                                 na.action = na.action,
@@ -911,7 +1001,7 @@ choose_ranef_model_summary_funs_logistic <- function(random_effects_formula,
                     if (is.character(glm_out)) {
                         return(
                             lme4::glmer(
-                                formula(formula),
+                                stats::formula(formula),
                                 data = data,
                                 family = 'binomial',
                                 na.action = na.action,
@@ -927,7 +1017,7 @@ choose_ranef_model_summary_funs_logistic <- function(random_effects_formula,
                 }
         }
         summary_function <- function(fit, names_to_include) {
-            lm_summary <- coef(summary(fit))
+            lm_summary <- summary(fit)$coefficients
             
             store_names <- rownames(lm_summary)
             if (!all(names_to_include %in% store_names)) {
@@ -941,8 +1031,13 @@ choose_ranef_model_summary_funs_logistic <- function(random_effects_formula,
                 rownames(lm_summary) <-
                     c(store_names, rows_to_add)
             }
-            para <- as.data.frame(lm_summary)[-1, -3]
+            
+            para <- as.data.frame(lm_summary) |> 
+                ftail(-1) |> 
+                collapse::fselect(-3)
+            
             para$name <- rownames(lm_summary)[-1]
+            
             return(para)
         }
     }
@@ -957,7 +1052,8 @@ check_for_zero_one_obs <- function(formula,
                                     dat_sub,
                                     groups,
                                     ordereds,
-                                    features,
+                                    # features,
+                                    fn,
                                     x,
                                     model,
                                     feature_specific_covariate_name) {
@@ -989,18 +1085,39 @@ check_for_zero_one_obs <- function(formula,
             output$ranef <- NA
         output$fit <- NA
         
-        colnames(output$para) <-
-            c('coef', 'stderr' , 'pval', 'name')
-        output$para$feature <- colnames(features)[x]
+        output$para = collapse::setColnames(output$para, c('coef', 'stderr' , 'pval', 'name'))
+        
+        output$para$feature <- fn #colnames(features)[x]
+        
         output$para$error <-
-            ifelse(
-                model == "logistic",
-                "All logistic values are the same",
+            if (model == "logistic") {
+                "All logistic values are the same"
+            } else {
                 "All linear values are the same"
-            )
+            }
         return(output)
     }
     return (NULL)
+}
+
+check_mffl_one = function(v, i, ex, fxf) {
+    res = FALSE
+    
+    if (!is.factor(v)) return(FALSE)
+    
+    fl = collapse::ffirst(levels(v))
+    
+    fl_expr = ex[collapse::whichv(v, fl)]
+    
+    nc_fct = nchar(i)
+    
+    fxf_nms = substr(fxf, 1, nc_fct) |> collapse::funique()
+    
+    if (collapse::allNA(fl_expr) && (i %in% fxf_nms)) {
+        TRUE
+    } else {
+        FALSE
+    }
 }
 
 # If the baseline level is missing for a factor, return blank results
@@ -1009,41 +1126,28 @@ check_missing_first_factor_level <- function(formula,
                                             dat_sub,
                                             groups,
                                             ordereds,
-                                            features,
-                                            x,
+                                            fn,
                                             feature_specific_covariate_name) {
     missing_first_factor_level <- FALSE
-    missing_first_factor_level <- any(c(vapply(colnames(dat_sub), 
-                                                function(col) {
-        if (is.factor(dat_sub[, col])) {
-            if (all(is.na(dat_sub$expr[dat_sub[, col] == 
-                                        levels(dat_sub[, col])[1]]))) {
-                fixed_effects <-
-                    get_fixed_effects(formula,
-                                    random_effects_formula,
-                                    dat_sub,
-                                    groups,
-                                    ordereds,
-                                    feature_specific_covariate_name)
-                if (col %in% substr(fixed_effects, 1, nchar(col))) {
-                    return(TRUE)
-                }
-            }
-        }
-        return(FALSE)
-    }, logical(1))))
+    
+    fxf <- get_fixed_effects(formula,
+                             random_effects_formula,
+                             dat_sub,
+                             groups,
+                             ordereds,
+                             feature_specific_covariate_name)
+    
+    missing_first_factor_level <- any(mapply(FUN = check_mffl_one, 
+                                             as.list(dat_sub),
+                                             colnames(dat_sub),
+                                             MoreArgs = list(ex = dat_sub$expr,
+                                                             fxf = fxf)))
     
     if (missing_first_factor_level) {
         output <- list()
         
         # List fixed effects that will be included
-        names_to_include <-
-            get_fixed_effects(formula,
-                            random_effects_formula,
-                            dat_sub,
-                            groups,
-                            ordereds,
-                            feature_specific_covariate_name)
+        names_to_include <- fxf
         
         # Build outputs
         output$para <-
@@ -1052,17 +1156,21 @@ check_missing_first_factor_level <- function(formula,
                 nrow = length(names_to_include),
                 ncol = 3
             ))
+        
         output$para$name <- names_to_include
         
         output$residuals <- NA
+        
         output$fitted <- NA
-        if (!(is.null(random_effects_formula)))
-            output$ranef <- NA
+        
+        if (!(is.null(random_effects_formula))) output$ranef <- NA
+        
         output$fit <- NA
         
-        colnames(output$para) <-
-            c('coef', 'stderr' , 'pval', 'name')
-        output$para$feature <- colnames(features)[x]
+        output$para = collapse::setColnames(output$para, c('coef', 'stderr' , 'pval', 'name')) 
+        
+        output$para$feature <- fn # colnames(features)[x]
+        
         output$para$error <-
             "No data points have the baseline factor level"
         return(output)
@@ -1079,19 +1187,25 @@ fit_augmented_logistic <- function(ranef_function,
                                 groups,
                                 ordereds,
                                 dat_sub,
-                                features,
+                                # features,
+                                fn,
                                 x) {
     warning_message <- NA
+    
     error_message <- NA
+    
     calling_env <- environment()
+    
     mm_input <- NULL
+    
     weight_scheme <- NULL
+    
     fit1 <- tryCatch({
         withCallingHandlers({
             withCallingHandlers({
                 # Catch non-integer # successes first
                 formula_new <-
-                    formula(paste0(
+                    stats::formula(paste0(
                         c(
                             safe_deparse(formula),
                             groups,
@@ -1129,7 +1243,7 @@ fit_augmented_logistic <- function(ranef_function,
             })
         }, warning = function(w) {
             message(sprintf("Feature %s : %s", 
-                            colnames(features)[x], w))
+                            fn, w))
             logging::logwarn(paste(
                 "Fitting problem for feature",
                 x,
@@ -1149,6 +1263,7 @@ fit_augmented_logistic <- function(ranef_function,
                     class = "try-error")
         return(error_obj)
     })
+    
     if (!is.na(error_message)) {
         fit_and_message <- c(list(fit1), list(error_message))
         error_message <- NA
@@ -1158,6 +1273,7 @@ fit_augmented_logistic <- function(ranef_function,
     } else {
         fit_and_message <- c(list(fit1), NA)
     }
+    
     return(list("fit_and_message" = fit_and_message,
                 "weight_scheme" = weight_scheme,
                 "mm_input" = mm_input))
@@ -1171,16 +1287,20 @@ non_augmented <- function(ranef_function,
                         groups,
                         ordereds,
                         dat_sub,
-                        features,
+                        # features,
+                        fn,
                         x) {
 
     warning_message <- NA
+    
     error_message <- NA
+    
     calling_envir <- environment()
+    
     fit1 <- tryCatch({
         withCallingHandlers({
             formula_new <-
-                formula(paste0(
+                stats::formula(paste0(
                     c(safe_deparse(formula), groups, ordereds),
                     collapse = " + "
                 ))
@@ -1192,7 +1312,7 @@ non_augmented <- function(ranef_function,
             fit1
         }, warning = function(w) {
             message(sprintf("Feature %s : %s", 
-                            colnames(features)[x], w))
+                            fn, w))
             logging::logwarn(paste(
                 "Fitting problem for feature",
                 x,
@@ -1212,6 +1332,7 @@ non_augmented <- function(ranef_function,
                     class = "try-error")
         return(error_obj)
     })
+    
     if (!is.na(error_message)) {
         fit_and_message <- c(list(fit1), list(error_message))
         error_message <- NA
@@ -1221,6 +1342,7 @@ non_augmented <- function(ranef_function,
     } else {
         fit_and_message <- c(list(fit1), NA)
     }
+    
     return(list("fit_and_message" = fit_and_message,
                 "weight_scheme" = NULL,
                 "mm_input" = NULL))
@@ -1240,6 +1362,7 @@ run_group_models <- function(ranef_function,
                             output,
                             mm_input) {
     match.arg(model, c("linear", "logistic"))
+    
     output$para <- rbind(output$para,
                         setNames(do.call(rbind, lapply(groups, function(group) {
         as.data.frame(setNames(tryCatch({
@@ -1275,9 +1398,9 @@ run_group_models <- function(ranef_function,
                             
                             fit_new <-
                                 model_function(
-                                    formula = update.formula(
-                                        formula(fit),
-                                        formula(
+                                    formula = stats::update.formula(
+                                        stats::formula(fit),
+                                        stats::formula(
                                             paste0('~.-', group)
                                         )
                                     ),
@@ -1289,9 +1412,9 @@ run_group_models <- function(ranef_function,
                         } else {
                             fit_new <-
                                 model_function(
-                                    update.formula(
-                                        formula(fit),
-                                        formula(
+                                    stats::update.formula(
+                                        stats::formula(fit),
+                                        stats::formula(
                                             paste0('~.-', group)
                                         )
                                     ),
@@ -1574,33 +1697,46 @@ fitting_wrap_up <- function(fit_properly,
                             dat_sub,
                             groups,
                             ordereds,
-                            features,
+                            # features,
+                            fn,
                             x,
                             ranef_function,
                             feature_specific_covariate_name) {
     if (fit_properly) {
         output$residuals <- stats::residuals(fit)
         output$fitted <- stats::fitted(fit)
+        # ^ It would be better to unname these and put them together in a
+        # co-indexed data frame. TODO:
+        
         if (!(is.null(random_effects_formula))) {
             # Returns a list with a table for each random effect
             l <- ranef_function(fit)
             
             # Rename rows as random effect labels 
             # if only random intercepts
-            if (length(l) == 1 &
+            rl_chk = length(l) == 1 &
                 ncol(l[[1]]) == 1 &
-                colnames(l[[1]])[1] == "(Intercept)") {
+                colnames(l[[1]])[1] == "(Intercept)"
+            
+            if (rl_chk) {
+                
                 d <- as.vector(unlist(l))
-                names(d) <- unlist(lapply(l, row.names))
-                d[setdiff(unique(metadata[, names(l)]), names(d))] <-
-                    NA
-                d <- d[order(unique(metadata[, names(l)]))]
+                
+                names(d) <- row.names(l[[1]])
+                
+                d[setdiff(collapse::funique(metadata[, names(l)]), 
+                          names(d))] <- NA
+                
+                d <- d[collapse::radixorder(collapse::funique(metadata[, names(l)]))]
+                
                 output$ranef <- d
+                
             } else {
                 # Otherwise return the random effects list
                 output$ranef <- l
             }
         }
+        
         if (median_comparison) {
             output$fit <- fit
         } else {
@@ -1610,6 +1746,7 @@ fitting_wrap_up <- function(fit_properly,
                 output$fit <- NA
             }
         }
+        
     } else {
         # Fitting issue
         logging::logwarn(paste("Fitting problem for feature",
@@ -1631,20 +1768,53 @@ fitting_wrap_up <- function(fit_properly,
                 nrow = length(names_to_include),
                 ncol = 3
             ))
+        
         output$para$name <- names_to_include
         
         output$residuals <- NA
+        
         output$fitted <- NA
-        if (!(is.null(random_effects_formula)))
-            output$ranef <- NA
+        
+        if (!(is.null(random_effects_formula))) output$ranef <- NA
+        
         output$fit <- NA
+    }
+    
+    if (is(output$fit, "merMod")) {
+        # Delete the model frame in the object to reduce the size of the output
+        # fit. It's just a redundant copy of the metadata. Same for these
+        # elements of the reponse module in fit@resp.
+        output$fit@frame <- data.frame()
+        # For some reason this makes the models_*.rds file a lot larger TODO:
+        # identify why or better yet save only what's needed.
+        
+        # The response slot is big too.
+        # output$fit@resp$mu <- vector("numeric")
+        # output$fit@resp$y <- vector("numeric")
+
+        # TODO: check if this can/should be done for the other model types like
+        # lm/glm/clogit The "y" element of clogit objects looks suspiciously
+        # large. It would be best of all to just extract the
+        # parameters/statistics of interest and drop everything else. If one
+        # really wants access to the full fit object it would be best to save
+        # individual feature fits to their own RDS files under fits/models_*/
+        # from within func_to_run() and avoid returning it. That would save
+        # time, memory, and avoid creating huge models_logistic.rds files.
+
+        # The fits also contain redundant copies of the fitted / residual values
+        # too. Those can/should be deleted too probably.
+
+        # OOP - What I want is a banana. What I get is a gorilla holding a banana.
     }
     
     colnames(output$para) <-
         c('coef', 'stderr' , 'pval', 'name')
-    output$para$feature <- colnames(features)[x]
+    
+    output$para$feature <- fn # colnames(features)[x]
+    
     output$para$error <-
         fit_and_message[[length(fit_and_message)]]
+    
     output$para$error[is.na(output$para$error) &
                         is.na(output$para$pval)] <-
         'Fitting error (NA p-value returned from fitting procedure)'
@@ -1671,8 +1841,11 @@ run_median_comparison_ordered <- function(paras_sub,
     use_this_coef <- !is.na(paras_sub$pval) & paras_sub$pval < 0.95
     
     n_coefs <- nrow(paras_sub)
+    
     sigmas <- paras_sub$stderr
+    
     coefs <- paras_sub$coef
+    
     sigma_sq_med <- var(coefs[use_this_coef], na.rm=TRUE)
     
     # Variance from asymptotic distribution
@@ -1688,7 +1861,9 @@ run_median_comparison_ordered <- function(paras_sub,
     })
     
     sim_medians <- sim_results[1, ]
+    
     all_sims <- sim_results[-1, , drop = FALSE]
+    
     cov_adjust <- apply(all_sims, 1, function(x){cov(x, sim_medians)})
     
     # Necessary offsets for contrast testing
@@ -2097,6 +2272,7 @@ run_median_comparison <- function(paras,
     match.arg(model, c("linear", "logistic"))
     logging::loginfo("Performing tests against medians")
     
+    
     if (length(ordereds) > 0) {
         ordered_levels <- unlist(lapply(ordereds, function(ordered) {
             unlist(paste0(ordered, levels(metadata[[ordered]])[-1]))
@@ -2165,10 +2341,9 @@ run_median_comparison <- function(paras,
             }
         }
         
-        paras_sub$error <- ifelse(
+        paras_sub$error <- data.table::fifelse(
             is.na(pvals_new) & !is.na(paras_sub$pval), 
-            "P-value became NA in median comparison, 
-            try rerunning without the median comparison", 
+            "P-value became NA in median comparison, try rerunning without the median comparison", 
             paras_sub$error
         )
         
@@ -2192,7 +2367,8 @@ run_median_comparison <- function(paras,
                                 model)
     })
     
-    final_paras <- rbind(final_paras, do.call(rbind, final_paras_list))
+    final_paras <- collapse::rowbind(final_paras, 
+                                     collapse::rowbind(final_paras_list))
 
     paras <- final_paras
     return(paras)
@@ -2216,19 +2392,19 @@ fit.model <- function(features,
                     feature_specific_covariate_name = NULL,
                     feature_specific_covariate_record = NULL) {
     match.arg(model, c("linear", "logistic"))
-    match.arg(correction, 
+    match.arg(correction,
             c("BH", "holm", "hochberg", "hommel", "bonferroni", "BY"))
     check_formulas_valid(formula, random_effects_formula)
-    formula <- formula(formula)
-    
+    formula <- stats::as.formula(formula, env = baseenv())
+
     extract_out <- extract_special_predictor(formula, 'group')
     formula <- extract_out[[1]]
     groups <- extract_out[[2]]
-    
+
     extract_out <- extract_special_predictor(formula, 'ordered')
     formula <- extract_out[[1]]
     ordereds <- extract_out[[2]]
-    
+
     extract_out <- extract_special_predictor(formula, 'strata')
     formula <- extract_out[[1]]
     strata <- extract_out[[2]]
@@ -2240,7 +2416,7 @@ fit.model <- function(features,
             grouping <- unique(
                 vapply(random_terms, function(x) deparse(x[[3]]), 
                     FUN.VALUE = character(length(random_terms))))
-            grouping <- ifelse(grouping == make.names(grouping),
+            grouping <- data.table::fifelse(grouping == make.names(grouping),
                 grouping, paste0('`', grouping, '`'))
             new_formula <- as.formula(
                 paste(safe_deparse(fixed_part), "+", 
@@ -2264,7 +2440,7 @@ fit.model <- function(features,
     
     if (length(strata) > 0 & model == 'linear') {
         formula <-
-            formula(paste0(safe_deparse(formula), ' + (1 | ', strata, ')'))
+            stats::formula(paste0(safe_deparse(formula), ' + (1 | ', strata, ')'))
         random_effects_formula <- formula
     }
     
@@ -2295,28 +2471,70 @@ fit.model <- function(features,
     # Init cluster for parallel computing #
     #######################################
     
-    cluster <- NULL
-    if (cores > 1) {
-        logging::loginfo("Creating cluster of %s R processes", cores)
-        cluster <- parallel::makeCluster(cores)
-        parallel::clusterExport(cluster, c(ls(), function_vec),
-                                envir = environment())
-    }
+    # cluster <- NULL
+    # if (cores > 1) {
+    #     logging::loginfo("Creating cluster of %s R processes", cores)
+    #     cluster <- parallel::makeCluster(cores)
+        # parallel::clusterExport(cluster, c(ls(), function_vec),
+                                # envir = environment())
+    # }
     
     ##############################
     # Apply per-feature modeling #
     ##############################
-    func_to_run <- function(x) {
+   
+    fit_vars = all.vars(formula) |> tail(-1)
+    
+    small_meta = metadata |>
+        collapse::fselect(fit_vars)
+    
+    if (mirai::daemons_set()) {
+        mirai::everywhere({}, 
+                          metadata = small_meta,
+                          random_effects_formula = random_effects_formula,
+                          groups = groups,
+                          ordereds = ordereds,
+                          model = model,
+                          feature_specific_covariate = feature_specific_covariate,
+                          feature_specific_covariate_name = feature_specific_covariate_name,
+                          formula = formula,
+                          summary_function = summary_function,
+                          ranef_function = ranef_function,
+                          model_function = model_function,
+                          augment = augment,
+                          median_comparison = median_comparison,
+                          get_fixed_effects = get_fixed_effects,
+                          safe_deparse = safe_deparse,
+                          save_models = save_models,
+                          ftail = ftail,
+                          check_for_zero_one_obs = check_for_zero_one_obs,
+                          check_missing_first_factor_level = check_missing_first_factor_level,
+                          fit_augmented_logistic = fit_augmented_logistic,
+                          non_augmented = non_augmented,
+                          run_group_models = run_group_models,
+                          run_ordered_models = run_ordered_models,
+                          get_character_cols = get_character_cols,
+                          fitting_wrap_up = fitting_wrap_up,
+                          optimizers = optimizers,
+                          optCtrlList = optCtrlList)
+        
+        mirai::everywhere({
+            requireNamespace("stats")
+            requireNamespace("methods")
+        })
+    }
+    
+    func_to_run <- function(fv, fn, fi) {
         # Extract Features One by One
-        featuresVector <- features[, x]
+        featuresVector <- fv 
         
         logging::loginfo("Fitting model to feature number %d, %s",
-                        x,
-                        colnames(features)[x])
+                         fi,
+                         fn)
         
         # Make fitting matrix of features and metadata
         if (!is.null(feature_specific_covariate)) {
-            covariateVector <- feature_specific_covariate[, x]
+            covariateVector <- feature_specific_covariate[, fi]
             
             dat_sub <-
                 data.frame(
@@ -2341,8 +2559,9 @@ fit.model <- function(features,
             dat_sub,
             groups,
             ordereds,
-            features,
-            x,
+            # features, # TODO: avoid handing the full matrix to all daemons... Will need to fix functions like this one
+            fn = fn,
+            fi,
             model,
             feature_specific_covariate_name)
         
@@ -2356,8 +2575,7 @@ fit.model <- function(features,
             dat_sub,
             groups,
             ordereds,
-            features,
-            x,
+            fn = fn,
             feature_specific_covariate_name)
         
         if (!is.null(check_out)) {
@@ -2376,8 +2594,9 @@ fit.model <- function(features,
                 groups,
                 ordereds,
                 dat_sub,
-                features,
-                x)
+                # features,
+                fn = fn,
+                fi)
         } else { # linear or non-augmented logistic
             fitting_out <- non_augmented(
                 ranef_function,
@@ -2387,8 +2606,9 @@ fit.model <- function(features,
                 groups,
                 ordereds,
                 dat_sub,
-                features,
-                x)
+                # features,
+                fn = fn,
+                fi)
         }
         
         fit_and_message <- fitting_out[["fit_and_message"]]
@@ -2405,13 +2625,14 @@ fit.model <- function(features,
         if (all(!inherits(fit, "try-error"))) {
             names_to_include <-
                 get_fixed_effects(formula,
-                    random_effects_formula,
-                    dat_sub,
-                    character(0),
-                    character(0),
-                    feature_specific_covariate_name)
+                                             random_effects_formula,
+                                             dat_sub,
+                                             character(0),
+                                             character(0),
+                                             feature_specific_covariate_name)
             # Suppress warnings about variance-covariance matrix calculation
             fit_properly <- FALSE
+            
             withCallingHandlers({
                 tryCatch({
                     output$para <-
@@ -2473,9 +2694,12 @@ fit.model <- function(features,
                     # Don't worry about dropped factor levels
                     missing_names <- names_to_include[
                         !(names_to_include %in% rownames(output$para))]
+                    
                     character_cols <- get_character_cols(dat_sub)
+                    
                     if (!all(missing_names %in% character_cols)) {
                         fit_properly <- FALSE
+                        
                         fit_and_message[[length(fit_and_message)]] <-
                             "Metadata dropped during fitting (rank deficient)"
                     } else {
@@ -2507,10 +2731,12 @@ fit.model <- function(features,
                                 dat_sub,
                                 groups,
                                 ordereds,
-                                features,
-                                x,
+                                # features,
+                                fn = fn,
+                                fi,
                                 ranef_function,
                                 feature_specific_covariate_name)
+       
         
         return(output)
     }
@@ -2523,29 +2749,66 @@ fit.model <- function(features,
     size <- utils::object.size(func_to_run)
     logging::logdebug(paste0("Object: ", "func_to_run", ", Size: ", size))
 
-    outputs <-
-        pbapply::pblapply(seq_len(ncol(features)), cl = cluster, func_to_run)
+    feat_list = as.list(as.data.frame(features))
+    feat_nm = colnames(features)
+    feat_i = seq_len(ncol(features))
     
-    # stop the cluster
-    if (!is.null(cluster))
-        parallel::stopCluster(cluster)
+    # purrr::list_transpose() would be a better way to do this V.
+    map_input = data.frame(fv = I(feat_list), # feature value, name, index
+                           fn = feat_nm, 
+                           fi = feat_i)
+    
+    if (mirai::daemons_set()) {
+        outputs <- mirai::mirai_map(map_input, func_to_run)[.progress]
+        # ^ TODO, figure out how to ensure this writes to the log file
+    } else {
+        outputs <- mapply(func_to_run, 
+                          map_input$fv,
+                          map_input$fn,
+                          map_input$fi,
+                          SIMPLIFY = FALSE)
+        # mirai_map() deliberately doesn't fall back to serial without daemons set: https://github.com/r-lib/mirai/issues/397
+        
+        # To get progress here:
+        # lightest: error out and tell user to set daemons with mirai::require_daemons()
+        # alternative: utils::txtProgressBar + a loop
+        # alternative 2: reintroduce pbapply dependency (it's pretty light)
+    }
+   
+    # Check to run once on a daemon: 
+    # print(mirai::mirai(func_to_run(map_input$fv[[1]],
+    #                   map_input$fn[1],
+    #                   map_input$fi[1]),
+    #                   func_to_run = func_to_run,
+    #                   map_input = map_input)[])
+    
+    # cli::cli_alert("First result: ")
+    # print(outputs[[1]])
+    # outputs <-
+    #     pbapply::pblapply(seq_len(ncol(features)), cl = cluster, func_to_run)
+    
+    # # stop the cluster
+    # if (!is.null(cluster))
+    #     parallel::stopCluster(cluster)
     
     # bind the results for each feature
-    paras <-
-        do.call(rbind, lapply(outputs, function(x) {
-            return(x$para)
-        }))
+    paras <- collapse::rowbind(lapply(outputs, function(x) {
+        return(x$para)
+    }))
+   
     residuals <-
         do.call(rbind, lapply(outputs, function(x) {
             return(x$residuals)
         }))
-    
+   
     row.names(residuals) <- colnames(features)
+    
     
     fitted <-
         do.call(rbind, lapply(outputs, function(x) {
             return(x$fitted)
         }))
+    
     row.names(fitted) <- colnames(features)
     
     fits <-
@@ -2575,11 +2838,14 @@ fit.model <- function(features,
     }
     
     if (!(is.null(random_effects_formula))) {
-        ranef <-
-            do.call(rbind, lapply(outputs, function(x) {
-                return(x$ranef)
-            }))
-        row.names(ranef) <- colnames(features)
+        
+        l <- lapply(outputs, function(x) {
+            return(x$ranef)
+        })
+        
+        ranef <- do.call(rbind, l) |> 
+            collapse::setRownames(colnames(features))
+            
     }
     
     #####################################################
@@ -2637,10 +2903,8 @@ fit.model <- function(features,
     ##############################
     
     paras <- paras[order(paras$pval, decreasing = FALSE), ]
-    paras <-
-        dplyr::select(paras,
-                    c('feature', 'metadata', 'value'),
-                    dplyr::everything())
+    
+    paras <- collapse::colorderv(paras, c('feature', 'metadata', 'value'))
     paras$model <- model
     rownames(paras) <- NULL
     

@@ -29,8 +29,10 @@
 ###############################################################
 
 # this evaluates to true if script is being called directly as an executable
-if (identical(environment(), globalenv()) &&
-    !length(grep("^source\\(", sys.calls()))) {
+cmd_line_chk = identical(environment(), globalenv()) &&
+    !length(grep("^source\\(", sys.calls()))
+
+if (cmd_line_chk) {
     # source all R in Maaslin3 package, relative to this folder
     # same method as original maaslin
     script_options <- commandArgs(trailingOnly = FALSE)
@@ -39,13 +41,15 @@ if (identical(environment(), globalenv()) &&
     script_dir <- dirname(script_path)
     script_name <- basename(script_path)
     R_files <- c("fit.R", "utility_scripts.R", "viz.R")
-    `%>%` <- dplyr::`%>%`
 
     for (R_file in R_files)
     {
         if (!(R_file == script_name))
             source(file.path(script_dir, R_file))
     }
+    
+    # After parsing the command line arguments below, we'll use the cores
+    # argument to set the daemons.
 }
 
 #### Set the default options ####
@@ -97,7 +101,7 @@ args$coef_plot_vars <- NULL
 args$heatmap_vars <- NULL
 args$plot_associations <- TRUE
 args$max_pngs <- 30
-args$cores <- 1
+args$cores <- "1"
 args$save_models <- FALSE
 args$save_plots_rds <- FALSE
 args$reference <- NULL
@@ -583,12 +587,16 @@ options <-
     optparse::add_option(
         options,
         c("--cores"),
-        type = "double",
+        type = "character",
         dest = "cores",
         default = args$cores,
         help = paste(
-            "The number of R processes to",
-            "run in parallel [ Default: %default ]"
+            "Number of parallel workers. An integer > 1 starts mirai daemons",
+            "for parallel computation. Alternatively, from the command line,",
+            "a path to an R script with custom mirai::daemons() setup that",
+            "will be parsed and evaluated with source().",
+            "Users can also call mirai::daemons() directly before maaslin3().",
+            "[default: %default]"
         )
     )
 options <-
@@ -944,7 +952,13 @@ maaslin_log_arguments <- function(input_data,
     )
     logging::logdebug("Augment: %s", augment)
     logging::logdebug("Evaluate only: %s", evaluate_only)
-    logging::logdebug("Cores: %d", cores)
+    
+    n_con = mirai::info()["connections"]
+    
+    n_daemon = if (is.null(n_con)) 0 else n_con
+    
+    logging::logdebug("Number of mirai daemons: %d", n_daemon)
+    
     logging::logdebug("Balanced Summary plot: %s", summary_plot_balanced)
 
 
@@ -977,10 +991,10 @@ maaslin_read_data <- function(input_data,
         data <- read.table(input_data,
             header = TRUE,
             row.names = 1, 
-            sep = ifelse(grepl('\\.tsv$|\\.txt$', input_data),  '\t', ','),
+            sep = if (grepl('\\.tsv$|\\.txt$', input_data)) '\t' else ',',
             check.names = FALSE)
     } else if (is.data.frame(input_data)) {
-        if (!tibble::has_rownames(input_data)) {
+        if (has_auto_rownames(input_data)) {
             stop("If supplying input_data as a data frame,
                 it must have appropriate rownames!")
         }
@@ -1002,10 +1016,10 @@ maaslin_read_data <- function(input_data,
         metadata <- read.table(input_metadata,
             header = TRUE,
             row.names = 1, 
-            sep = ifelse(grepl('\\.tsv$|\\.txt$', input_data),  '\t', ','),
+            sep = if (grepl('\\.tsv$|\\.txt$', input_data)) '\t' else ',',
             check.names = FALSE)
     } else if (is.data.frame(input_metadata)) {
-        if (!tibble::has_rownames(input_metadata)) {
+        if (has_auto_rownames(input_metadata)) {
             stop(
                 "If supplying input_metadata as a data frame,
                 it must have appropriate rownames!"
@@ -1015,7 +1029,7 @@ maaslin_read_data <- function(input_data,
         rownames_tmp <- rownames(input_metadata)
         metadata <- as.data.frame(input_metadata)
         rownames(metadata) <- rownames_tmp
-    } else if (inherits(metadata, 'DataFrame')) {
+    } else if (inherits(input_metadata, 'DataFrame')) {
         metadata <- as.data.frame(input_metadata) # If it's BioC's DataFrame
     } else {
         stop("input_metadata is neither a file nor a data frame!")
@@ -1027,10 +1041,10 @@ maaslin_read_data <- function(input_data,
             read.table(unscaled_abundance,
                 header = TRUE,
                 row.names = 1, 
-                sep = ifelse(grepl('\\.tsv$|\\.txt$', input_data),  '\t', ','),
+                sep = if (grepl('\\.tsv$|\\.txt$', input_data)) '\t' else ',',
                 check.names = FALSE)
     } else if (is.data.frame(unscaled_abundance)) {
-        if (!tibble::has_rownames(unscaled_abundance)) {
+        if (has_auto_rownames(unscaled_abundance)) {
             stop(
                 "If supplying unscaled_abundance as a data frame,
                 it must have appropriate rownames!"
@@ -1052,10 +1066,10 @@ maaslin_read_data <- function(input_data,
             read.table(feature_specific_covariate,
                 header = TRUE,
                 row.names = 1, 
-                sep = ifelse(grepl('\\.tsv$|\\.txt$', input_data),  '\t', ','),
+                sep = if (grepl('\\.tsv$|\\.txt$', input_data)) '\t' else ',',
                 check.names = FALSE)
     } else if (is.data.frame(feature_specific_covariate)) {
-        if (!tibble::has_rownames(feature_specific_covariate)) {
+        if (has_auto_rownames(feature_specific_covariate)) {
             stop(
                 "If supplying feature_specific_covariate as a data frame,
                 it must have appropriate rownames!"
@@ -1437,7 +1451,7 @@ maaslin_compute_formula <- function(data,
             random_effects_formula_text <-
                 paste("expr ~ (1 | ",
                     paste(
-                        ifelse(random_effects == make.names(random_effects), 
+                        data.table::fifelse(random_effects == make.names(random_effects), 
                             random_effects, 
                             paste0('`', random_effects, '`')),
                         ")",
@@ -1449,7 +1463,7 @@ maaslin_compute_formula <- function(data,
                             random_effects_formula_text)
             random_effects_formula <-
                 tryCatch(
-                    as.formula(random_effects_formula_text),
+                    stats::as.formula(random_effects_formula_text),
                     error = function(e)
                         stop(
                             sprintf(
@@ -1520,13 +1534,17 @@ maaslin_compute_formula <- function(data,
     metadata <- metadata[, effects_names, drop = FALSE]
 
     # create the fixed effects formula text
-    formula_effects <- ifelse(fixed_effects == make.names(fixed_effects), 
-        fixed_effects, 
-        paste0('`', fixed_effects, '`'))
+    if (length(fixed_effects) > 0) {
+        formula_effects <- data.table::fifelse(fixed_effects == make.names(fixed_effects), 
+            fixed_effects, 
+            paste0('`', fixed_effects, '`'))
+    } else {
+        formula_effects <- character(0)
+    }
     if (length(group_effects) > 0) {
         formula_effects <-
             union(formula_effects, paste0("group(", 
-                ifelse(group_effects == make.names(group_effects), 
+                data.table::fifelse(group_effects == make.names(group_effects), 
                 group_effects, 
                 paste0('`', group_effects, '`')), ")"))
     }
@@ -1534,7 +1552,7 @@ maaslin_compute_formula <- function(data,
         formula_effects <-
             union(formula_effects,
                 paste0("ordered(", 
-                    ifelse(ordered_effects == make.names(ordered_effects), 
+                    data.table::fifelse(ordered_effects == make.names(ordered_effects), 
                     ordered_effects, 
                     paste0('`', ordered_effects, '`')), ")"))
     }
@@ -1542,7 +1560,7 @@ maaslin_compute_formula <- function(data,
         formula_effects <-
             union(formula_effects,
                 paste0("strata(", 
-                    ifelse(strata_effects == make.names(strata_effects), 
+                    data.table::fifelse(strata_effects == make.names(strata_effects), 
                         strata_effects, 
                         paste0('`', strata_effects, '`')), ")"))
     }
@@ -1556,7 +1574,7 @@ maaslin_compute_formula <- function(data,
     logging::loginfo("Formula for fixed effects: %s", formula_text)
     formula <-
         tryCatch(
-            as.formula(formula_text),
+            stats::as.formula(formula_text),
             error = function(e)
                 stop(
                     sprintf(
@@ -1627,7 +1645,7 @@ maaslin_check_formula <- function(data,
 
     formula <-
         tryCatch(
-            as.formula(input_formula),
+            stats::as.formula(input_formula),
             error = function(e)
                 stop(sprintf("Invalid formula: %s",
                             input_formula))
@@ -1858,7 +1876,7 @@ maaslin_process_metadata <- function(metadata,
             term_labels <- '1'
         }
         tmp_formula <-
-            formula(paste0("~ ", paste0(term_labels, collapse = " + ")))
+            stats::formula(paste0("~ ", paste0(term_labels, collapse = " + ")))
         formula_terms <- all.vars(tmp_formula)
         if (is.null(feature_specific_covariate_name)) {
             fixed_effects <- formula_terms
@@ -1933,7 +1951,9 @@ maaslin_process_metadata <- function(metadata,
 
     if (standardize) {
         logging::loginfo("Applying z-score to standardize continuous metadata")
-        metadata <- metadata %>% dplyr::mutate_if(is.numeric, scale)
+        
+        collapse::num_vars(metadata) <- collapse::fscale(collapse::num_vars(metadata))
+        
     } else {
         logging::loginfo("Bypass z-score application to metadata")
     }
@@ -2022,6 +2042,19 @@ maaslin_fit <- function(filtered_data,
                         min_variance = 0) {
 
     match.arg(correction, correction_choices)
+
+    started_daemons <- FALSE
+    if (cores > 1) {
+        if (mirai::daemons_set()) {
+            warning("Daemons already set; ignoring `cores` argument. ",
+                    "Using existing daemons configuration.")
+        } else {
+            mirai::daemons(cores)
+            started_daemons <- TRUE
+            on.exit(mirai::daemons(0), add = TRUE)
+            logging::loginfo("Started %d mirai daemons via `cores` argument", cores)
+        }
+    }
 
     if (!is.null(feature_specific_covariate)) {
         tryCatch({
@@ -2171,12 +2204,10 @@ maaslin_fit <- function(filtered_data,
         current_errors_for_likely_issues <-
             fit_data_prevalence$results$error[current_likely_error_subsetter]
         fit_data_prevalence$results$error[current_likely_error_subsetter] <-
-            ifelse(
+            data.table::fifelse(
                 !is.na(current_errors_for_likely_issues),
                 current_errors_for_likely_issues,
-                "A large coefficient (>15 in absolute value) or small
-                p-value (< 10^-10) was obtained from a feature present
-                in <5% of samples. Check this is intended."
+                "A large coefficient (>15 in absolute value) or small p-value (< 10^-10) was obtained from a feature present in <5% of samples. Check this is intended."
             )
 
         current_likely_error_subsetter <-
@@ -2199,12 +2230,10 @@ maaslin_fit <- function(filtered_data,
         current_errors_for_likely_issues <-
             fit_data_prevalence$results$error[current_likely_error_subsetter]
         fit_data_prevalence$results$error[current_likely_error_subsetter] <-
-            ifelse(
+            data.table::fifelse(
                 !is.na(current_errors_for_likely_issues),
                 current_errors_for_likely_issues,
-                "A large coefficient (>15 in absolute value) or small p-value
-                (< 10^-10) was obtained from a feature present in >95% of
-                samples. Check this is intended."
+                "A large coefficient (>15 in absolute value) or small p-value (< 10^-10) was obtained from a feature present in >95% of samples. Check this is intended."
             )
     } else {
         fit_data_prevalence <- NULL
@@ -2276,8 +2305,7 @@ maaslin_fit <- function(filtered_data,
                 feature_specific_covariate_name =
                     feature_specific_covariate_name,
                 feature_specific_covariate_record =
-                    feature_specific_covariate_record
-            )
+                    feature_specific_covariate_record)
 
         results <- add_qvals(new_fit_data_abundance,
                             fit_data_prevalence,
@@ -2315,20 +2343,23 @@ maaslin_fit <- function(filtered_data,
         } else if (evaluate_only == 'abundance') {
             fit_data_abundance$results$pval_joint <-
                 fit_data_abundance$results$pval
+            
             fit_data_abundance$results$qval_joint <-
                 fit_data_abundance$results$qval
-            fit_data_abundance$results <- fit_data_abundance$results %>%
-                dplyr::rename(pval_individual = .data$pval,
-                            qval_individual = .data$qval)
+            
+            collapse::setrename(fit_data_abundance$results,
+                                "pval_individual" = "pval",
+                                "qval_individual" = "qval" )
+            
         } else if (evaluate_only == 'prevalence') {
             fit_data_prevalence$results$pval_joint <-
                 fit_data_prevalence$results$pval
             fit_data_prevalence$results$qval_joint <-
                 fit_data_prevalence$results$qval
-            fit_data_prevalence$results <-
-                fit_data_prevalence$results %>%
-                dplyr::rename(pval_individual = .data$pval,
-                            qval_individual = .data$qval)
+            
+            collapse::setrename(fit_data_prevalence$results,
+                                "pval_individual" = "pval",
+                                "qval_individual" = "qval")
         }
     }
     
@@ -2343,7 +2374,7 @@ maaslin_fit <- function(filtered_data,
                 if (mean(random_table) < 4 & !small_random_effects &
                     !bypass_small_group_warning) {
                     fit_data_prevalence$results$error <- 
-                        ifelse(is.na(fit_data_prevalence$results$error),
+                        data.table::fifelse(is.na(fit_data_prevalence$results$error),
     paste0("<4 average observations per random effect group often inflates ",
         "coefficients and deflates p-values: consider setting ",
         "small_random_effects=TRUE and see tutorial"), 
@@ -2386,6 +2417,7 @@ maaslin_fit <- function(filtered_data,
 
         # Reorder columns
         fit_data_prevalence$results <- fit_data_prevalence$results[,col_order]
+        
     } else {
         fit_data_prevalence <- NULL
     }
@@ -2615,7 +2647,11 @@ maaslin_plot_results_from_output <- function(output,
             all_results_file
         ))
     }
-    merged_results <- utils::read.csv(all_results_file, sep = '\t')
+    
+    merged_results <- data.table::fread(all_results_file, 
+                                        sep = '\t') |> 
+        as.data.frame()
+    
     merged_results$model[merged_results$model == 'abundance'] <- 'linear'
     merged_results$model[merged_results$model == 'prevalence'] <- 'logistic'
 
@@ -2663,12 +2699,17 @@ maaslin_plot_results_from_output <- function(output,
             ))
         }
         transformed_data <-
-            utils::read.csv(
+            data.table::fread(
                 features_file,
                 sep = '\t',
-                row.names = 1, 
                 check.names = FALSE
-            )
+            ) |> 
+            as.data.frame()
+        
+        transformed_data = transformed_data |> 
+            collapse::setRownames(transformed_data$feature)
+        
+        collapse::fselect(transformed_data, "feature") <- NULL
 
         logging::loginfo(
             paste(
@@ -2787,6 +2828,19 @@ maaslin3 <- function(input_data,
     match.arg(verbosity, c("FINEST", "FINER", "FINE", "DEBUG", "INFO",
                             "WARN", "ERROR"))
     logging::logReset()
+    
+    started_daemons <- FALSE
+    if (cores > 1) {
+        if (mirai::daemons_set()) {
+            warning("Daemons already set; ignoring `cores` argument. ",
+                    "Using existing daemons configuration.")
+        } else {
+            mirai::daemons(cores)
+            started_daemons <- TRUE
+            on.exit(mirai::daemons(0), add = TRUE)
+            logging::loginfo("Started %d mirai daemons via `cores` argument", cores)
+        }
+    }
 
     # Allow for lower case variables
     normalization <- toupper(normalization)
@@ -2965,7 +3019,7 @@ maaslin3 <- function(input_data,
         bypass_small_group_warning,
         augment,
         evaluate_only,
-        cores,
+        cores = 1,
         save_models = TRUE,
         data,
         min_abundance,
@@ -3041,9 +3095,7 @@ maaslin3 <- function(input_data,
 # If running on the command line, get arguments and call maaslin function #
 ###########################################################################
 
-# this evaluates to true if script is being called directly as an executable
-if (identical(environment(), globalenv()) &&
-    !length(grep("^source\\(", sys.calls()))) {
+if (cmd_line_chk) {
 
     # get command line options and positional arguments
     parsed_arguments <- optparse::parse_args(options,
@@ -3060,6 +3112,18 @@ if (identical(environment(), globalenv()) &&
             )
         )
     }
+    
+    cores_val <- tryCatch(as.integer(current_args$cores),
+             warning = function(err) {
+                 msg <- paste("Command line cores argument not parseable as",
+                             "integer, will attempt to source()")
+                 message(msg)
+                 source(current_args$cores)
+                 return(1L)
+             })
+    
+    if (!is.integer(cores_val)) cores_val <- 1L
+    current_args$cores <- cores_val
 
     # call maaslin with the command line options
     fit_data <-

@@ -36,16 +36,20 @@ plot_out <- maaslin_plot_results(output = output_tmp,
                      normalization = 'TSS',
                      transform = 'LOG',
                      median_comparison_abundance = FALSE,
-                     max_significance = 0.1)
+                     max_significance = 0.1,
+                     save_plots_rds = TRUE)
 
-expect_is(plot_out$assocation_plots$var1$a$logistic, 'ggplot')
+expect_is(plot_out$assocation_plots[[1]], 'ggplot')
+
+expect_equal(names(plot_out$assocation_plots)[1],
+             "var1_a_logistic")
 
 expect_equal(list.files(file.path(output_tmp, 'figures', 
                                   'association_plots', 'var1', 'logistic')),
              'var1_a_logistic.png')
 
 expect_equal(sort(list.files(file.path(output_tmp, 'figures'))),
-             sort(c("association_plots", "summary_plot.pdf", "summary_plot.png")))
+             sort(c("association_plots", "summary_plot_gg.RDS", "summary_plot.pdf", "summary_plot.png")))
 
 unlink(output_tmp, recursive = T)
 

@@ -1,4 +1,5 @@
 #!/usr/bin/env Rscript
+utils::globalVariables(".progress")
 ###############################################################################
 # MaAsLin3 visualizations
 
@@ -89,9 +90,9 @@ preprocess_merged_results <- function(merged_results) {
         return(NULL)
     }
     merged_results$model <-
-        ifelse(merged_results$model == 'linear', 'Abundance', 'Prevalence')
+        data.table::fifelse(merged_results$model == 'linear', 'Abundance', 'Prevalence')
     merged_results$full_metadata_name <-
-        ifelse(
+        data.table::fifelse(
             merged_results$metadata == merged_results$value,
             merged_results$metadata,
             paste0(merged_results$metadata, ' ', merged_results$value)
@@ -112,15 +113,33 @@ make_coef_plot <- function(merged_results_sig,
                             coef_plot_vars,]
     
     # Limit plotted coefficients to median +/- 10 times distance to quartiles
-    quantile_df <- coef_plot_data %>%
-        dplyr::group_by(.data$full_metadata_name) %>%
-        dplyr::summarise(
-            lower_q = median(.data$coef) - plot_threshold * 
-                (median(.data$coef) - quantile(.data$coef, 0.25)),
-            upper_q = median(.data$coef) + plot_threshold * 
-                (quantile(.data$coef, 0.75) - median(.data$coef))
-        ) %>%
+    get_lo = function(x, pt = plot_threshold) {
+        med_x = collapse::fmedian(x)
+        
+        q_x = collapse::fquantile(x, .25)
+        
+        med_x - pt * (med_x - q_x)
+    }
+    
+    get_hi = function(x, pt = plot_threshold) {
+        med_x = collapse::fmedian(x)
+        
+        q_x = collapse::fquantile(x, .75)
+        
+        med_x + pt * (q_x - med_x)
+    }
+    
+    quantile_df <- coef_plot_data |>
+        collapse::fgroup_by("full_metadata_name") |>
+        collapse::collapv(by = "full_metadata_name",
+                          FUN = list(get_lo, get_hi),
+                          cols = "coef") |> 
+        collapse::fungroup() |> 
+        collapse::fselect("full_metadata_name", 
+                          "lower_q" = "get_lo.coef", 
+                          "upper_q" = "get_hi.coef") |> 
         data.frame(check.names = FALSE)
+        
     rownames(quantile_df) <- quantile_df$full_metadata_name
     
     # Make sure insignificant coefficients don't distort the plot
@@ -357,8 +376,9 @@ make_heatmap_plot <- function(merged_results_sig,
             which(value < coef_breaks)[1]
         }, FUN.VALUE = 0)
     
-    merged_results_sig <- merged_results_sig %>%
-        dplyr::mutate(coef_cat = threshold_set[threshold_indices])
+    merged_results_sig <- merged_results_sig |>  
+        collapse::fmutate(coef_cat = threshold_set[threshold_indices])
+    
     merged_results_sig$coef_cat <-
         factor(merged_results_sig$coef_cat, levels = threshold_set)
     
@@ -494,11 +514,11 @@ maaslin3_summary_plot <-
             return()
         }
         
-        median_df <- merged_results %>%
-            dplyr::group_by(.data$full_metadata_name, .data$model) %>%
-            dplyr::summarize(median_val = 
-                unique(.data$null_hypothesis), 
-                .groups = 'drop')
+        median_df <- merged_results |> 
+            collapse::fselect(  c("full_metadata_name", "model", "null_hypothesis")) |> 
+            collapse::fgroup_by(c("full_metadata_name", "model")) |> 
+            collapse::fmedian() |> 
+            collapse::frename("median_val" = "null_hypothesis")
 
         # Check variables can be plotted
         if (!is.null(coef_plot_vars) | !is.null(heatmap_vars)) {
@@ -533,12 +553,11 @@ maaslin3_summary_plot <-
         }
         
         # Subset associations for plotting
-        merged_results_joint_only <-
-            unique(merged_results[, c('feature', 'qval_joint', 
-                                        'full_metadata_name')])
-        merged_results_joint_only <-
-            merged_results_joint_only[
-                order(merged_results_joint_only$qval_joint),]
+        merged_results_joint_only <- merged_results |> 
+            collapse::fselect(c('feature', 'qval_joint', 'full_metadata_name')) |> 
+            collapse::funique() |> 
+            collapse::roworderv("qval_joint")
+        
         if (length(unique(merged_results_joint_only$feature)) < first_n) {
             first_n <- length(unique(merged_results_joint_only$feature))
             signif_taxa <-
@@ -561,14 +580,15 @@ maaslin3_summary_plot <-
                     # grab the first N feature where 
                     # N=N/(length of coef_plot_var) to
                     # plot the coef plot
-                    first_n_per <- first_n/length(coef_plot_vars)
-                    signif_taxa <- merged_results_joint_only %>% 
-                    dplyr::group_by(.data$full_metadata_name) %>%
-                    dplyr::arrange(dplyr::desc(-.data$qval_joint), 
-                                    .by_group = TRUE) %>%
-                    dplyr::slice_head(n=ceiling(first_n_per)) %>%
-                    dplyr::pull(.data$feature) %>%
-                    unique()
+                    first_n_per <- ceiling(first_n/length(coef_plot_vars))
+                    
+                    signif_taxa <- merged_results_joint_only |>
+                        collapse::roworderv(cols = c("full_metadata_name", 
+                                                     "qval_joint")) |> 
+                        collapse::fslicev("full_metadata_name",
+                                          n = first_n_per) |> 
+                        collapse::get_elem("feature") |> 
+                        collapse::funique()
                 }
             } else {
                 signif_taxa <-
@@ -577,8 +597,9 @@ maaslin3_summary_plot <-
         }
 
         
-        merged_results_sig <- merged_results %>%
-            dplyr::filter(.data$feature %in% signif_taxa)
+        merged_results_sig <- merged_results |> 
+            collapse::fsubset(merged_results$feature %in% signif_taxa)
+        # TODO: consider collapse::`%iin%`
         
         # Order features
         ord_feature <-
@@ -590,15 +611,20 @@ maaslin3_summary_plot <-
         
         # Choose variables for plotting if not set
         if (is.null(coef_plot_vars)) {
-            mean_log_qval <- merged_results_sig %>%
-                dplyr::group_by(.data$full_metadata_name) %>%
-                dplyr::summarise(mean_value = 
-                                    mean(log(.data$qval_joint), na.rm = TRUE))
             
+            mean_log_qval <- merged_results_sig |> 
+                collapse::collapv(by   = "full_metadata_name",
+                                  cols = "qval_joint",
+                                  FUN  = \(x) collapse::fmean(log(x), na.rm = TRUE)) |> 
+                collapse::fselect("full_metadata_name", 
+                                  "mean_value" = "qval_joint")
+                
             coef_plot_vars <-
                 mean_log_qval$full_metadata_name[
                     order(mean_log_qval$mean_value)]
+            
             coef_plot_vars <- setdiff(coef_plot_vars, heatmap_vars)
+            
             if (length(coef_plot_vars) > 0) {
                 coef_plot_vars <-
                     coef_plot_vars[seq(min(2, length(coef_plot_vars)))]
@@ -607,14 +633,18 @@ maaslin3_summary_plot <-
         
         # Choose variables for plotting if not set
         if (is.null(heatmap_vars)) {
-            mean_log_qval <- merged_results_sig %>%
-                dplyr::group_by(.data$full_metadata_name) %>%
-                dplyr::summarise(mean_value = 
-                                    mean(log(.data$qval_joint), na.rm = TRUE))
+            
+            mean_log_qval <- merged_results_sig |> 
+                collapse::collapv(by   = "full_metadata_name",
+                                  cols = "qval_joint",
+                                  FUN  = \(x) collapse::fmean(log(x), na.rm = TRUE)) |> 
+                collapse::fselect("full_metadata_name", 
+                                  "mean_value" = "qval_joint")
             
             heatmap_vars <-
                 mean_log_qval$full_metadata_name[
                     order(mean_log_qval$mean_value)]
+            
             heatmap_vars <- setdiff(heatmap_vars, coef_plot_vars)
         }
         
@@ -820,11 +850,11 @@ make_scatterplot <- function(joined_features_metadata_abun,
             label = sprintf(
             "FDR: %s\nCoefficient (in full model): %sN: %s\nN (not zero): %s",
                 formatC(qval, format = "e", digits = 1),
-                ifelse(is.na(coef_val), 'NA', formatC(
+                if (is.na(coef_val)) 'NA' else formatC(
                     coef_val,
                     format = "e",
                     digits = 1
-                )),
+                ),
                 formatC(
                     N_total,
                     format = 'f',
@@ -926,11 +956,9 @@ make_boxplot_lm <- function(joined_features_metadata_abun,
                     collapse = ', '
                 ),
                 paste0(
-                    ifelse(is.na(coef_val), 'NA', formatC(
-                        coef_val,
-                        format = "e",
-                        digits = 1
-                    )),
+                    vapply(coef_val, function(cv) {
+                        if (is.na(cv)) 'NA' else formatC(cv, format = "e", digits = 1)
+                    }, character(1)),
                     collapse = ', '
                 )
             ) ,
@@ -1121,11 +1149,11 @@ make_boxplot_logistic <- function(joined_features_metadata_prev,
             label = sprintf(
             "FDR: %s\nCoefficient (in full model): %s\nN: %s\nN (not zero): %s",
                 formatC(qval, format = "e", digits = 1),
-                ifelse(is.na(coef_val), 'NA', formatC(
+                if (is.na(coef_val)) 'NA' else formatC(
                     coef_val,
                     format = "e",
                     digits = 1
-                )),
+                ),
                 formatC(
                     N_total,
                     format = 'f',
@@ -1159,9 +1187,12 @@ make_tile_plot <- function(joined_features_metadata_prev,
     match.arg(normalization, c('Total sum scaling', 'Center log ratio', 'None'))
     match.arg(transformation, c('Log base 2', 'Pseudo-log base 2', 'None'))
     
-    count_df <- joined_features_metadata_prev %>%
-        dplyr::group_by(.data$feature_abun, .data$metadata) %>%
-        dplyr::summarise(count = dplyr::n(), .groups = 'drop')
+    count_df <- joined_features_metadata_prev |> 
+        collapse::fcountv(c("feature_abun",
+                            "metadata")) |> 
+        collapse::roworderv(c("feature_abun",
+                              "metadata")) |> 
+        collapse::frename("count" = "N")
     
     x_vals <-
         unique(joined_features_metadata_prev$feature_abun)
@@ -1171,11 +1202,12 @@ make_tile_plot <- function(joined_features_metadata_prev,
         expand.grid(feature_abun = x_vals,
                     metadata = y_vals)
     
-    table_df <- complete_grid %>%
-        dplyr::left_join(count_df, by = 
-                            c("feature_abun", "metadata")) %>%
-        dplyr::mutate(count = ifelse(
-            is.na(.data$count), 0, .data$count))
+    table_df <- collapse::join(complete_grid,
+                               count_df,
+                               verbose = FALSE,
+                               on = c("feature_abun", "metadata")) 
+    
+    table_df$count = collapse::replace_na(table_df$count, value = 0)
     
     temp_plot <-
         ggplot2::ggplot(table_df,
@@ -1236,11 +1268,9 @@ make_tile_plot <- function(joined_features_metadata_prev,
                     collapse = ', '
                 ),
                 paste0(
-                    ifelse(is.na(coef_val), 'NA', formatC(
-                        coef_val,
-                        format = "e",
-                        digits = 1
-                    )),
+                    vapply(coef_val, function(cv) {
+                        if (is.na(cv)) 'NA' else formatC(cv, format = "e", digits = 1)
+                    }, character(1)),
                     collapse = ', '
                 )
             ) ,
@@ -1284,7 +1314,7 @@ make_logistic_plot <- function(this_signif_association,
     joined_features_metadata_prev <-
         joined_features_metadata
     joined_features_metadata_prev$feature_abun <-
-        ifelse(
+        data.table::fifelse(
             is.na(joined_features_metadata_prev$feature_abun),
             'Absent',
             'Present'
@@ -1396,44 +1426,51 @@ make_logistic_plot <- function(this_signif_association,
 # Create individual plots for significant associations
 maaslin3_association_plots <-
     function(merged_results,
-            metadata,
-            features,
-            max_significance = 0.1,
-            figures_folder,
-            max_pngs = 10,
-            normalization,
-            transform,
-            feature_specific_covariate = NULL,
-            feature_specific_covariate_name = NULL,
-            feature_specific_covariate_record = NULL,
-            save_plots_rds = FALSE) {
+             metadata,
+             features,
+             max_significance = 0.1,
+             figures_folder,
+             max_pngs = 10,
+             normalization,
+             transform,
+             feature_specific_covariate = NULL,
+             feature_specific_covariate_name = NULL,
+             feature_specific_covariate_record = NULL,
+             save_plots_rds = FALSE) {
         
         
         match.arg(normalization, c("TSS", "CLR", "NONE"))
+        
         match.arg(transform, c("LOG", "PLOG", "NONE"))
         
         # Disregard abundance-induced-prevalence errors in plotting
         merged_results$error[grepl("Prevalence association possibly induced", 
-                                    merged_results$error)] <- NA
+                                   merged_results$error)] <- NA
+        
         # Disregard small random effect group warning
         merged_results$error[grepl("<4 average observations per random effect", 
-                                    merged_results$error)] <- NA
+                                   merged_results$error)] <- NA
         
         new_name_normalization <-
             c('Total sum scaling', 'Center log ratio', 'None')
+        
         names(new_name_normalization) <- c("TSS", "CLR", "NONE")
+        
         normalization <- new_name_normalization[normalization]
         
         new_name_transformation <-
             c('Log base 2', 'Pseudo-log base 2', 'None')
+        
         names(new_name_transformation) <- c("LOG", 'PLOG', "NONE")
+        
         transformation <- new_name_transformation[transform]
         
         merged_results <-
             merged_results[is.na(merged_results$error) &
-                            !is.na(merged_results$qval_individual) &
-                            merged_results$qval_individual < 
-                            max_significance,]
+                               !is.na(merged_results$qval_individual) &
+                               merged_results$qval_individual < 
+                               max_significance,]
+        
         if (nrow(merged_results) == 0) {
             logging::loginfo(paste("All associations had errors 
                                 or were insignificant."))
@@ -1452,134 +1489,244 @@ maaslin3_association_plots <-
         )
         
         saved_plots <- list()
+        
         features_by_metadata <-
             unique(merged_results[, c('feature', 'metadata', 'model')])
         
-        # Iterate through associations to make plots
-        for (row_num in seq(min(nrow(features_by_metadata), max_pngs))) {
-            feature_name <- features_by_metadata[row_num, 'feature']
-            feature_abun <- data.frame(
-                sample = rownames(features),
-                feature_abun = features[, feature_name], 
-                check.names = FALSE)
-            
-            metadata_name <- features_by_metadata[row_num, 'metadata']
-            if (!is.null(feature_specific_covariate_name)) {
-                if (metadata_name == feature_specific_covariate_name) {
-                    metadata_sub <-
-                        data.frame(
-                            sample = rownames(feature_specific_covariate),
-                            metadata = feature_specific_covariate[, 
-                                                                feature_name],
-                            check.names = FALSE
-                        )
-                } else {
-                    metadata_sub <- data.frame(sample = rownames(metadata),
-                                            metadata = 
-                                                metadata[, metadata_name], 
-                                            check.names = FALSE)
-                }
-            } else {
-                metadata_sub <- data.frame(sample = rownames(metadata),
-                                        metadata = metadata[, metadata_name], 
-                                        check.names = FALSE)
-            }
-            joined_features_metadata <-
-                dplyr::inner_join(feature_abun, metadata_sub, by = c('sample'))
-            
-            model_name <- features_by_metadata[row_num, 'model']
-            this_signif_association <-
-                merged_results[merged_results$feature == feature_name &
-                                merged_results$metadata == metadata_name &
-                                merged_results$model == model_name,]
-            
-            if ('linear' == model_name) {
-                temp_plot <- make_lm_plot(this_signif_association,
-                                        joined_features_metadata,
-                                        metadata,
-                                        metadata_name,
-                                        feature_name,
-                                        normalization,
-                                        transformation,
-                                        feature_specific_covariate_name,
-                                        feature_specific_covariate)
-            }
-            
-            if ('logistic' == model_name) {
-                temp_plot <- make_logistic_plot(this_signif_association,
-                                                joined_features_metadata,
-                                                metadata,
-                                                metadata_name,
-                                                feature_name,
-                                                normalization,
-                                                transformation,
-                                                feature_specific_covariate_name,
-                                                feature_specific_covariate)
-            }
-            
-            saved_plots[[metadata_name]][[feature_name]][[model_name]] <-
-                temp_plot
-            
-        }
+        names(features_by_metadata)[2] = "meta_var"
+        
+        assoc_num = min(nrow(features_by_metadata), max_pngs)
+        
+        to_map = features_by_metadata[seq_len(assoc_num),]
+        
+        to_map$fv = lapply(to_map$feature, \(x) {
+            features[[x]]
+        })
+        
+        stat_df = collapse::join(to_map,
+                                 merged_results, 
+                                 on = c("feature", 
+                                        "meta_var" = "metadata",
+                                        "model"),
+                                 how = "left",
+                                 verbose = FALSE) 
+        
+        stat_df = stat_df |> 
+            collapse::fmutate(split_var = paste(stat_df$feature, 
+                                                stat_df$meta_var,
+                                                stat_df$model,
+                                                sep = "_")) 
+        
+        stat_list = split(stat_df , 
+                          stat_df$split_var) 
+        # split() sorts the resultant list by f :(
+        
+        assoc_df = data.frame(split_var = names(stat_list),
+                              assoc_stats = I(stat_list))
+        
+        to_map = to_map |> 
+            collapse::fmutate(split_var = paste(to_map$feature, 
+                                                to_map$meta_var,
+                                                to_map$model,
+                                                sep = "_")) |> 
+            collapse::join(assoc_df, on = "split_var",
+                           how = "left",
+                           verbose = FALSE)
+        
+        collapse::get_vars(to_map, "split_var") <- NULL
+        
+        # Some associations have multiple rows of statistics to attach. A join +
+        # tidyr::nest() would be simpler, but we don't have tidyr.
+        
+        # # V Attach association stats here so we don't have to pass
+        # # around/re-join merged_results at each iteration.
+        
+        small_meta = metadata |> 
+            collapse::fselect(collapse::funique(features_by_metadata$meta_var))
         
         association_plots_folder <-
             file.path(figures_folder, 'association_plots')
+        
         if (!file.exists(association_plots_folder)) {
             dir.create(association_plots_folder)
         }
         
-        # Save all plots
-        vapply(names(saved_plots), function(metadata_variable) {
-            # Save RDS file for each metadata_variable
-            if (save_plots_rds) {
-                saveRDS(saved_plots[[metadata_variable]], 
-                        file = file.path(association_plots_folder, 
-                                        paste0(make.names(metadata_variable), 
-                                        "_gg_associations.RDS")))
-            }
+        arg_list = list(meta = small_meta,
+                        feat_rn = rownames(features),
+                        fscn = feature_specific_covariate_name,
+                        fsc = feature_specific_covariate,
+                        normalization = normalization,
+                        transformation = transformation,
+                        save_plots_rds = save_plots_rds,
+                        ap_dir = association_plots_folder)
+        
+        if (mirai::daemons_set()) {
+            mirai::everywhere({},
+                              make_lm_plot = make_lm_plot,
+                              make_logistic_plot = make_logistic_plot)
             
-            # Iterate over each feature in the metadata_variable
-            vapply(names(saved_plots[[metadata_variable]]), function(feature) {
-                # Iterate over each model_name for the feature
-                vapply(names(saved_plots[[metadata_variable]][[feature]]), 
-                    function(model_name) {
-                    this_plot <- saved_plots[[metadata_variable]][[
-                        feature]][[model_name]]
+            plot_list <- mirai::mirai_map(to_map, 
+                                   plot_one_assoc,
+                                   .args = arg_list)[.progress]
+        } else {
+            plot_list <- mapply(plot_one_assoc,
+                                to_map$feature,  #life without purrr::pmap :(
+                                to_map$meta_var, 
+                                to_map$model, 
+                                to_map$fv, 
+                                to_map$assoc_stats,
+                                MoreArgs = arg_list,
+                                SIMPLIFY = FALSE,
+                                USE.NAMES = FALSE)
+        }
+        
+        to_map$pl <- plot_list
+        
+        if (save_plots_rds) {
+            # save lists for each metadata variable
+             if (save_plots_rds) {
+                
+                split_plots = split(plot_list,
+                                    to_map$meta_var)  
+                
+                ap_dir = association_plots_folder
+                save_plot_list_fun = \(x, y) {
+                    saveRDS(x, 
+                            file = file.path(ap_dir, 
+                                             paste0(make.names(y), 
+                                                    "_gg_associations.RDS")))
+                }
+                
+                if (mirai::daemons_set()) {
+                    # I don't think parallelization helps much here, might be
+                    # dependent on disk. TODO: remove?
+                    plot_df = data.frame(x = I(split_plots),
+                                         y = names(split_plots))
                     
-                    # Create the subfolder for the plot
-                    association_plots_sub_folder <- file.path(
-                        association_plots_folder, 
-                        make.names(metadata_variable), model_name)
-                    if (!file.exists(association_plots_sub_folder)) {
-                        dir.create(association_plots_sub_folder, 
-                                    recursive = TRUE)
-                    }
-                    
-                    # Define the file path for saving the plot
-                    png_file <- file.path(association_plots_sub_folder, 
-                        paste0(make.names(metadata_variable), '_', 
-                        make.names(feature), "_", model_name, ".png"))
-                    
-                    # Calculate height based on plot labels
-                    height <- max(960, 18 * max(nchar(unlist(strsplit(
-                        this_plot$labels$y, '\n')))))
-                    
-                    # Try saving the plot
-                    tryCatch({
-                        withCallingHandlers({
-                            ggplot2::ggsave(filename = png_file, 
-                                            plot = this_plot, 
-                                            dpi = 600, 
-                                            width = 960 / 300, 
-                                            height = height / 300)
-                        }, warning = function(w) { 
-                            invokeRestart("muffleWarning") })
-                    })
-                    return(0)
-                }, numeric(1))
-                return(0)
-            }, numeric(1))
-            return(0)
-        }, numeric(1))
-        return(saved_plots)
+                    mirai::mirai_map(.x = plot_df,
+                              .f = save_plot_list_fun,
+                              ap_dir = association_plots_folder)[.progress]
+                } else {
+                    mapply(split_plots,
+                           names(split_plots),
+                           FUN = save_plot_list_fun)
+                }
+             }
+        } else {
+            return(invisible())
+        }
+        
+        names(plot_list) = paste(sep = "_",
+                                 to_map$meta_var, 
+                                 to_map$feature,
+                                 to_map$model)
+            
+        return(plot_list)
     }
+
+plot_one_assoc = function(feature, meta_var, model, fv, assoc_stats,
+                          meta,
+                          feat_rn,
+                          fscn, # feature_specific_covariate_name
+                          fsc,
+                          normalization,
+                          transformation,
+                          save_plots_rds,
+                          ap_dir) {
+    
+    feature_name <- feature
+    
+    feature_abun <- data.frame(
+        sample = feat_rn,
+        feature_abun = fv, # features[, feature_name], 
+        check.names = FALSE)
+    
+    metadata_name <- meta_var # features_by_metadata[row_num, 'metadata']
+    
+    if (!is.null(fscn)) {
+        if (metadata_name == fscn) {
+            metadata_sub <-
+                data.frame(
+                    sample = rownames(fsc),
+                    metadata = fsc[, feature_name],
+                    check.names = FALSE
+                )
+        } else {
+            metadata_sub <- data.frame(sample = rownames(meta),
+                                       metadata = meta[, metadata_name], 
+                                       check.names = FALSE)
+        }
+    } else {
+        metadata_sub <- data.frame(sample = rownames(meta),
+                                   metadata = meta[, metadata_name], 
+                                   check.names = FALSE)
+    }
+    
+    joined_features_metadata <-
+        collapse::join(feature_abun, 
+                       metadata_sub,
+                       how = "inner",
+                       verbose = FALSE,
+                       on = c('sample'))
+    
+    model_name <- model # features_by_metadata[row_num, 'model']
+    
+    this_signif_association = assoc_stats
+    
+    if ('linear' == model_name) {
+        temp_plot <- make_lm_plot(this_signif_association,
+                                            joined_features_metadata,
+                                            meta,
+                                            metadata_name,
+                                            feature_name,
+                                            normalization,
+                                            transformation,
+                                            fscn,
+                                            fsc)
+    }
+    
+    if ('logistic' == model_name) {
+        temp_plot <- make_logistic_plot(this_signif_association,
+                                                  joined_features_metadata,
+                                                  meta,
+                                                  metadata_name,
+                                                  feature_name,
+                                                  normalization,
+                                                  transformation,
+                                                  fscn,
+                                                  fsc)
+    }
+    
+    out_dir = file.path(ap_dir,
+                        make.names(meta_var), 
+                        model)
+    
+    if (!dir.exists(out_dir)) dir.create(out_dir, recursive = TRUE)
+    
+    png_file = file.path(out_dir, 
+                         paste0(make.names(meta_var),
+                                "_",
+                                make.names(feature_name),
+                                "_",
+                                model, ".png"))
+    
+    height <- max(960, 18 * max(nchar(unlist(strsplit(
+        temp_plot$labels$y, '\n')))))
+    
+    tryCatch({
+        withCallingHandlers({
+            ggplot2::ggsave(filename = png_file, 
+                            plot = temp_plot, 
+                            dpi = 600, 
+                            width = 960 / 300, 
+                            height = height / 300)
+        }, warning = function(w) { 
+            invokeRestart("muffleWarning") })
+    })
+    
+    if (save_plots_rds) {
+        return(temp_plot)
+    } else {
+        invisible()
+    }
+}

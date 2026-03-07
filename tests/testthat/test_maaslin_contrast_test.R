@@ -1,6 +1,5 @@
 library(testthat)
 library(maaslin3)
-library(dplyr)
 
 # The idea of these checks is that the contrast test should be the same as
 # refactoring with categorical data
@@ -21,6 +20,8 @@ data_in_tss <- data.frame(t(apply(data_in, MARGIN = 1,
                                   FUN = function(x){x / sum(x)})))
 data_in_tss[data_in_tss == 0] <- NA
 data_in_tss_log <- log2(data_in_tss)
+
+out_dir = tempdir()
 
 results <- maaslin_fit(data_in_tss,
                        data_in_tss_log,
@@ -44,6 +45,7 @@ contrast_test_out <- maaslin_contrast_test(results,
                       contrast_mat)
 
 metadata$var2 <- factor(metadata$var2, levels = c('b', 'a', 'c'))
+
 results2 <- maaslin_fit(data_in_tss,
                        data_in_tss_log,
                        metadata,
@@ -76,4 +78,6 @@ expect_that(new_mod_results2$coef, equals(contrast_test_out$fit_data_prevalence$
 expect_that(new_mod_results2$stderr, equals(contrast_test_out$fit_data_prevalence$results$stderr))
 expect_equal(new_mod_results2$pval_individual, 
              contrast_test_out$fit_data_prevalence$results$pval_individual, tolerance = 0.01)
+
+unlink(out_dir, recursive = TRUE)
 

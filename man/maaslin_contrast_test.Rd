@@ -18,6 +18,7 @@ maaslin_contrast_test(maaslin3_fit,
                         median_comparison_prevalence = FALSE,
                         subtract_median = FALSE,
                         small_random_effects = FALSE,
+                        bypass_small_group_warning = FALSE,
                         evaluate_only = NULL)
 }
 \arguments{
@@ -49,6 +50,9 @@ maaslin_contrast_test(maaslin3_fit,
     \item{small_random_effects}{Automatically replace random effects with 
     fixed effects in the logistic prevalence model to handle low numbers
     of observations per group.}
+    \item{bypass_small_group_warning}{When \code{TRUE}, bypass the warning
+    that is normally added to results when there are fewer than 4 average
+    observations per random effect group.}
     \item{evaluate_only}{Whether to evaluate just the abundnace
     ("abundance") or prevalence ("prevalence") models}
 }

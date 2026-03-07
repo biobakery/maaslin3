@@ -120,7 +120,7 @@ get_fixed_effects <-
                                                 "^expr ", "",
                                                 safe_deparse(formula)
                                             ))
-                                        )), collapse = " "),
+                                        ),
                                         fixed = TRUE)
                 fixed_effects_only <-
                     gsub("[+ ]+$", "", fixed_effects_only)
@@ -2418,8 +2418,8 @@ fit.model <- function(features,
                     FUN.VALUE = character(length(random_terms))))
             grouping <- data.table::fifelse(grouping == make.names(grouping),
                 grouping, paste0('`', grouping, '`'))
-            new_formula <- stats::as.formula(
-                paste(deparse(fixed_part), "+", 
+            new_formula <- as.formula(
+                paste(safe_deparse(fixed_part), "+", 
                     paste(grouping, collapse = " + ")),
                 env = environment(formula)
             )

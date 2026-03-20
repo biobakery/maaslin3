@@ -9,7 +9,5 @@
         cli::cli_inform("{cli::symbol$bullet} {.strong Get help}: Visit the biobakery help forum at {.url https://forum.biobakery.org/}", 
                         class = "packageStartupMessage")
         
-        cli::cli_inform("{cli::symbol$bullet} {.strong Parallelize}: Enable {.fn mirai::daemons} as appropriate for your system.",
-                        class = "packageStartupMessage")
     } 
 }

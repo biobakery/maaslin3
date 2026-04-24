@@ -180,7 +180,7 @@ add_qvals <- function(fit_data_abundance, fit_data_prevalence, correction) {
         c("BH", "holm", "hochberg", "hommel", "bonferroni", "BY"))
     # Select out p-values and NA if errors
     if (!is.null(fit_data_abundance)) {
-        abundance_pvals <- fit_data_abundance$results$pval
+        abundance_pvals <- as.numeric(fit_data_abundance$results$pval)
         
         abundance_pvals <- data.table::fifelse(!is.na(fit_data_abundance$results$error),
                                                NA_real_,
@@ -190,7 +190,7 @@ add_qvals <- function(fit_data_abundance, fit_data_prevalence, correction) {
     }
     
     if (!is.null(fit_data_prevalence)) {
-        prevalence_pvals <- fit_data_prevalence$results$pval
+        prevalence_pvals <- as.numeric(fit_data_prevalence$results$pval)
         
         prevalence_pvals <- data.table::fifelse(!is.na(fit_data_prevalence$results$error),
                                                 NA_real_,

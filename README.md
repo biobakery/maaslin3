@@ -79,6 +79,11 @@ for (lib in c('maaslin3', 'dplyr', 'ggplot2', 'knitr')) {
 }
 ```
 
+To install from GitHub, run:
+```
+devtools::install_github("biobakery/maaslin3")
+```
+
 ## Running MaAsLin 3 ##
 
 MaAsLin3 can be run from the command line or as an R function. Both

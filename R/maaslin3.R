@@ -1086,6 +1086,14 @@ maaslin_read_data <- function(input_data,
         stop("feature_specific_covariate is not a file or data frame!")
     }
 
+    if (any(duplicated(colnames(data)))) {
+        logging::logwarn(
+            "Duplicate feature names detected: %s. Making names unique.",
+            toString(colnames(data)[duplicated(colnames(data))])
+        )
+        colnames(data) <- make.unique(colnames(data))
+    }
+
     return(
         list(
             "data" = data,
@@ -1952,7 +1960,9 @@ maaslin_process_metadata <- function(metadata,
     if (standardize) {
         logging::loginfo("Applying z-score to standardize continuous metadata")
         
-        collapse::num_vars(metadata) <- collapse::fscale(collapse::num_vars(metadata))
+        if (NCOL(collapse::num_vars(metadata)) > 0) {
+            collapse::num_vars(metadata) <- collapse::fscale(collapse::num_vars(metadata))
+        }
         
     } else {
         logging::loginfo("Bypass z-score application to metadata")

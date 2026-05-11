@@ -104,4 +104,5 @@ A list containing the following named items:
         random_effects = c('participant_id'))
     
     unlink('output', recursive=TRUE)
+    maaslin3::maaslin_log_reset()
 }

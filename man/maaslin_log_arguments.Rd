@@ -244,4 +244,5 @@ maaslin_log_arguments(input_data,
                     plot_summary_plot = FALSE,
                     plot_associations = FALSE)
     unlink('output', recursive=TRUE)
+    maaslin3::maaslin_log_reset()
 }

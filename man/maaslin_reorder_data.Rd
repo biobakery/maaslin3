@@ -92,4 +92,5 @@ maaslin_reorder_data(data,
         metadata)
     
     unlink('output', recursive=TRUE)
+    maaslin3::maaslin_log_reset()
 }

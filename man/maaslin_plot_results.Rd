@@ -201,4 +201,5 @@ corresponds to the user-set \code{max_signifiance} divided by 10.
         transform = "LOG")
     
     unlink('output', recursive=TRUE)
+    maaslin3::maaslin_log_reset()
 }

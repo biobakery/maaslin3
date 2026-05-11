@@ -90,4 +90,5 @@ A list containing the following named items:
         age + reads')
     
     unlink('output', recursive=TRUE)
+    maaslin3::maaslin_log_reset()
 }

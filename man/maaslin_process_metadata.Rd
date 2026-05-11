@@ -110,4 +110,5 @@ The processed metadata.
         formula = formula)
     
     unlink('output', recursive=TRUE)
+    maaslin3::maaslin_log_reset()
 }

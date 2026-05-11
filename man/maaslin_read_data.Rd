@@ -91,4 +91,5 @@ maaslin_read_data(input_data,
         metadata)
     
     unlink('output', recursive=TRUE)
+    maaslin3::maaslin_log_reset()
 }

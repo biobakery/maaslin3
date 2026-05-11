@@ -262,4 +262,5 @@ association (row):
         warn_prevalence = FALSE)
     
     unlink('output', recursive=TRUE)
+    maaslin3::maaslin_log_reset()
 }

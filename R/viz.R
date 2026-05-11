@@ -83,7 +83,7 @@ preprocess_merged_results <- function(merged_results) {
                         !is.na(merged_results$coef),]
     
     if (nrow(merged_results) == 0) {
-        logging::loginfo(paste(
+        maaslin_loginfo(paste(
             "No associations were without errors. 
                 No summary plot generated."
         ))
@@ -499,7 +499,7 @@ maaslin3_summary_plot <-
             save_plots_rds = FALSE) {
         ret_plots <- list()
         if (first_n > 200) {
-            logging::logerror(
+            maaslin_logerror(
                 paste(
                     "At most 200 features can be plotted in the heatmap. 
                     Please choose a smaller first_n."
@@ -526,7 +526,7 @@ maaslin3_summary_plot <-
                 !c(coef_plot_vars, heatmap_vars) %in% 
                 unique(merged_results$full_metadata_name)
             )) {
-                logging::loginfo(
+                maaslin_loginfo(
                     paste0(
                         "The following specified variables were not 
                         found in the associations: ",
@@ -537,7 +537,7 @@ maaslin3_summary_plot <-
                         collapse = ''
                     )
                 )
-                logging::loginfo(paste0(
+                maaslin_loginfo(paste0(
                     "Available associations: ",
                     paste0(
                         unique(merged_results$full_metadata_name),
@@ -567,7 +567,7 @@ maaslin3_summary_plot <-
             # coefs choosen, error out
             if (balanced){
                 if (is.null(coef_plot_vars)){
-                    logging::logerror(
+                    maaslin_logerror(
                         paste(
                             "Balanced plotting requires 
                             you set the variables you 
@@ -1004,7 +1004,7 @@ make_lm_plot <- function(this_signif_association,
     if (is.numeric(joined_features_metadata_abun$metadata) &
         length(unique(
             joined_features_metadata_abun$metadata)) > 1) {
-        logging::loginfo(
+        maaslin_loginfo(
             "Creating scatter plot for continuous 
                         data (linear), %s vs %s",
             metadata_name,
@@ -1068,7 +1068,7 @@ make_lm_plot <- function(this_signif_association,
                         new_n)
         }
         
-        logging::loginfo(
+        maaslin_loginfo(
             "Creating box plot for categorical data (linear), 
                         %s vs %s",
             metadata_name,
@@ -1329,7 +1329,7 @@ make_logistic_plot <- function(this_signif_association,
     if (is.numeric(joined_features_metadata_prev$metadata) &
         length(unique(
             joined_features_metadata_prev$metadata)) > 1) {
-        logging::loginfo(
+        maaslin_loginfo(
             "Creating boxplot for continuous data (logistic), %s vs %s",
             metadata_name,
             feature_name
@@ -1404,7 +1404,7 @@ make_logistic_plot <- function(this_signif_association,
                         new_n)
         }
         
-        logging::loginfo(
+        maaslin_loginfo(
             "Creating tile plot for categorical data (logistic), %s vs %s",
             metadata_name,
             feature_name
@@ -1472,7 +1472,7 @@ maaslin3_association_plots <-
                                max_significance,]
         
         if (nrow(merged_results) == 0) {
-            logging::loginfo(paste("All associations had errors 
+            maaslin_loginfo(paste("All associations had errors 
                                 or were insignificant."))
             return(NULL)
         }
@@ -1480,7 +1480,7 @@ maaslin3_association_plots <-
         merged_results <-
             merged_results[order(merged_results$qval_individual),]
         
-        logging::loginfo(
+        maaslin_loginfo(
             paste(
                 "Plotting associations from most",
                 "to least significant,",

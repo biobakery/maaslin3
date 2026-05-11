@@ -100,5 +100,4 @@ maaslin_check_arguments(feature_specific_covariate = NULL,
                                     median_comparison_abundance = TRUE)
                                     
     unlink('output', recursive=TRUE)
-    logging::logReset()
 }

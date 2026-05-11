@@ -667,8 +667,8 @@ will be plotted.
 
 * `save_models` (default `FALSE`): Whether to return the fit models and
 save them to an RData file.
-* `verbosity` (default `'FINEST'`): The level of verbosity for the 
-`logging` package.
+* `verbosity` (default `'FINEST'`): The level of verbosity for MaAsLin 3's
+internal logger.
 * `save_plots_rds` (default `FALSE`): Whether to save the plots as RDS files.
 * `assay.type` (default `1`): A string or index to select the assay when using
 a `SummarizedExperiment` object.
@@ -691,4 +691,3 @@ this?
 ## Manuscript evaluation code ##
 The manuscript evaluation code 
 [can be found here](https://github.com/willnickols/maaslin3_benchmark).
-

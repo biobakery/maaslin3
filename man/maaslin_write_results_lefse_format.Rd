@@ -103,5 +103,4 @@ file in the folder \code{output}. No value is returned.
         maaslin_results$fit_data_prevalence)
     
     unlink('output', recursive=TRUE)
-    logging::logReset()
 }

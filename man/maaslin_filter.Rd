@@ -103,5 +103,4 @@ rows).
                                     output = 'output')
     
     unlink('output', recursive=TRUE)
-    logging::logReset()
 }

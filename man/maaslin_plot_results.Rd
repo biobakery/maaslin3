@@ -201,5 +201,4 @@ corresponds to the user-set \code{max_signifiance} divided by 10.
         transform = "LOG")
     
     unlink('output', recursive=TRUE)
-    logging::logReset()
 }

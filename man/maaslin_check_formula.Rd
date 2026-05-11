@@ -90,5 +90,4 @@ A list containing the following named items:
         age + reads')
     
     unlink('output', recursive=TRUE)
-    logging::logReset()
 }

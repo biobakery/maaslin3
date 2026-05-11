@@ -32,3 +32,9 @@ test_that("parallel is not in Imports", {
     expect_false(grepl("\\bparallel\\b", desc$Imports),
                  info = "parallel should not be in Imports")
 })
+
+test_that("logging is not in Imports", {
+    desc <- packageDescription("maaslin3")
+    expect_false(grepl("\\blogging\\b", desc$Imports),
+                 info = "logging should not be in Imports")
+})

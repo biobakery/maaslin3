@@ -262,5 +262,4 @@ association (row):
         warn_prevalence = FALSE)
     
     unlink('output', recursive=TRUE)
-    logging::logReset()
 }

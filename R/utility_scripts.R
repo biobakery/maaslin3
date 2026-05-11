@@ -200,7 +200,7 @@ write_fits <- function(output,
                     save_models = FALSE) {
     fits_folder <- file.path(output, "fits")
     if (!file.exists(fits_folder)) {
-        logging::loginfo("Creating fits folder")
+        maaslin_loginfo("Creating fits folder")
         dir.create(fits_folder)
     }
 
@@ -220,11 +220,11 @@ write_fits <- function(output,
             model_file <- file.path(fits_folder, 
                                     paste0("models_", model_type, ".rds"))
             if (file.exists(model_file)) {
-                logging::logwarn("Deleting existing model objects file: %s", 
+                maaslin_logwarn("Deleting existing model objects file: %s", 
                                     model_file)
                 unlink(model_file)
             }
-            logging::loginfo("Writing model objects to file %s", model_file)
+            maaslin_loginfo("Writing model objects to file %s", model_file)
             saveRDS(fit_data$fits, file = model_file)
         }
         
@@ -232,21 +232,21 @@ write_fits <- function(output,
         residuals_file <- file.path(fits_folder, 
                                     paste0("residuals_", model_type, ".rds"))
         if (file.exists(residuals_file)) {
-            logging::logwarn("Deleting existing residuals file: %s", 
+            maaslin_logwarn("Deleting existing residuals file: %s", 
                             residuals_file)
             unlink(residuals_file)
         }
-        logging::loginfo("Writing residuals to file %s", residuals_file)
+        maaslin_loginfo("Writing residuals to file %s", residuals_file)
         saveRDS(fit_data$residuals, file = residuals_file)
         
         # Write fitted values to file
         fitted_file <- file.path(fits_folder, 
                                 paste0("fitted_", model_type, ".rds"))
         if (file.exists(fitted_file)) {
-            logging::logwarn("Deleting existing fitted file: %s", fitted_file)
+            maaslin_logwarn("Deleting existing fitted file: %s", fitted_file)
             unlink(fitted_file)
         }
-        logging::loginfo("Writing fitted values to file %s", fitted_file)
+        maaslin_loginfo("Writing fitted values to file %s", fitted_file)
         saveRDS(fit_data$fitted, file = fitted_file)
         
         # Write extracted random effects to file (if specified)
@@ -254,10 +254,10 @@ write_fits <- function(output,
             ranef_file <- file.path(fits_folder, 
                                     paste0("ranef_", model_type, ".rds"))
             if (file.exists(ranef_file)) {
-                logging::logwarn("Deleting existing ranef file: %s", ranef_file)
+                maaslin_logwarn("Deleting existing ranef file: %s", ranef_file)
                 unlink(ranef_file)
             }
-            logging::loginfo("Writing extracted random effects to file %s", 
+            maaslin_loginfo("Writing extracted random effects to file %s", 
                             ranef_file)
             saveRDS(fit_data$ranef, file = ranef_file)
         }
@@ -298,7 +298,7 @@ write_results <- function(output,
     
     results_file <- file.path(output, "all_results.tsv")
     
-    logging::loginfo(
+    maaslin_loginfo(
         paste(
             "Writing all the results to file (ordered 
             by increasing individual q-values): %s"
@@ -328,7 +328,7 @@ write_results <- function(output,
     significant_results_file <-
         file.path(output, "significant_results.tsv")
     
-    logging::loginfo(
+    maaslin_loginfo(
         paste(
             "Writing the significant results without errors",
             "(those which have joint q-values less than",

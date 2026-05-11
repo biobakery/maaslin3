@@ -98,5 +98,5 @@ expect_starts_with <- function(strings, prefixes) {
 
 expect_starts_with(lines_in, lines_to_compare)
 
-logging::logReset()
+get("maaslin_log_reset", envir = asNamespace("maaslin3"))()
 unlink(output_tmp, recursive = T)

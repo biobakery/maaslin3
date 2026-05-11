@@ -637,7 +637,7 @@ options <-
     )
 
 option_not_valid_error <- function(message, valid_options) {
-    logging::logerror(paste(message, ": %s"), toString(valid_options))
+    maaslin_logerror(paste(message, ": %s"), toString(valid_options))
     stop("Option not valid", call. = FALSE)
 }
 
@@ -690,7 +690,7 @@ maaslin_check_arguments <-
         }
 
         # Check valid normalization option selected
-        logging::loginfo("Verifying options selected are valid")
+        maaslin_loginfo("Verifying options selected are valid")
         if (!normalization %in% normalization_choices) {
             option_not_valid_error(
                 paste(
@@ -840,7 +840,7 @@ maaslin_log_arguments <- function(input_data,
 
     # create an output folder
     if (!file.exists(output)) {
-        logging::loginfo("Creating output folder")
+        maaslin_loginfo("Creating output folder")
         dir.create(output)
     }
 
@@ -850,116 +850,116 @@ maaslin_log_arguments <- function(input_data,
 
     # remove log file if already exists (to avoid append)
     if (file.exists(log_file)) {
-        logging::logwarn(paste(
+        maaslin_logwarn(paste(
             "Warning: Deleting existing log file:", log_file))
         unlink(log_file)
     }
 
-    logging::logReset()
+    maaslin_log_reset()
     
-    logging::basicConfig(level = verbosity)
+    maaslin_log_basic_config(level = verbosity)
     
-    logging::removeHandler("basic.stdout")
+    maaslin_log_remove_handler("basic.stdout")
     
-    logging::addHandler(logging::writeToConsole,
+    maaslin_log_add_handler(maaslin_log_write_to_console,
                         handler = "basic.stdout",
                         logger = "",
                         level = 20,
                         formatter = nrw_fmt)
     
-    logging::addHandler(logging::writeToFile,
+    maaslin_log_add_handler(maaslin_log_write_to_file,
                         file = log_file, level = verbosity,
                         formatter = nrw_fmt)
     
-    logging::setLevel(20, logging::getHandler('basic.stdout'))
+    maaslin_log_set_level(20, maaslin_log_get_handler('basic.stdout'))
 
-    logging::loginfo("Writing function arguments to log file")
-    logging::logdebug("Function arguments")
+    maaslin_loginfo("Writing function arguments to log file")
+    maaslin_logdebug("Function arguments")
     if (is.character(input_data)) {
-        logging::logdebug("Input data file: %s", input_data)
+        maaslin_logdebug("Input data file: %s", input_data)
     }
     if (is.character(input_metadata)) {
-        logging::logdebug("Input metadata file: %s", input_metadata)
+        maaslin_logdebug("Input metadata file: %s", input_metadata)
     }
-    logging::logdebug("Output folder: %s", output)
-    logging::logdebug("Formula: %s", formula)
-    logging::logdebug("Fixed effects: %s", fixed_effects)
-    logging::logdebug("Reference: %s", reference)
-    logging::logdebug("Random effects: %s", random_effects)
-    logging::logdebug("Group effects: %s", group_effects)
-    logging::logdebug("Ordered effects: %s", ordered_effects)
-    logging::logdebug("Strata effects: %s", strata_effects)
+    maaslin_logdebug("Output folder: %s", output)
+    maaslin_logdebug("Formula: %s", formula)
+    maaslin_logdebug("Fixed effects: %s", fixed_effects)
+    maaslin_logdebug("Reference: %s", reference)
+    maaslin_logdebug("Random effects: %s", random_effects)
+    maaslin_logdebug("Group effects: %s", group_effects)
+    maaslin_logdebug("Ordered effects: %s", ordered_effects)
+    maaslin_logdebug("Strata effects: %s", strata_effects)
     if (!is.null(feature_specific_covariate)) {
         if (is.character(feature_specific_covariate)) {
-            logging::logdebug("Feature specific covariate: %s",
+            maaslin_logdebug("Feature specific covariate: %s",
                                 feature_specific_covariate)
         }
     }
     if (!is.null(feature_specific_covariate_name)) {
         if (is.character(feature_specific_covariate_name)) {
-            logging::logdebug("Feature specific covariate name: %s",
+            maaslin_logdebug("Feature specific covariate name: %s",
                             feature_specific_covariate_name)
         }
     }
     if (!is.null(feature_specific_covariate_record)) {
         if (is.character(feature_specific_covariate_record)) {
-            logging::logdebug(
+            maaslin_logdebug(
                 "Feature specific covariate include: %s",
                 feature_specific_covariate_record
             )
         }
     }
-    logging::logdebug("Min Abundance: %f", min_abundance)
-    logging::logdebug("Min Prevalence: %f", min_prevalence)
-    logging::logdebug("Max Prevalence: %f", max_prevalence)
-    logging::logdebug("Zero Threshold: %f", zero_threshold)
-    logging::logdebug("Min variance: %f", min_variance)
-    logging::logdebug("Max significance: %f", max_significance)
-    logging::logdebug("Normalization: %s", normalization)
-    logging::logdebug("Transform: %s", transform)
-    logging::logdebug("Correction method: %s", correction)
-    logging::logdebug("Standardize: %s", standardize)
+    maaslin_logdebug("Min Abundance: %f", min_abundance)
+    maaslin_logdebug("Min Prevalence: %f", min_prevalence)
+    maaslin_logdebug("Max Prevalence: %f", max_prevalence)
+    maaslin_logdebug("Zero Threshold: %f", zero_threshold)
+    maaslin_logdebug("Min variance: %f", min_variance)
+    maaslin_logdebug("Max significance: %f", max_significance)
+    maaslin_logdebug("Normalization: %s", normalization)
+    maaslin_logdebug("Transform: %s", transform)
+    maaslin_logdebug("Correction method: %s", correction)
+    maaslin_logdebug("Standardize: %s", standardize)
     if (is.character(unscaled_abundance)) {
-        logging::logdebug("Unscaled abundance: %s", unscaled_abundance)
+        maaslin_logdebug("Unscaled abundance: %s", unscaled_abundance)
     }
-    logging::logdebug("Abundance median comparison: %s",
+    maaslin_logdebug("Abundance median comparison: %s",
                         median_comparison_abundance)
-    logging::logdebug("Prevalence median comparison: %s",
+    maaslin_logdebug("Prevalence median comparison: %s",
                         median_comparison_prevalence)
-    logging::logdebug(
+    maaslin_logdebug(
         "Abundance median comparison threshold: %s",
         median_comparison_abundance_threshold
     )
-    logging::logdebug(
+    maaslin_logdebug(
         "Prevalence median comparison threshold: %s",
         median_comparison_prevalence_threshold
     )
-    logging::logdebug(
+    maaslin_logdebug(
         "Subtract median: %s",
         subtract_median
     )
-    logging::logdebug(
+    maaslin_logdebug(
         "Warn prevalence: %s",
         warn_prevalence
     )
-    logging::logdebug(
+    maaslin_logdebug(
         "Small random effects: %s",
         small_random_effects
     )
-    logging::logdebug(
+    maaslin_logdebug(
         "Bypass small group warning: %s",
         bypass_small_group_warning
     )
-    logging::logdebug("Augment: %s", augment)
-    logging::logdebug("Evaluate only: %s", evaluate_only)
+    maaslin_logdebug("Augment: %s", augment)
+    maaslin_logdebug("Evaluate only: %s", evaluate_only)
     
     n_con = mirai::info()["connections"]
     
     n_daemon = if (is.null(n_con)) 0 else n_con
     
-    logging::logdebug("Number of mirai daemons: %d", n_daemon)
+    maaslin_logdebug("Number of mirai daemons: %d", n_daemon)
     
-    logging::logdebug("Balanced Summary plot: %s", summary_plot_balanced)
+    maaslin_logdebug("Balanced Summary plot: %s", summary_plot_balanced)
 
 
     maaslin_check_arguments(
@@ -1004,7 +1004,7 @@ maaslin_read_data <- function(input_data,
     } else if (inherits(input_data, 'DataFrame')) {
         data <- as.data.frame(input_data) # If it's BioC's DataFrame
     } else if (is.matrix(input_data)) {
-        logging::logwarn("Input is a matrix,
+        maaslin_logwarn("Input is a matrix,
                         passing through as.data.frame() .")
         data <- as.data.frame(input_data)
     } else {
@@ -1087,7 +1087,7 @@ maaslin_read_data <- function(input_data,
     }
 
     if (any(duplicated(colnames(data)))) {
-        logging::logwarn(
+        maaslin_logwarn(
             "Duplicate feature names detected: %s. Making names unique.",
             toString(colnames(data)[duplicated(colnames(data))])
         )
@@ -1112,11 +1112,11 @@ maaslin_reorder_data <- function(data,
                                 metadata,
                                 feature_specific_covariate = NULL,
                                 unscaled_abundance = NULL) {
-    logging::loginfo("Determining format of input files")
+    maaslin_loginfo("Determining format of input files")
     samples_row_row <- intersect(rownames(data), rownames(metadata))
     if (length(samples_row_row) > 0) {
         # this is the expected formatting so do not modify data frames
-        logging::loginfo(paste(
+        maaslin_loginfo(paste(
             "Input format is data samples",
             "as rows and metadata samples as rows"
         ))
@@ -1129,7 +1129,7 @@ maaslin_reorder_data <- function(data,
         }
 
         if (length(samples_column_row) > 0) {
-            logging::loginfo(
+            maaslin_loginfo(
                 paste(
                     "Input format is data samples",
                     "as columns and metadata samples as rows"
@@ -1137,12 +1137,12 @@ maaslin_reorder_data <- function(data,
             )
             # transpose data frame so samples are rows
             data <- as.data.frame(t(data))
-            logging::logdebug("Transformed data so samples are rows")
+            maaslin_logdebug("Transformed data so samples are rows")
         } else {
             samples_column_column <-
                 intersect(colnames(data), colnames(metadata))
             if (length(samples_column_column) > 0) {
-                logging::loginfo(
+                maaslin_loginfo(
                     paste(
                         "Input format is data samples",
                         "as columns and metadata samples as columns"
@@ -1150,7 +1150,7 @@ maaslin_reorder_data <- function(data,
                 )
                 data <- as.data.frame(BiocGenerics::t(data))
                 metadata <- as.data.frame(BiocGenerics::t(metadata))
-                logging::logdebug("Transformed data and metadata
+                maaslin_logdebug("Transformed data and metadata
                                 so samples are rows")
             } else {
                 samples_row_column <-
@@ -1162,30 +1162,30 @@ maaslin_reorder_data <- function(data,
                 }
 
                 if (length(samples_row_column) > 0) {
-                    logging::loginfo(
+                    maaslin_loginfo(
                         paste(
                             "Input format is data samples",
                             "as rows and metadata samples as columns"
                         )
                     )
                     metadata <- as.data.frame(BiocGenerics::t(metadata))
-                    logging::logdebug("Transformed metadata so
+                    maaslin_logdebug("Transformed metadata so
                                     samples are rows")
                 } else {
-                    logging::logerror(
+                    maaslin_logerror(
                         paste(
                             "Unable to find samples in data and",
                             "metadata files.",
                             "Rows/columns do not match."
                         )
                     )
-                    logging::logdebug("Data rows: %s",
+                    maaslin_logdebug("Data rows: %s",
                                     paste(rownames(data), collapse = ","))
-                    logging::logdebug("Data columns: %s",
+                    maaslin_logdebug("Data columns: %s",
                                     paste(colnames(data), collapse = ","))
-                    logging::logdebug("Metadata rows: %s",
+                    maaslin_logdebug("Metadata rows: %s",
                                     paste(rownames(metadata), collapse = ","))
-                    logging::logdebug("Metadata columns: %s",
+                    maaslin_logdebug("Metadata columns: %s",
                                     paste(colnames(data), collapse = ","))
                     stop()
                 }
@@ -1203,7 +1203,7 @@ maaslin_reorder_data <- function(data,
         if (length(samples_row_row) > 0 &
             length(samples_col_col) > 0) {
             # this is the expected formatting so do not modify data frames
-            logging::loginfo(
+            maaslin_loginfo(
                 paste(
                     "Input format is data samples",
                     "as rows and feature_specific_covariate samples as rows"
@@ -1229,7 +1229,7 @@ maaslin_reorder_data <- function(data,
 
             if (length(samples_column_row) > 0 &
                 length(samples_row_column) > 0) {
-                logging::loginfo(
+                maaslin_loginfo(
                     paste(
                         "Input format is feature_specific_covariate samples",
                         "as columns"
@@ -1238,27 +1238,27 @@ maaslin_reorder_data <- function(data,
                 # transpose data frame so samples are rows
                 feature_specific_covariate <-
                     as.data.frame(BiocGenerics::t(feature_specific_covariate))
-                logging::logdebug("Transformed feature_specific_covariate
+                maaslin_logdebug("Transformed feature_specific_covariate
                                 so samples are rows")
             } else {
-                logging::logerror(
+                maaslin_logerror(
                     paste(
                         "Unable to find samples in feature_specific_covariate.",
                         "Rows/columns do not match."
                     )
                 )
-                logging::logdebug("Data rows: %s",
+                maaslin_logdebug("Data rows: %s",
                                 paste(rownames(data), collapse = ","))
-                logging::logdebug("Data columns: %s",
+                maaslin_logdebug("Data columns: %s",
                                 paste(colnames(data), collapse = ","))
-                logging::logdebug(
+                maaslin_logdebug(
                     "Feature specific covariate rows: %s",
                     paste(
                         rownames(feature_specific_covariate),
                         collapse = ","
                     )
                 )
-                logging::logdebug(
+                maaslin_logdebug(
                     "Feature specific covariate columns: %s",
                     paste(
                         colnames(feature_specific_covariate),
@@ -1274,7 +1274,7 @@ maaslin_reorder_data <- function(data,
     # get a set of the samples with both metadata and features
     intersect_samples <-
         intersect(rownames(data), rownames(metadata))
-    logging::logdebug(
+    maaslin_logdebug(
         "A total of %s samples were found in both the data and metadata",
         length(intersect_samples)
     )
@@ -1283,7 +1283,7 @@ maaslin_reorder_data <- function(data,
         intersect_samples <-
             intersect(intersect_samples,
                     rownames(feature_specific_covariate))
-        logging::logdebug(
+        maaslin_logdebug(
             "A total of %s samples were found in the data, metadata,
             and feature specific covariates",
             length(intersect_samples)
@@ -1294,7 +1294,7 @@ maaslin_reorder_data <- function(data,
     extra_feature_samples <-
         setdiff(rownames(data), intersect_samples)
     if (length(extra_feature_samples) > 0)
-        logging::loginfo(
+        maaslin_loginfo(
             paste(
                 "The following samples were found",
                 "to have features but no metadata",
@@ -1309,7 +1309,7 @@ maaslin_reorder_data <- function(data,
     extra_metadata_samples <-
         setdiff(rownames(metadata), intersect_samples)
     if (length(extra_metadata_samples) > 0)
-        logging::loginfo(
+        maaslin_loginfo(
             paste(
                 "The following samples were found",
                 "to have metadata but no features",
@@ -1325,7 +1325,7 @@ maaslin_reorder_data <- function(data,
             setdiff(rownames(feature_specific_covariate),
                     intersect_samples)
         if (length(extra_feature_specific_covariate_samples) > 0)
-            logging::loginfo(
+            maaslin_loginfo(
                 paste(
                     "The following samples were found",
                     "to have feature specific covariates",
@@ -1340,7 +1340,7 @@ maaslin_reorder_data <- function(data,
         extra_unscaled_abundance_samples <-
             setdiff(rownames(unscaled_abundance), rownames(data))
         if (length(extra_unscaled_abundance_samples) > 0)
-            logging::logdebug(
+            maaslin_logdebug(
                 paste(
                     "The following samples were found",
                     "to have unscaled abundances but no features.",
@@ -1357,16 +1357,16 @@ maaslin_reorder_data <- function(data,
             stop("there is more than 1 column in
                 the unscaled abundance data frame")
         } else if (colnames(unscaled_abundance) %in% colnames(data)) {
-            logging::logdebug("Using unscaled abundance as spike-in feature")
+            maaslin_logdebug("Using unscaled abundance as spike-in feature")
         } else if (colnames(unscaled_abundance) == 'total') {
-            logging::logdebug("Using unscaled abundance as total abundances")
+            maaslin_logdebug("Using unscaled abundance as total abundances")
         } else {
             stop("unscaled abundance column must be a feature name or 'total'")
         }
     }
 
     # now order both data and metadata with the same sample ordering
-    logging::logdebug("Reordering data/metadata to use same sample ordering")
+    maaslin_logdebug("Reordering data/metadata to use same sample ordering")
     data <- data[intersect_samples, , drop = FALSE]
     metadata <- metadata[intersect_samples, , drop = FALSE]
 
@@ -1415,7 +1415,7 @@ maaslin_compute_formula <- function(data,
         # remove any fixed effects not found in metadata names
         to_remove <- setdiff(fixed_effects, colnames(metadata))
         if (length(to_remove) > 0) {
-            logging::logerror(
+            maaslin_logerror(
                 paste(
                     "Variable name not found in metadata",
                     "so not applied to formula as fixed effect: %s"
@@ -1432,7 +1432,7 @@ maaslin_compute_formula <- function(data,
 
         common_variables <- intersect(fixed_effects, random_effects)
         if (length(common_variables) > 0) {
-            logging::logwarn(
+            maaslin_logwarn(
                 paste(
                     "Feature name included as fixed and random effect,",
                     "check that this is intended: %s"
@@ -1444,7 +1444,7 @@ maaslin_compute_formula <- function(data,
         # remove any random effects not found in metadata
         to_remove <- setdiff(random_effects, colnames(metadata))
         if (length(to_remove) > 0) {
-            logging::logerror(
+            maaslin_logerror(
                 paste(
                     "Effect name not found in metadata",
                     "so not applied to formula as random effect: %s"
@@ -1467,7 +1467,7 @@ maaslin_compute_formula <- function(data,
                         collapse = " + (1 | "
                     ),
                     sep = '')
-            logging::loginfo("Formula for random effects: %s",
+            maaslin_loginfo("Formula for random effects: %s",
                             random_effects_formula_text)
             random_effects_formula <-
                 tryCatch(
@@ -1498,7 +1498,7 @@ maaslin_compute_formula <- function(data,
 
         common_variables <- intersect(fixed_effects, multi_effects)
         if (length(common_variables) > 0) {
-            logging::logerror(
+            maaslin_logerror(
                 paste(
                     "Feature name included as fixed and group/ordered effect,",
                     "this is not allowed: %s"
@@ -1511,7 +1511,7 @@ maaslin_compute_formula <- function(data,
         # remove any random effects not found in metadata
         to_remove <- setdiff(multi_effects, colnames(metadata))
         if (length(to_remove) > 0) {
-            logging::logerror(paste0(
+            maaslin_logerror(paste0(
                 "Effect name not found in metadata: ",
                 paste0(to_remove, collapse = ", ")
             ))
@@ -1523,7 +1523,7 @@ maaslin_compute_formula <- function(data,
         length(group_effects) == 0 &
         length(ordered_effects) == 0 &
         is.null(feature_specific_covariate_name)) {
-        logging::logerror("No fixed/group/ordered/
+        maaslin_logerror("No fixed/group/ordered/
                         feature-specific effects provided.")
         stop()
     }
@@ -1579,7 +1579,7 @@ maaslin_compute_formula <- function(data,
 
     formula_text <-
         paste("expr ~ ", paste(formula_effects, collapse = " + "))
-    logging::loginfo("Formula for fixed effects: %s", formula_text)
+    maaslin_loginfo("Formula for fixed effects: %s", formula_text)
     formula <-
         tryCatch(
             stats::as.formula(formula_text),
@@ -1623,7 +1623,7 @@ maaslin_check_formula <- function(data,
     random_effects_formula <- NULL
 
     if (is.null(input_formula)) {
-        logging::logerror(paste("No user formula provided"))
+        maaslin_logerror(paste("No user formula provided"))
     }
 
     # Remove anything before the tilde if necessary
@@ -1666,7 +1666,7 @@ maaslin_check_formula <- function(data,
 
     to_remove <- setdiff(formula_terms, colnames(metadata))
     if (length(to_remove) > 0) {
-        logging::logerror(
+        maaslin_logerror(
             paste("Effect name not found in metadata: %s"),
             paste(to_remove, collapse = ", ")
         )
@@ -1677,7 +1677,7 @@ maaslin_check_formula <- function(data,
 
     if (sum(!grepl("strata\\(|\\|", term_labels)) == 0 &
         is.null(feature_specific_covariate_name)) {
-        logging::logerror("No fixed, group, or
+        maaslin_logerror("No fixed, group, or
                         ordered effects included in formula.")
         stop()
     }
@@ -1710,7 +1710,7 @@ maaslin_normalize <- function(data,
 
     normalization <- toupper(normalization)
 
-    logging::loginfo("Running selected normalization method: %s", normalization)
+    maaslin_loginfo("Running selected normalization method: %s", normalization)
 
     if (normalization == 'TSS') {
         features <- TSSnorm(features, zero_threshold)
@@ -1730,12 +1730,12 @@ maaslin_normalize <- function(data,
     if (!is.null(output)) {
         features_folder <- file.path(output, "features")
         if (!file.exists(features_folder)) {
-            logging::loginfo("Creating output feature tables folder")
+            maaslin_loginfo("Creating output feature tables folder")
             dir.create(features_folder, recursive = TRUE)
         }
 
         data_norm_file <- file.path(features_folder, "data_norm.tsv")
-        logging::loginfo("Writing normalized data to file %s", data_norm_file)
+        maaslin_loginfo("Writing normalized data to file %s", data_norm_file)
         write.table(
             data.frame("feature" = rownames(features), 
                         features, 
@@ -1767,19 +1767,19 @@ maaslin_filter <- function(normalized_data,
     # require at least total samples * min prevalence values
     # and at most total samples * max prevalence values
     # for each feature to be greater than min abundance
-    logging::loginfo("Filter data based on min abundance, min prevalence, and max prevalence")
+    maaslin_loginfo("Filter data based on min abundance, min prevalence, and max prevalence")
     total_samples <- nrow(unfiltered_data)
-    logging::loginfo("Total samples in data: %d", total_samples)
+    maaslin_loginfo("Total samples in data: %d", total_samples)
     min_samples <- total_samples * min_prevalence
     max_samples <- total_samples * max_prevalence
-    logging::loginfo(
+    maaslin_loginfo(
         paste(
             "Min samples required with min abundance",
             "for a feature not to be filtered: %f"
         ),
         min_samples
     )
-    logging::loginfo(
+    maaslin_loginfo(
         paste(
             "Max samples allowed with min abundance",
             "for a feature not to be filtered: %f"
@@ -1805,10 +1805,10 @@ maaslin_filter <- function(normalized_data,
                         drop = FALSE]
     total_filtered_features <-
         ncol(unfiltered_data) - ncol(filtered_data)
-    logging::loginfo("Total filtered features: %d", total_filtered_features)
+    maaslin_loginfo("Total filtered features: %d", total_filtered_features)
     filtered_feature_names <-
         setdiff(names(unfiltered_data), names(filtered_data))
-    logging::loginfo(
+    maaslin_loginfo(
         "Filtered feature names from abundance, min prevalence, and max prevalence filtering: %s",
         toString(filtered_feature_names)
     )
@@ -1822,12 +1822,12 @@ maaslin_filter <- function(normalized_data,
         filtered_data[, which(vars > min_variance), drop = FALSE]
     variance_filtered_features <-
         ncol(filtered_data) - ncol(variance_filtered_data)
-    logging::loginfo(
+    maaslin_loginfo(
         "Total features filtered by non-zero variance filtering: %d",
         variance_filtered_features)
     variance_filtered_feature_names <-
         setdiff(names(filtered_data), names(variance_filtered_data))
-    logging::loginfo(
+    maaslin_loginfo(
         "Filtered feature names from variance filtering: %s",
         toString(variance_filtered_feature_names)
     )
@@ -1840,12 +1840,12 @@ maaslin_filter <- function(normalized_data,
     if (!is.null(output)) {
         features_folder <- file.path(output, "features")
         if (!file.exists(features_folder)) {
-            logging::loginfo("Creating output feature tables folder")
+            maaslin_loginfo("Creating output feature tables folder")
             dir.create(features_folder, recursive = TRUE)
         }
 
         filtered_file <- file.path(features_folder, "filtered_data.tsv")
-        logging::loginfo("Writing filtered data to file %s", filtered_file)
+        maaslin_loginfo("Writing filtered data to file %s", filtered_file)
         write.table(
             data.frame("feature" = rownames(filtered_data), 
                         filtered_data, 
@@ -1905,7 +1905,7 @@ maaslin_process_metadata <- function(metadata,
         # respect ordering if a factor is
         # explicitly passed in with no reference set
         if (is.factor(metadata[, i]) && !(i %in% split_reference)) {
-            logging::loginfo(
+            maaslin_loginfo(
                 paste(
                     "Factor detected for categorial metadata '",
                     i,
@@ -1958,14 +1958,14 @@ maaslin_process_metadata <- function(metadata,
     ################################
 
     if (standardize) {
-        logging::loginfo("Applying z-score to standardize continuous metadata")
+        maaslin_loginfo("Applying z-score to standardize continuous metadata")
         
         if (NCOL(collapse::num_vars(metadata)) > 0) {
             collapse::num_vars(metadata) <- collapse::fscale(collapse::num_vars(metadata))
         }
         
     } else {
-        logging::loginfo("Bypass z-score application to metadata")
+        maaslin_loginfo("Bypass z-score application to metadata")
     }
 
     return(metadata)
@@ -1982,7 +1982,7 @@ maaslin_transform <- function(filtered_data,
 
     features <- filtered_data
 
-    logging::loginfo("Running selected transform method: %s", transform)
+    maaslin_loginfo("Running selected transform method: %s", transform)
 
     if (transform == 'LOG') {
         features <- LOG(features)
@@ -1994,13 +1994,13 @@ maaslin_transform <- function(filtered_data,
     if (!is.null(output)) {
         features_folder <- file.path(output, "features")
         if (!file.exists(features_folder)) {
-            logging::loginfo("Creating output feature tables folder")
+            maaslin_loginfo("Creating output feature tables folder")
             dir.create(features_folder, recursive = TRUE)
         }
 
         filtered_data_norm_transformed_file <-
             file.path(features_folder, "data_transformed.tsv")
-        logging::loginfo(
+        maaslin_loginfo(
             "Writing normalized, filtered, transformed data to file %s",
             filtered_data_norm_transformed_file
         )
@@ -2062,7 +2062,7 @@ maaslin_fit <- function(filtered_data,
             mirai::daemons(cores)
             started_daemons <- TRUE
             on.exit(mirai::daemons(0), add = TRUE)
-            logging::loginfo("Started %d mirai daemons via `cores` argument", cores)
+            maaslin_loginfo("Started %d mirai daemons via `cores` argument", cores)
         }
     }
 
@@ -2089,7 +2089,7 @@ maaslin_fit <- function(filtered_data,
 
     # Run linear model component
     if (is.null(evaluate_only) || evaluate_only == "abundance") {
-        logging::loginfo("Running the linear model component")
+        maaslin_loginfo("Running the linear model component")
         prevalence_mask <- ifelse(!is.na(filtered_data), 1, 0)
 
         #######################
@@ -2123,7 +2123,7 @@ maaslin_fit <- function(filtered_data,
         # Count the total values for each feature (untransformed space) #
         #################################################################
 
-        logging::loginfo("Counting total values for each feature")
+        maaslin_loginfo("Counting total values for each feature")
 
         fit_data_abundance$results$N <-
             apply(
@@ -2148,7 +2148,7 @@ maaslin_fit <- function(filtered_data,
         # For binary models #
         #####################
 
-        logging::loginfo("Running the logistic model component")
+        maaslin_loginfo("Running the logistic model component")
 
         prevalence_mask <- ifelse(!is.na(filtered_data), 1, 0)
 
@@ -2175,7 +2175,7 @@ maaslin_fit <- function(filtered_data,
                     feature_specific_covariate_record
             )
 
-        logging::loginfo("Counting total values for each feature")
+        maaslin_loginfo("Counting total values for each feature")
 
         fit_data_prevalence$results$N <-
             apply(
@@ -2261,7 +2261,7 @@ maaslin_fit <- function(filtered_data,
 
     # Warn about prevalence associations induced by abundances changes
     if (warn_prevalence) {
-        logging::loginfo("Re-running abundances for warn_prevalence")
+        maaslin_loginfo("Re-running abundances for warn_prevalence")
 
         if (!is.null(evaluate_only)) {
             stop_message <- "evaluate_only must be null with warn_prevalence"
@@ -2452,7 +2452,7 @@ maaslin_write_results <- function(output,
                                 save_models = FALSE) {
     # create an output folder if it does not exist
     if (!file.exists(output)) {
-        logging::loginfo("Creating output folder")
+        maaslin_loginfo("Creating output folder")
         dir.create(output)
     }
 
@@ -2475,7 +2475,7 @@ maaslin_write_results_lefse_format <- function(output,
                                             fit_data_prevalence) {
     # create an output folder if it does not exist
     if (!file.exists(output)) {
-        logging::loginfo("Creating output folder")
+        maaslin_loginfo("Creating output folder")
         dir.create(output)
     }
 
@@ -2521,13 +2521,13 @@ maaslin_plot_results <- function(output,
     ret_plots <- list()
     # create an output folder and figures folder if it does not exist
     if (!file.exists(output)) {
-        logging::loginfo("Creating output folder")
+        maaslin_loginfo("Creating output folder")
         dir.create(output)
     }
     if (plot_summary_plot || plot_associations) {
         figures_folder <- file.path(output, "figures")
         if (!file.exists(figures_folder)) {
-            logging::loginfo("Creating output figures folder")
+            maaslin_loginfo("Creating output figures folder")
             dir.create(figures_folder)
         }
     }
@@ -2544,7 +2544,7 @@ maaslin_plot_results <- function(output,
     # Summary plot
     if (plot_summary_plot) {
         summary_plot_file <- file.path(figures_folder, "summary_plot.pdf")
-        logging::loginfo("Writing summary plot of significant
+        maaslin_loginfo("Writing summary plot of significant
                         results to file: %s",
                         summary_plot_file)
 
@@ -2574,7 +2574,7 @@ maaslin_plot_results <- function(output,
 
     # Individual association plots
     if (plot_associations) {
-        logging::loginfo(
+        maaslin_loginfo(
             paste(
                 "Writing association plots",
                 "(one for each significant association)",
@@ -2638,13 +2638,13 @@ maaslin_plot_results_from_output <- function(output,
 
     # create an output folder and figures folder if it does not exist
     if (!file.exists(output)) {
-        logging::loginfo("Creating output folder")
+        maaslin_loginfo("Creating output folder")
         dir.create(output)
     }
     if (plot_summary_plot || plot_associations) {
         figures_folder <- file.path(output, "figures")
         if (!file.exists(figures_folder)) {
-            logging::loginfo("Creating output figures folder")
+            maaslin_loginfo("Creating output figures folder")
             dir.create(figures_folder)
         }
     }
@@ -2668,7 +2668,7 @@ maaslin_plot_results_from_output <- function(output,
     # Summary plot
     if (plot_summary_plot) {
         summary_plot_file <- file.path(figures_folder, "summary_plot.pdf")
-        logging::loginfo("Writing summary plot of
+        maaslin_loginfo("Writing summary plot of
                         significant results to file: %s",
                         summary_plot_file)
 
@@ -2721,7 +2721,7 @@ maaslin_plot_results_from_output <- function(output,
         
         collapse::fselect(transformed_data, "feature") <- NULL
 
-        logging::loginfo(
+        maaslin_loginfo(
             paste(
                 "Writing association plots",
                 "(one for each significant association)",
@@ -2778,8 +2778,8 @@ maaslin_plot_results_from_output <- function(output,
         ret_plots[["assocation_plots"]] <- plots_out
     }
 
-    if ('logging::writeToFile' %in% names(logging::getLogger()[['handlers']])) {
-        logging::removeHandler('logging::writeToFile')
+    if ('maaslin_log_write_to_file' %in% names(maaslin_log_get_logger()[['handlers']])) {
+        maaslin_log_remove_handler('maaslin_log_write_to_file')
     }
 
     return(ret_plots)
@@ -2837,7 +2837,7 @@ maaslin3 <- function(input_data,
                     assay.type = 1) {
     match.arg(verbosity, c("FINEST", "FINER", "FINE", "DEBUG", "INFO",
                             "WARN", "ERROR"))
-    logging::logReset()
+    maaslin_log_reset()
     
     started_daemons <- FALSE
     if (cores > 1) {
@@ -2848,7 +2848,7 @@ maaslin3 <- function(input_data,
             mirai::daemons(cores)
             started_daemons <- TRUE
             on.exit(mirai::daemons(0), add = TRUE)
-            logging::loginfo("Started %d mirai daemons via `cores` argument", cores)
+            maaslin_loginfo("Started %d mirai daemons via `cores` argument", cores)
         }
     }
 
@@ -3082,8 +3082,8 @@ maaslin3 <- function(input_data,
         })
     }
 
-    if ('logging::writeToFile' %in% names(logging::getLogger()[['handlers']])) {
-        logging::removeHandler('logging::writeToFile')
+    if ('maaslin_log_write_to_file' %in% names(maaslin_log_get_logger()[['handlers']])) {
+        maaslin_log_remove_handler('maaslin_log_write_to_file')
     }
 
     return(

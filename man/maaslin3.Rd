@@ -228,7 +228,7 @@ maaslin3(input_data,
     RData file.}
     \item{save_plots_rds}{Whether to return the fit models and save them to an
     RData file.}
-    \item{verbosity}{The level of verbosity for the \code{logging} package.}
+    \item{verbosity}{The level of verbosity for MaAsLin 3's internal logger.}
     \item{summary_plot_balanced}{If set to TRUE the summary plot will 
     show the top N features of each variable included in 
     \code{coef_plot_vars} where N is equal to: 
@@ -294,5 +294,5 @@ maaslin3(input_data,
                                 plot_associations = FALSE)
                                 
     unlink('output', recursive=TRUE)
-    logging::logReset()
+    maaslin3::maaslin_log_reset()
 }

@@ -120,5 +120,5 @@ q-values below the `max_significance` parameter. No value is returned.
         random_effects_formula)
     
     unlink('output', recursive=TRUE)
-    logging::logReset()
+    maaslin3::maaslin_log_reset()
 }

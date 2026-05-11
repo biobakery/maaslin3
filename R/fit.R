@@ -551,7 +551,7 @@ optCtrlList <- list(list(maxeval = 100000),
 check_formulas_valid <- function(formula, random_effects_formula) {
     if (is.null(random_effects_formula)) {
         if (is.null(formula)) {
-            logging::logerror(paste("Both formula and 
+            maaslin_logerror(paste("Both formula and 
                                     random_effects_formula are null"))
             stop()
         }
@@ -1244,7 +1244,7 @@ fit_augmented_logistic <- function(ranef_function,
         }, warning = function(w) {
             message(sprintf("Feature %s : %s", 
                             fn, w))
-            logging::logwarn(paste(
+            maaslin_logwarn(paste(
                 "Fitting problem for feature",
                 x,
                 "a warning was issued"
@@ -1313,7 +1313,7 @@ non_augmented <- function(ranef_function,
         }, warning = function(w) {
             message(sprintf("Feature %s : %s", 
                             fn, w))
-            logging::logwarn(paste(
+            maaslin_logwarn(paste(
                 "Fitting problem for feature",
                 x,
                 "a warning was issued"
@@ -1749,7 +1749,7 @@ fitting_wrap_up <- function(fit_properly,
         
     } else {
         # Fitting issue
-        logging::logwarn(paste("Fitting problem for feature",
+        maaslin_logwarn(paste("Fitting problem for feature",
                             x,
                             "returning NA"))
         
@@ -2270,7 +2270,7 @@ run_median_comparison <- function(paras,
                                 subtract_median,
                                 model) {
     match.arg(model, c("linear", "logistic"))
-    logging::loginfo("Performing tests against medians")
+    maaslin_loginfo("Performing tests against medians")
     
     
     if (length(ordereds) > 0) {
@@ -2473,7 +2473,7 @@ fit.model <- function(features,
     
     # cluster <- NULL
     # if (cores > 1) {
-    #     logging::loginfo("Creating cluster of %s R processes", cores)
+    #     maaslin_loginfo("Creating cluster of %s R processes", cores)
     #     cluster <- parallel::makeCluster(cores)
         # parallel::clusterExport(cluster, c(ls(), function_vec),
                                 # envir = environment())
@@ -2524,13 +2524,19 @@ fit.model <- function(features,
         })
     }
     
+    log_feature_progress <- if (mirai::daemons_set()) {
+        function(...) invisible(FALSE)
+    } else {
+        maaslin_loginfo
+    }
+
     func_to_run <- function(fv, fn, fi) {
         # Extract Features One by One
         featuresVector <- fv 
         
-        logging::loginfo("Fitting model to feature number %d, %s",
-                         fi,
-                         fn)
+        log_feature_progress("Fitting model to feature number %d, %s",
+                             fi,
+                             fn)
         
         # Make fitting matrix of features and metadata
         if (!is.null(feature_specific_covariate)) {
@@ -2744,10 +2750,10 @@ fit.model <- function(features,
     env_objects <- ls(environment(func_to_run))
     for (obj in env_objects) {
         size <- utils::object.size(get(obj, envir = environment(func_to_run)))
-        logging::logdebug(paste0("Object: ", obj, ", Size: ", size))
+        maaslin_logdebug(paste0("Object: ", obj, ", Size: ", size))
     }
     size <- utils::object.size(func_to_run)
-    logging::logdebug(paste0("Object: ", "func_to_run", ", Size: ", size))
+    maaslin_logdebug(paste0("Object: ", "func_to_run", ", Size: ", size))
 
     feat_list = as.list(as.data.frame(features))
     feat_nm = colnames(features)

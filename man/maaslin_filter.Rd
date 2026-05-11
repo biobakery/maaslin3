@@ -103,5 +103,5 @@ rows).
                                     output = 'output')
     
     unlink('output', recursive=TRUE)
-    logging::logReset()
+    maaslin3::maaslin_log_reset()
 }

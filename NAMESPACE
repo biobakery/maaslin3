@@ -1,6 +1,7 @@
 export(maaslin3)
 export(maaslin_check_arguments)
 export(maaslin_log_arguments)
+export(maaslin_log_reset)
 export(maaslin_read_data)
 export(maaslin_reorder_data)
 export(maaslin_compute_formula)

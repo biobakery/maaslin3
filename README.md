@@ -17,7 +17,7 @@ If you use the MaAsLin 3 software, please cite our manuscript:
 Himel Mallick, Eric A. Franzosa, Kelsey N. Thompson, Jacob T. Nearing, 
 Curtis Huttenhower. MaAsLin 3: Refining and extending generalized 
 multivariable linear models for meta-omic association discovery. 
-bioRxiv 2024.12.13.628459; doi: https://doi.org/10.1101/2024.12.13.628459
+Nat Methods 23, 554–564 (2026). https://doi.org/10.1038/s41592-025-02923-9
 
 ### Support ###
 Check out the [MaAsLin 3

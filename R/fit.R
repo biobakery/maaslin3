@@ -2483,7 +2483,11 @@ fit.model <- function(features,
     # Apply per-feature modeling #
     ##############################
    
-    fit_vars = all.vars(formula) |> tail(-1)
+    fit_vars = union(
+        setdiff(all.vars(formula), "expr"),
+        gsub("`", "", c(groups, ordereds, strata), fixed = TRUE)
+    )
+    fit_vars = intersect(fit_vars, colnames(metadata))
     
     small_meta = metadata |>
         collapse::fselect(fit_vars)

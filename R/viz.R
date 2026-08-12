@@ -1050,6 +1050,12 @@ make_lm_plot <- function(this_signif_association,
         if (length(renamed_levels) == 0) {
             renamed_levels <- x_axis_label_names
         }
+        # levels<- requires a factor; character metadata gets an empty
+        # levels attribute and ggplot2 then draws blank categorical axes
+        joined_features_metadata_abun$metadata <- factor(
+            joined_features_metadata_abun$metadata,
+            levels = renamed_levels
+        )
         for (name in x_axis_label_names) {
             total <-
                 length(which(
@@ -1381,6 +1387,12 @@ make_logistic_plot <- function(this_signif_association,
         if (length(renamed_levels) == 0) {
             renamed_levels <- x_axis_label_names
         }
+        # levels<- requires a factor; character metadata gets an empty
+        # levels attribute and ggplot2 then draws blank categorical axes
+        joined_features_metadata_prev$metadata <- factor(
+            joined_features_metadata_prev$metadata,
+            levels = renamed_levels
+        )
         for (name in x_axis_label_names) {
             mean_abun <- mean(
                 joined_features_metadata_prev$feature_abun[

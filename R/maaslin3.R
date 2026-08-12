@@ -3006,6 +3006,11 @@ maaslin3 <- function(input_data,
         standardize
     )
 
+    # Plotting needs original continuous scales with factorized categoricals
+    unstandardized_metadata <- metadata
+    factor_cols <- vapply(standardized_metadata, is.factor, FUN.VALUE = logical(1L))
+    unstandardized_metadata[factor_cols] <- standardized_metadata[factor_cols]
+
     # Fit models
     maaslin_results <- maaslin_fit(
         filtered_data,
@@ -3055,7 +3060,7 @@ maaslin3 <- function(input_data,
                 maaslin_plot_results(
                     output,
                     transformed_data,
-                    metadata,
+                    unstandardized_metadata,
                     maaslin_results$fit_data_abundance,
                     maaslin_results$fit_data_prevalence,
                     normalization,

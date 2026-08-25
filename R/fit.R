@@ -1732,8 +1732,35 @@ fitting_wrap_up <- function(fit_properly,
                 output$ranef <- d
                 
             } else {
-                # Otherwise return the random effects list
-                output$ranef <- l
+                # Flatten each grouping factor to an aligned named vector so
+                # features can be rbind-ed. Names are group::level::term.
+                output$ranef <- unlist(lapply(sort(names(l)), function(nm) {
+                    re_mat <- as.matrix(l[[nm]])
+                    grp <- metadata[[nm]]
+                    all_levels <- if (is.factor(grp)) {
+                        levels(grp)
+                    } else {
+                        sort(unique(as.character(grp)))
+                    }
+                    full_mat <- matrix(
+                        NA_real_,
+                        nrow = length(all_levels),
+                        ncol = ncol(re_mat),
+                        dimnames = list(all_levels, colnames(re_mat)))
+                    observed <- intersect(rownames(re_mat), all_levels)
+                    if (length(observed) > 0) {
+                        full_mat[observed, ] <-
+                            re_mat[observed, , drop = FALSE]
+                    }
+                    v <- as.vector(full_mat)
+                    names(v) <- as.vector(outer(
+                        rownames(full_mat),
+                        colnames(full_mat),
+                        function(level, term) {
+                            paste(nm, level, term, sep = "::")
+                        }))
+                    v
+                }))
             }
         }
         

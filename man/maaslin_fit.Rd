@@ -140,8 +140,9 @@ the same structure. They are both lists with the following named items:
     \item{(3)}{\code{fitted}: A features (rows) by samples (columns)
     dataframe of fitted values from the models.}
     \item{(4)}{\code{ranef}: A features (rows) by random effect (columns)
-    dataframe of random effects from the models. If multiple random effects
-    are specified, this is a dataframe of dataframes.}
+    dataframe of random effects from the models. A single random intercept
+    uses grouping levels as column names; multiple random effects or random
+    slopes use \code{group::level::term} column names.}
     \item{(5)}{\code{fits}: If \code{save_models=TRUE}, this is a list of
     the fit models.}
     }

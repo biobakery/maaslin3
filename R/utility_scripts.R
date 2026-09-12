@@ -976,11 +976,15 @@ maaslin_contrast_test_runner <- function(fits,
                             coef. = function(x) { coef(x, complete = FALSE) }
                         ))$test
                     } else {
-                        summary_out <- summary(multcomp::glht(
-                            fit,
-                            linfct = contrast_vec,
-                            rhs = offsets_to_test[row_index]
-                        ))$test
+                        pval <- lmerTest::contest(fit,
+                            matrix(contrast_vec, TRUE),
+                            rhs = offsets_to_test[row_index])[['Pr(>F)']]
+                        coef <- contrast_vec %*% lme4::fixef(fit)
+                        sigma <- sqrt((contrast_vec %*% vcov(fit) %*%
+                            t(contrast_vec))[1, 1])
+                        summary_out <- list(pvalues = pval,
+                            coefficients = coef,
+                            sigma = sigma)
                     }
                     
                     c(summary_out$pvalues, summary_out$coefficients, 

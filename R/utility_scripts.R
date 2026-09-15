@@ -772,13 +772,11 @@ maaslin_contrast_test_runner <- function(fits,
         colnames(contrast_mat_tmp) <- c(contrast_mat_cols,
                                         setdiff(included_coefs,
                                                 contrast_mat_cols))
-        if (any(contrast_mat_tmp[,setdiff(contrast_mat_cols, 
-                                        included_coefs)] != 0)) {
-            return(matrix(rep(c(NA, NA, NA, 
-                "Predictors not in the model had non-zero contrast values"), 
-                    nrow(contrast_mat)),
-                    nrow = nrow(contrast_mat), byrow = TRUE))
-        }
+        # A row that puts weight on a coefficient this fit does not have
+        # cannot be tested but the other rows still can
+        unsupported_rows <- rowSums(
+            contrast_mat_tmp[, setdiff(contrast_mat_cols, included_coefs),
+                            drop = FALSE] != 0) > 0
         
         contrast_mat_tmp <- contrast_mat_tmp[,included_coefs, drop = FALSE]
         
@@ -786,6 +784,10 @@ maaslin_contrast_test_runner <- function(fits,
         if (!uses_random_effects | model == 'prevalence') {
             test_out_joined <- vapply(X = seq(nrow(contrast_mat)), 
                 FUN = function(row_num) {
+                    if (unsupported_rows[row_num]) {
+                        return(c(NA, NA, NA,
+                            "Predictors not in the model had non-zero contrast values"))
+                    }
                     contrast_vec <- t(matrix(contrast_mat_tmp[row_num,]))
                     
                     error_message <- NA
@@ -833,6 +835,10 @@ maaslin_contrast_test_runner <- function(fits,
         } else {
             test_out_joined <- vapply(X = seq(nrow(contrast_mat)), 
                 FUN = function(row_num) {
+                    if (unsupported_rows[row_num]) {
+                        return(c(NA, NA, NA,
+                            "Predictors not in the model had non-zero contrast values"))
+                    }
                     contrast_vec <- t(matrix(contrast_mat_tmp[row_num,]))
                     
                     error_message <- NA

@@ -284,11 +284,9 @@ make_coef_plot <- function(merged_results_sig,
         ggplot2::scale_x_continuous(
             breaks = custom_break_fun(n = 6),
             limits = c(
-                min(coef_plot_data$coef) - 
-                    quantile(coef_plot_data$stderr, 0.8),
-                max(coef_plot_data$coef) + 
-                    quantile(coef_plot_data$stderr, 0.8)
-            )
+              min(coef_plot_data$coef - coef_plot_data$stderr)*1.1, 
+              max(coef_plot_data$coef + coef_plot_data$stderr)*1.1
+              )
         ) +
         ggplot2::scale_shape_manual(name = "Association", values =
                                         c(21, 24)) +

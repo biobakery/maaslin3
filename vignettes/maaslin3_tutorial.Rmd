@@ -1129,7 +1129,8 @@ fit_out <- maaslin3(input_data = taxa_table,
                     formula = '~ diagnosis + dysbiosis_state +
                         antibiotics + age + reads',
                     plot_summary_plot = FALSE,
-                    plot_associations = FALSE)
+                    plot_associations = FALSE,
+                    save_models = TRUE)
 ```
 
 ```{R, echo = TRUE, warning = FALSE, cache = FALSE}

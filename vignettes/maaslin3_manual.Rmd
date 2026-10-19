@@ -334,7 +334,8 @@ fit_out <- maaslin3(input_data = taxa_table,
                     max_significance = 0.1,
                     median_comparison_abundance = TRUE,
                     median_comparison_prevalence = FALSE,
-                    max_pngs = 20)
+                    max_pngs = 20,
+                    save_models = TRUE)
 ```
 
 The `maaslin3` wrapper function runs all steps at once, but equivalent
